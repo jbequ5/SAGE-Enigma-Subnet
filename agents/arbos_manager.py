@@ -1,15 +1,16 @@
 # agents/arbos_manager.py
-# FINAL COMPLETE VERSION - Real Arbos + Smart Routing + Real SDK Compute
+# FIXED COMPLETE VERSION - Real Arbos + Smart Routing + Real Compute + Real Timing
 
 import os
 import subprocess
+import time
 from agents.tools.reflection import reflect_and_improve
 from agents.tools.gpd import run_gpd
 from agents.tools.scienceclaw import run_scienceclaw
 from agents.tools.ai_researcher import run_ai_researcher
 from agents.tools.hyperagent import run_hyperagent
 from agents.tools.exploration import explore_novel_variant
-from agents.tools.resource_aware import check_and_compress
+from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 from agents.tools.compute import ComputeRouter
 
@@ -20,7 +21,7 @@ class ArbosManager:
         self.compute = ComputeRouter()
         self.config = self._load_config()
         self._setup_real_arbos()
-        print(f"✅ REAL Arbos + SDK Compute loaded ({self.compute.get_compute()})")
+        print(f"✅ REAL Arbos + Compute + Timing loaded ({self.compute.get_compute()})")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -45,36 +46,29 @@ class ArbosManager:
     def _smart_route(self, challenge: str):
         lower = challenge.lower()
         results = []
-        if any(k in lower for k in ["quantum", "physics", "circuit"]):
-            results.append(run_gpd(challenge))
-        if any(k in lower for k in ["discover", "biology", "material"]):
-            results.append(run_scienceclaw(challenge, 20))
-        if any(k in lower for k in ["research", "paper", "literature"]):
-            results.append(run_ai_researcher(challenge))
-        if self.config.get("hyper_planning"):
-            results.append(run_hyperagent(challenge))
+        if any(k in lower for k in ["quantum", "physics", "circuit"]): results.append(run_gpd(challenge))
+        if any(k in lower for k in ["discover", "biology", "material"]): results.append(run_scienceclaw(challenge, 20))
+        if any(k in lower for k in ["research", "paper", "literature"]): results.append(run_ai_researcher(challenge))
+        if self.config.get("hyper_planning"): results.append(run_hyperagent(challenge))
         return "\n\n".join(results), ["GPD", "ScienceClaw", "AI-Researcher"]
 
-       def run(self, challenge: str):
+    def run(self, challenge: str):
+        monitor = ResourceMonitor(max_hours=3.8)
         print(f"🔀 Running REAL Arbos with {self.compute.get_compute()} compute...")
-
-        monitor = ResourceMonitor(max_hours=3.8)  # ← Real 4h timer
 
         try:
             tool_results, tools_used = self._smart_route(challenge)
-
             initial_input = f"Challenge: {challenge}\nTools:\n{tool_results}"
+            
             result = subprocess.run([
                 "python", f"{self.arbos_path}/arbos.py",
                 "--goal", self.goal_file,
                 "--input", initial_input
             ], capture_output=True, text=True, timeout=3600)
-
+            
             arbos_output = result.stdout.strip()
 
-            # Real LLM reflection with compute
-            def real_llm_call(prompt):
-                return self.compute.run_on_compute(prompt)
+            def real_llm_call(prompt): return self.compute.run_on_compute(prompt)
 
             final_output, trace = reflect_and_improve(
                 task=challenge,
@@ -83,19 +77,13 @@ class ArbosManager:
                 max_iterations=self.config.get("reflection", 3)
             )
 
-            # Apply resource compression
-            final_output = monitor.compress_if_needed(final_output)
-
-            # Final guardrails
+            final_output = monitor.check_and_compress(final_output)
             if self.config.get("guardrails"):
-                final_output = apply_guardrails(final_output, (time.time() - monitor.start_time)/3600)
+                final_output = apply_guardrails(final_output, monitor.elapsed_hours())
 
-        except subprocess.TimeoutExpired:
-            final_output = "REJECTED: Exceeded timeout — compressed solution"
         except Exception as e:
-            final_output = f"ERROR: {str(e)} — guardrails applied"
+            final_output = f"ERROR: {str(e)}"
 
-        print("✅ Arbos run completed with full safety")
         return {
             "solution": final_output,
             "status": "complete",
