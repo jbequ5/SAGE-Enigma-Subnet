@@ -82,7 +82,8 @@ class ArbosManager:
             # Post-processing
             final_output = monitor.check_and_compress(final_output)
             if self.config.get("exploration"):
-                final_output = explore_novel_variant(challenge, final_output)
+                novel_variants = explore_novel_variant(challenge, final_output)
+                final_output = f"{final_output}\n\n🌟 NOVEL VARIANTS GENERATED:\n{novel_variants}"
             if self.config.get("guardrails"):
                 final_output = apply_guardrails(final_output, monitor.elapsed_hours())
 
