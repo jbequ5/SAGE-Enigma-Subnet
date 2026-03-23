@@ -21,5 +21,5 @@ class ResourceMonitor:
 
     def compress_if_needed(self, output: str):
         if self.check_runtime() == "COMPRESSED":
-            return output[:len(output)//2] + " [AUTO-COMPRESSED to fit H200]"
+            return output[:len(output)//2] + " [AUTO-COMPRESSED to fit H100]"
         return output
