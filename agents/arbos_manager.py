@@ -1,60 +1,96 @@
 # agents/arbos_manager.py
-# FINAL VERSION - CONNECTED TO REAL ARBOS (Const's repo)
+# FINAL UPGRADED VERSION - Smart Routing for GPD, ScienceClaw, AI-Researcher, HyperAgent
 
 import os
-import subprocess
 from agents.tools.reflection import reflect_and_improve
 from agents.tools.gpd import run_gpd
 from agents.tools.scienceclaw import run_scienceclaw
+from agents.tools.ai_researcher import run_ai_researcher
+from agents.tools.hyperagent import run_hyperagent
+from agents.tools.exploration import explore_novel_variant
+from agents.tools.resource_aware import check_and_compress
+from agents.tools.guardrails import apply_guardrails
 
 class ArbosManager:
     def __init__(self, goal_file="goals/killer_base.md"):
         self.goal_file = goal_file
-        self.arbos_path = "agents/arbos"
-        self._setup_real_arbos()
-        print(f"✅ Connected to REAL Arbos with goal: {goal_file}")
+        self.config = self._load_config()
+        print(f"✅ Arbos Manager with SMART ROUTING loaded (4 tools)")
 
-    def _setup_real_arbos(self):
-        """Clones Const's real Arbos repo once"""
-        if not os.path.exists(self.arbos_path):
-            print("📥 Cloning real Arbos from GitHub (Const's repo)...")
-            subprocess.run([
-                "git", "clone", "https://github.com/unconst/Arbos.git", self.arbos_path
-            ], check=True)
+    def _load_config(self):
+        config = {"reflection": 3, "exploration": False, "resource_aware": True, "guardrails": True}
+        try:
+            with open(self.goal_file, "r") as f:
+                for line in f:
+                    line = line.strip().lower()
+                    if line.startswith("reflection:"): config["reflection"] = int(line.split(":")[1])
+                    elif line.startswith("exploration:"): config["exploration"] = "true" in line
+                    elif line.startswith("resource_aware:"): config["resource_aware"] = "true" in line
+                    elif line.startswith("guardrails:"): config["guardrails"] = "true" in line
+        except:
+            pass
+        return config
+
+    def _smart_route(self, challenge: str):
+        """Smart Routing Logic - decides best tools based on keywords"""
+        lower = challenge.lower()
+        results = []
+        tools_used = []
+
+        # HyperAgent - for complex self-improving orchestration
+        if any(k in lower for k in ["hyper", "meta", "self-improving", "complex", "orchestration", "multi-step"]):
+            results.append(run_hyperagent(challenge))
+            tools_used.append("HyperAgent")
+
+        
+        # AI-Researcher - for literature, papers, idea generation
+        if any(k in lower for k in ["research", "paper", "arxiv", "literature", "idea", "review", "survey"]):
+            results.append(run_ai_researcher(challenge))
+            tools_used.append("AI-Researcher")
+
+        # GPD - for physics, quantum, math, derivations
+        if any(k in lower for k in ["quantum", "circuit", "physics", "equation", "derivation", "math", "shor", "rsa"]):
+            results.append(run_gpd(challenge))
+            tools_used.append("GPD")
+
+        # ScienceClaw - for discovery, biology, materials, novel structures
+        if any(k in lower for k in ["discover", "biology", "peptide", "material", "ceramic", "novel", "bio", "structure"]):
+            results.append(run_scienceclaw(challenge, 20))
+            tools_used.append("ScienceClaw")
+
+
+        # Default: Use the two most powerful tools
+        if not results:
+            results.append(run_ai_researcher(challenge))
+            results.append(run_scienceclaw(challenge, 15))
+            tools_used = ["AI-Researcher", "ScienceClaw"]
+
+        return "\n\n".join(results), tools_used
 
     def run(self, challenge: str):
-        print(f"🔥 Running REAL Arbos for challenge: {challenge[:100]}...")
+        print(f"🔀 Smart Routing challenge: {challenge[:100]}...")
 
-        # 1. Run real tools first
-        gpd_result = run_gpd(challenge)
-        scienceclaw_result = run_scienceclaw(challenge, 20)
+        tool_results, tools_used = self._smart_route(challenge)
 
-        # 2. Initial output to feed Arbos
-        initial_output = f"GPD: {gpd_result}\nScienceClaw: {scienceclaw_result}\nChallenge: {challenge}"
-
-        # 3. Call REAL Arbos (Ralph loop) via subprocess
-        try:
-            result = subprocess.run([
-                "python", f"{self.arbos_path}/arbos.py",
-                "--goal", self.goal_file,
-                "--input", initial_output
-            ], capture_output=True, text=True, timeout=3600)
-            
-            final_solution = result.stdout.strip()
-        except Exception as e:
-            final_solution = f"Arbos failed: {str(e)}"
-
-        # 4. Final reflection pass
-        final_solution, trace = reflect_and_improve(
+        final_output, trace = reflect_and_improve(
             task=challenge,
-            output=final_solution,
-            llm_call=lambda x: f"Refined: {x}",
-            max_iterations=3
+            output=tool_results,
+            llm_call=lambda x: f"Refined version: {x}",
+            max_iterations=self.config.get("reflection", 3)
         )
 
-        print("✅ REAL Arbos completed!")
+        if self.config.get("exploration"):
+            final_output = explore_novel_variant(challenge, final_output)
+
+        if self.config.get("resource_aware"):
+            final_output = check_and_compress(3.5, final_output)
+        if self.config.get("guardrails"):
+            final_output = apply_guardrails(final_output, 3.5)
+
+        print(f"✅ Completed using tools: {tools_used}")
         return {
-            "solution": final_solution,
+            "solution": final_output,
             "status": "complete",
-            "trace": trace
+            "tools_used": tools_used,
+            "reflection_trace": trace
         }
