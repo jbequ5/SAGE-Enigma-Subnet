@@ -42,6 +42,10 @@ pip install -e .
 
 ### Compute Subnets – Decentralized Compute (New!)
 
+**To use real SDKs (recommended for max performance):**
+```bash
+pip install chutes-sdk targon-sdk celium-sdk
+
 You can now route heavy work to real Bittensor subnets directly from your GOAL.md. No extra code needed.
 
 | Subnet   | Best For                        | Toggle in GOAL.md          | Default |
@@ -49,12 +53,6 @@ You can now route heavy work to real Bittensor subnets directly from your GOAL.m
 | Chutes   | Private LLM inference           | `chutes: true`             | true    |
 | Targon   | Secure TEE GPUs                 | `targon: true`             | false   |
 | Celium   | Heavy parallel compute          | `celium: true`             | true    |
-
-**Add these lines to any GOAL.md**:
-```markdown
-chutes: true
-targon: false
-celium: true
 ```
 
 Arbos automatically routes compute to the best subnet (Chutes for speed, Celium for swarms, Targon for secure work).
