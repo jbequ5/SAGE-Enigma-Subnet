@@ -1,7 +1,8 @@
 # config/compute.yaml
 # Toggle which Bittensor subnets to use for compute
 
-chutes: true          # Private LLM inference (fast & cheap)
-targon: false         # Secure TEE GPUs (for sensitive work)
-celium: true          # Heavy parallel compute (for big swarms)
-default_compute: "local"   # fallback
+chutes: true
+targon: false
+celium: true
+chutes_llm: mixtral     # Default LLM model on Chutes
+fallback: "local"
