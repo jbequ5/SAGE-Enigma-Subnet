@@ -1,6 +1,7 @@
 # agents/tools/scienceclaw.py
-# Stub for ScienceClaw × Infinite swarm tool
+# ScienceClaw × Infinite - multi-agent swarm
 
-def run_scienceclaw(task, swarm_size=20):
+def run_scienceclaw(task: str, swarm_size: int = 20):
+    """Stub for ScienceClaw swarm"""
     print(f"🧪 ScienceClaw swarm launched with {swarm_size} agents for: {task[:80]}...")
-    return "Swarm results: cross-domain breakthrough candidate"
+    return f"✅ Swarm completed - {swarm_size} agents produced cross-domain insights"
