@@ -23,4 +23,4 @@ def reflect_and_improve(task: str, output: str, llm, max_iterations: int = 4):
  # Revise based on critique
  current = llm(f"Improve the output based on this critique:\nCritique: {critique}\nOriginal: {current}")
  
- return current, "Max iterations reached"
+ return current, "Max iterations reached" 
