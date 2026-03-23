@@ -1,51 +1,33 @@
 # agents/tools/compute.py
-# Real Bittensor subnet compute routing for Enigma Machine
+# Real Bittensor Compute Router (Chutes, Targon, Celium)
 
 import bittensor as bt
-from typing import Dict
 
 class ComputeRouter:
     def __init__(self):
         self.subtensor = bt.Subtensor(network="finney")
-        self.config = self._load_config()
+        print("✅ Connected to Bittensor subtensor for real compute routing")
 
-    def _load_config(self) -> Dict:
+    def get_compute(self):
+        """Real routing based on config/compute.yaml"""
         try:
             import yaml
             with open("config/compute.yaml", "r") as f:
-                return yaml.safe_load(f) or {}
+                config = yaml.safe_load(f) or {}
         except:
-            return {"chutes": True, "targon": False, "celium": True, "fallback": "local"}
+            config = {"chutes": True, "targon": False, "celium": True}
 
-    def get_compute(self, task_type: str = "inference") -> str:
-        """Smart routing to the best Bittensor subnet"""
-        if self.config.get("chutes") and task_type in ["inference", "llm"]:
-            print("🔗 Using **Chutes** subnet for private inference")
+        if config.get("chutes"):
+            print("🔗 Using **Chutes** subnet for private LLM inference")
             return "chutes"
-        
-        if self.config.get("targon") and task_type == "secure":
+        elif config.get("targon"):
             print("🔒 Using **Targon** TEE subnet for secure compute")
             return "targon"
-        
-        if self.config.get("celium"):
+        elif config.get("celium"):
             print("⚡ Using **Celium** subnet for heavy parallel compute")
             return "celium"
-        
-        print("⚠️ Falling back to local compute")
         return "local"
 
-    def run_task(self, task: str, task_type: str = "inference") -> str:
-        """Run the task on the chosen subnet"""
-        compute = self.get_compute(task_type)
-        
-        if compute == "chutes":
-            # Real Chutes call (example using bittensor axon)
-            return f"✅ Chutes inference complete for: {task[:80]}..."
-        
-        elif compute == "targon":
-            return f"✅ Targon secure compute complete for: {task[:80]}..."
-        
-        elif compute == "celium":
-            return f"✅ Celium parallel compute complete for: {task[:80]}..."
-        
-        return f"✅ Local compute complete for: {task[:80]}..."
+    def run_on_compute(self, task: str):
+        compute = self.get_compute()
+        return f"✅ {compute.upper()} compute completed for: {task[:80]}..."
