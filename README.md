@@ -74,7 +74,14 @@ graph TD
     I --> J[Resource-Aware + Guardrails]
     J --> K[Final Solution]
 ```
+### 🚀 New: Exploration & Discovery is now much stronger
+When `exploration: true`, the miner:
+- Pulls cross-domain inspiration from **AI-Researcher**
+- Uses your chosen **Chutes LLM** (`chutes_llm`) for creative synthesis
+- Runs a reflection pass for quality
+- Returns structured novel variants with rationale and estimated impact
 
+This is where top miners separate themselves and win the biggest prize pools.
 ---
 
 ### Killer GOAL.md Template (Copy & Customize)
@@ -115,9 +122,3 @@ Ready to dominate Enigma?
 Fork the repo, create your first custom GOAL.md, and start competing.
 
 $TAO 🚀
-
-If you want any last tweak (e.g. add a LICENSE, CONTRIBUTING.md, or a one-line test command), just say so.
-
-Congratulations — you’ve built a real, powerful SN63 miner! 🚀
-
-Let me know what’s next.
