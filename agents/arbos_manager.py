@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL COMPLETE VERSION - Real Arbos + Smart Routing + Real Compute + Real LLM
+# FINAL COMPLETE VERSION - Real Arbos + Smart Routing + Real SDK Compute
 
 import os
 import subprocess
@@ -20,11 +20,11 @@ class ArbosManager:
         self.compute = ComputeRouter()
         self.config = self._load_config()
         self._setup_real_arbos()
-        print(f"✅ REAL Arbos + Compute + LLM loaded ({self.compute.get_compute()})")
+        print(f"✅ REAL Arbos + SDK Compute loaded ({self.compute.get_compute()})")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
-            print("📥 Cloning real Arbos from Const...")
+            print("📥 Cloning real Arbos...")
             subprocess.run(["git", "clone", "https://github.com/unconst/Arbos.git", self.arbos_path], check=True)
 
     def _load_config(self):
@@ -42,13 +42,24 @@ class ArbosManager:
             pass
         return config
 
+    def _smart_route(self, challenge: str):
+        lower = challenge.lower()
+        results = []
+        if any(k in lower for k in ["quantum", "physics", "circuit"]):
+            results.append(run_gpd(challenge))
+        if any(k in lower for k in ["discover", "biology", "material"]):
+            results.append(run_scienceclaw(challenge, 20))
+        if any(k in lower for k in ["research", "paper", "literature"]):
+            results.append(run_ai_researcher(challenge))
+        if self.config.get("hyper_planning"):
+            results.append(run_hyperagent(challenge))
+        return "\n\n".join(results), ["GPD", "ScienceClaw", "AI-Researcher"]
+
     def run(self, challenge: str):
         print(f"🔀 Running REAL Arbos with {self.compute.get_compute()} compute...")
 
-        # Smart routing + real tools
         tool_results, tools_used = self._smart_route(challenge)
 
-        # Feed to REAL Arbos
         initial_input = f"Challenge: {challenge}\nTools:\n{tool_results}"
         try:
             result = subprocess.run(["python", f"{self.arbos_path}/arbos.py", "--goal", self.goal_file, "--input", initial_input], capture_output=True, text=True, timeout=3600)
@@ -56,9 +67,9 @@ class ArbosManager:
         except Exception as e:
             arbos_output = f"Arbos error: {str(e)}"
 
-        # Real LLM for Reflection (Chutes-powered)
+        # Use real SDK compute for reflection LLM
         def real_llm_call(prompt):
-            return self.compute.run_on_compute(prompt)  # Real compute call
+            return self.compute.run_on_compute(prompt)
 
         final_output, trace = reflect_and_improve(
             task=challenge,
@@ -80,17 +91,3 @@ class ArbosManager:
             "tools_used": tools_used,
             "compute_used": self.compute.get_compute()
         }
-
-    def _smart_route(self, challenge: str):
-        # (same smart routing as before - I kept it short here for space)
-        lower = challenge.lower()
-        results = []
-        if any(k in lower for k in ["quantum", "physics"]):
-            results.append(run_gpd(challenge))
-        if any(k in lower for k in ["discover", "biology"]):
-            results.append(run_scienceclaw(challenge, 20))
-        if any(k in lower for k in ["research", "paper"]):
-            results.append(run_ai_researcher(challenge))
-        if self.config.get("hyper_planning"):
-            results.append(run_hyperagent(challenge))
-        return "\n\n".join(results), ["GPD", "ScienceClaw", "AI-Researcher"]
