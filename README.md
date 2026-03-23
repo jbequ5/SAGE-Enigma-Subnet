@@ -1,4 +1,3 @@
-```markdown
 # Enigma Machine – Agentic Miner Starter Kit for SN63
 
 **The easiest way to build a winning miner for Enigma** — the decentralized innovation engine where anyone posts capital and “impossible” problems, and miners compete to solve them in ≤4 hours on a single H200 GPU.
