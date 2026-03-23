@@ -1,12 +1,7 @@
 # agents/arbos_manager.py
-# COMPLETE FINAL VERSION - Real Arbos + Smart Routing + SDK Compute + Chutes LLM Picker
+# FINAL COMPLETE VERSION - Real Arbos + Smart Routing + SDK Compute + Chutes LLM Picker
 
 import os
-from dotenv import load_dotenv
-
-# Load .env at startup
-load_dotenv()
-
 import subprocess
 import time
 from agents.tools.reflection import reflect_and_improve
@@ -21,13 +16,12 @@ from agents.tools.compute import ComputeRouter
 
 class ArbosManager:
     def __init__(self, goal_file="goals/killer_base.md"):
-        load_dotenv()
         self.goal_file = goal_file
         self.arbos_path = "agents/arbos"
         self.compute = ComputeRouter()
         self.config = self._load_config()
         self._setup_real_arbos()
-        print(f"✅ REAL Arbos + Compute + Timing loaded ({self.compute.get_compute()})")
+        print(f"✅ REAL Arbos + Compute + Chutes LLM ({self.compute.config.get('chutes_llm', 'mixtral')}) loaded")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -74,7 +68,7 @@ class ArbosManager:
             
             arbos_output = result.stdout.strip()
 
-            # Real LLM reflection using chosen Chutes model
+            # Real LLM reflection using chosen Chutes model (mixtral, llama3, gemma2, etc.)
             def real_llm_call(prompt):
                 return self.compute.run_on_compute(prompt)
 
@@ -85,6 +79,7 @@ class ArbosManager:
                 max_iterations=self.config.get("reflection", 3)
             )
 
+            # Post-processing
             final_output = monitor.check_and_compress(final_output)
             if self.config.get("exploration"):
                 final_output = explore_novel_variant(challenge, final_output)
