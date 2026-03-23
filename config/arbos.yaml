@@ -1,0 +1,5 @@
+mode: optimal          # Change to "self-built" for full customization
+default_reflection: 3
+default_swarm_size: 20
+max_iterations: 8
+h100_limit_hours: 4.0
