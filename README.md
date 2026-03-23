@@ -1,17 +1,18 @@
 # Enigma Machine – Agentic Miner Starter Kit for SN63
 
-**The easiest way to build a winning miner for Enigma** — the decentralized innovation engine where anyone posts capital and “impossible” problems, and miners compete to solve them in ≤4 hours on a single H100 GPU.
+**The easiest way to build a winning miner for Enigma.**  
+Anyone posts capital and an “impossible” problem. Miners solve it in ≤4 hours on a single H200 GPU.
 
-**Powered by Arbos + 8 proven agentic patterns.**  
-Everything is **100% optional** and miner-customizable. No black boxes. No forced settings.
+**Powered by Arbos + real GitHub tools + Bittensor compute subnets.**  
+Everything is 100% optional and fully customizable via one file.
 
 ### Two Modes – Your Choice
-- **Optimal Mode** → One-click team-curated best stack (great for beginners)  
-- **Self-Built Mode** → Full control — tune or disable anything (where top miners create their edge)
+- **Optimal Mode** → Team-recommended settings (great for beginners)  
+- **Self-Built Mode** → Full control — tune or disable anything
 
 ---
 
-### Quickstart (5 minutes)
+### Quickstart (5 Minutes)
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/enigma-machine.git
@@ -19,36 +20,44 @@ cd enigma-machine
 pip install -e .
 ```
 
-1. Edit `config/miner.yaml` (your wallet + subnet details)  
-2. Choose mode in `config/arbos.yaml`:
-   ```yaml
-   mode: optimal          # or "self-built"
-   ```
-3. Pick or create a GOAL.md (see templates below)  
+1. Edit `config/miner.yaml` (add your wallet)  
+2. Choose mode in `config/arbos.yaml`  
+3. Create or edit your GOAL.md  
 4. Run: `./scripts/run_miner.sh`
 
 ---
 
 ### The 8 Core Patterns – All Optional & Easy to Tune
 
-| Pattern                        | What it does for you                                      | Impact if enabled                              | One-line toggle in GOAL.md                    | Default |
-|--------------------------------|-----------------------------------------------------------|------------------------------------------------|-----------------------------------------------|---------|
-| **Reflection**                 | Agent self-critiques and improves its own output          | +3–5× quality & prize win rate                 | `reflection: 4` (or `false`)                  | 3       |
-| **Planning**                   | Breaks challenge into smart sub-tasks                     | Fewer wasted loops, better efficiency          | `planning: true` (or `false`)                 | true    |
-| **HyperAgent Planning**        | Uses Facebook HyperAgent for intelligent self-improving plans | Much smarter planning for complex challenges   | `hyper_planning: true` (or `false`)           | false   |
-| **Multi-Agent**                | Runs ScienceClaw-style swarm of specialized agents        | Massive parallel breakthroughs                 | `multi_agent: true` + `swarm_size: 20`        | true    |
-| **Tool Use**                   | Smartly calls GPD, AI-Researcher, etc.                    | Better tool selection & fewer errors           | `tool_use: true` (or `false`)                 | true    |
-| **Resource-Aware Optimization**| Tracks time & auto-compresses to stay under 4h H200     | **Required for prize eligibility**             | `resource_aware: true` (or `false`)           | true    |
-| **Exploration & Discovery**    | Generates truly novel variants others miss                | Higher novelty = bigger prize wins             | `exploration: true` (or `false`)              | false   |
-| **Guardrails**                 | Hard safety checks (runtime, quality, verifier score)     | Prevents disqualification                      | `guardrails: true` (or `false`)               | true    |
+| Pattern                        | What it does                                      | Impact if enabled                              | One-line toggle in GOAL.md                    | Default |
+|--------------------------------|---------------------------------------------------|------------------------------------------------|-----------------------------------------------|---------|
+| Reflection                     | Self-critiques and improves output                | +3–5× quality & prize win rate                 | `reflection: 4` (or `false`)                  | 3       |
+| Planning                       | Breaks challenge into smart sub-tasks             | Fewer wasted loops                             | `planning: true` (or `false`)                 | true    |
+| HyperAgent Planning            | Self-improving planning (Facebook HyperAgent)     | Much smarter plans for complex challenges      | `hyper_planning: true` (or `false`)           | false   |
+| Multi-Agent                    | ScienceClaw swarm for parallel discovery          | Massive breakthroughs                          | `multi_agent: true` + `swarm_size: 20`        | true    |
+| Tool Use                       | Calls GPD, AI-Researcher, etc.                    | Better tool selection                          | `tool_use: true` (or `false`)                 | true    |
+| Resource-Aware                 | Enforces 4h H200 limit automatically              | Required for prize eligibility                 | `resource_aware: true` (or `false`)           | true    |
+| Exploration & Discovery        | Generates novel variants                          | Higher novelty = bigger prizes                 | `exploration: true` (or `false`)              | false   |
+| Guardrails                     | Safety checks before submission                   | Prevents disqualification                      | `guardrails: true` (or `false`)               | true    |
 
-### Where to Edit – Super Simple Breakdown
+### Compute Subnets – Decentralized Compute (New!)
 
-| What you want to change                  | Where you edit it                              | How easy?          |
-|------------------------------------------|------------------------------------------------|--------------------|
-| Toggle patterns on/off or change numbers | `goals/your_strategy.md` (your GOAL.md file)   | Just edit text     |
-| Change default values for new GOALs      | `config/arbos.yaml`                            | One line change    |
-| Modify how a tool works                  | `agents/tools/*.py`                            | Edit Python (optional) |
+You can now route heavy work to real Bittensor subnets directly from your GOAL.md. No extra code needed.
+
+| Subnet   | Best For                        | Toggle in GOAL.md          | Default |
+|----------|---------------------------------|----------------------------|---------|
+| Chutes   | Private LLM inference           | `chutes: true`             | true    |
+| Targon   | Secure TEE GPUs                 | `targon: true`             | false   |
+| Celium   | Heavy parallel compute          | `celium: true`             | true    |
+
+**Add these lines to any GOAL.md**:
+```markdown
+chutes: true
+targon: false
+celium: true
+```
+
+Arbos automatically routes compute to the best subnet (Chutes for speed, Celium for swarms, Targon for secure work).
 
 ---
 
@@ -59,28 +68,21 @@ graph TD
     A[GOAL.md Toggles] --> B[ArbosManager]
     B --> C[Smart Routing]
     C --> D[HyperAgent Planning]
-    C --> E[GPD]
+    C --> E[GPD / AI-Researcher]
     C --> F[ScienceClaw]
-    C --> G[AI-Researcher]
-    D --> H[Initial Plan]
-    E --> I[Physics Results]
-    F --> J[Swarm Insights]
-    G --> K[Literature Ideas]
-    H & I & J & K --> L[Reflection Loop]
-    L --> M[Exploration & Discovery]
-    M --> N[Resource-Aware Optimization]
-    N --> O[Guardrails]
-    O --> P[Final Solution]
+    C --> G[Compute Subnets]
+    D & E & F & G --> H[Reflection Loop]
+    H --> I[Exploration]
+    I --> J[Resource-Aware + Guardrails]
+    J --> K[Final Solution]
 ```
 
 ---
 
 ### Killer GOAL.md Template (Copy & Customize)
 
-Copy this into `goals/killer_base.md`:
-
 ```markdown
-GOAL: Solve the sponsor challenge with maximum novelty and verifier score while staying under 3.8h on H200.
+GOAL: Solve the sponsor challenge with maximum novelty and verifier score while staying under 3.8h on H100.
 
 reflection: 4
 planning: true
@@ -91,12 +93,10 @@ exploration: true
 resource_aware: true
 guardrails: true
 
-Steps per Ralph loop:
-1. Plan the attack (HyperAgent if hyper_planning: true)
-2. Execute with smart tool routing
-3. Reflect and improve
-4. Explore one novel variant
-5. Resource check + compress if needed
+# Compute subnets
+chutes: true
+targon: false
+celium: true
 ```
 
 ---
