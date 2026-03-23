@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FIXED COMPLETE VERSION - Real Arbos + Smart Routing + Real Compute + Real Timing
+# COMPLETE FIXED VERSION - Real Arbos + Smart Routing + SDK Compute + Chutes LLM Picker + H100 Timing
 
 import os
 import subprocess
@@ -68,9 +68,9 @@ class ArbosManager:
             
             arbos_output = result.stdout.strip()
 
-    # Real LLM reflection with chosen Chutes model
-        def real_llm_call(prompt):
-            return self.compute.run_on_compute(prompt)  # Now automatically uses chutes_llm
+            # Real LLM reflection using chosen Chutes model (mixtral, llama3, etc.)
+            def real_llm_call(prompt):
+                return self.compute.run_on_compute(prompt)
 
             final_output, trace = reflect_and_improve(
                 task=challenge,
@@ -79,7 +79,10 @@ class ArbosManager:
                 max_iterations=self.config.get("reflection", 3)
             )
 
+            # Post-processing
             final_output = monitor.check_and_compress(final_output)
+            if self.config.get("exploration"):
+                final_output = explore_novel_variant(challenge, final_output)
             if self.config.get("guardrails"):
                 final_output = apply_guardrails(final_output, monitor.elapsed_hours())
 
