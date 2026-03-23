@@ -1,18 +1,17 @@
 # Enigma Machine – Agentic Miner Starter Kit for SN63
 
-**The easiest way to build a winning miner for Enigma.**  
-Anyone can post capital and an “impossible” problem. Miners compete to solve it in ≤4 hours on a single H200 GPU.
+**The easiest way to build a winning miner for Enigma** — the decentralized innovation engine where anyone posts capital and “impossible” problems, and miners compete to solve them in ≤4 hours on a single H100 GPU.
 
 **Powered by Arbos + 8 proven agentic patterns.**  
-Everything is **100% optional**. You control everything.
+Everything is **100% optional** and miner-customizable. No black boxes. No forced settings.
 
-### Two Modes – Choose What Works for You
-- **Optimal Mode** → Use the team’s recommended settings (best for beginners)  
-- **Self-Built Mode** → Full control: turn features on/off and tune everything
+### Two Modes – Your Choice
+- **Optimal Mode** → One-click team-curated best stack (great for beginners)  
+- **Self-Built Mode** → Full control — tune or disable anything (where top miners create their edge)
 
 ---
 
-### Quickstart (Takes 5 Minutes)
+### Quickstart (5 minutes)
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/enigma-machine.git
@@ -20,39 +19,59 @@ cd enigma-machine
 pip install -e .
 ```
 
-1. Edit `config/miner.yaml` (add your wallet)  
-2. Choose mode in `config/arbos.yaml` (`optimal` or `self-built`)  
-3. Create or edit a GOAL.md file  
+1. Edit `config/miner.yaml` (your wallet + subnet details)  
+2. Choose mode in `config/arbos.yaml`:
+   ```yaml
+   mode: optimal          # or "self-built"
+   ```
+3. Pick or create a GOAL.md (see templates below)  
 4. Run: `./scripts/run_miner.sh`
 
 ---
 
-### How to Customize (Super Simple)
+### The 8 Core Patterns – All Optional & Easy to Tune
 
-You control the miner by editing **one file**: your GOAL.md.
+| Pattern                        | What it does for you                                      | Impact if enabled                              | One-line toggle in GOAL.md                    | Default |
+|--------------------------------|-----------------------------------------------------------|------------------------------------------------|-----------------------------------------------|---------|
+| **Reflection**                 | Agent self-critiques and improves its own output          | +3–5× quality & prize win rate                 | `reflection: 4` (or `false`)                  | 3       |
+| **Planning**                   | Breaks challenge into smart sub-tasks                     | Fewer wasted loops, better efficiency          | `planning: true` (or `false`)                 | true    |
+| **HyperAgent Planning**        | Uses Facebook HyperAgent for intelligent self-improving plans | Much smarter planning for complex challenges   | `hyper_planning: true` (or `false`)           | false   |
+| **Multi-Agent**                | Runs ScienceClaw-style swarm of specialized agents        | Massive parallel breakthroughs                 | `multi_agent: true` + `swarm_size: 20`        | true    |
+| **Tool Use**                   | Smartly calls GPD, AI-Researcher, etc.                    | Better tool selection & fewer errors           | `tool_use: true` (or `false`)                 | true    |
+| **Resource-Aware Optimization**| Tracks time & auto-compresses to stay under 4h H200     | **Required for prize eligibility**             | `resource_aware: true` (or `false`)           | true    |
+| **Exploration & Discovery**    | Generates truly novel variants others miss                | Higher novelty = bigger prize wins             | `exploration: true` (or `false`)              | false   |
+| **Guardrails**                 | Hard safety checks (runtime, quality, verifier score)     | Prevents disqualification                      | `guardrails: true` (or `false`)               | true    |
 
-All settings are optional. Turn anything off if you don’t want it.
+### Where to Edit – Super Simple Breakdown
 
-### The 8 Core Patterns – All Optional
+| What you want to change                  | Where you edit it                              | How easy?          |
+|------------------------------------------|------------------------------------------------|--------------------|
+| Toggle patterns on/off or change numbers | `goals/your_strategy.md` (your GOAL.md file)   | Just edit text     |
+| Change default values for new GOALs      | `config/arbos.yaml`                            | One line change    |
+| Modify how a tool works                  | `agents/tools/*.py`                            | Edit Python (optional) |
 
-| Pattern                        | What it does                                      | When to use it                              | One-line toggle in GOAL.md               | Default |
-|--------------------------------|---------------------------------------------------|---------------------------------------------|------------------------------------------|---------|
-| Reflection                     | Self-critiques and improves output                | Almost always (big quality boost)           | `reflection: 4` (or `false`)             | 3       |
-| Planning                       | Breaks challenge into clear steps                 | Most challenges                             | `planning: true` (or `false`)            | true    |
-| HyperAgent Planning            | Uses advanced self-improving planning             | Very complex or multi-step challenges       | `hyper_planning: true` (or `false`)      | false   |
-| Multi-Agent                    | Runs parallel swarm of agents                     | Discovery & creative problems               | `multi_agent: true` + `swarm_size: 20`   | true    |
-| Tool Use                       | Calls GPD, AI-Researcher, etc.                    | Most challenges                             | `tool_use: true` (or `false`)            | true    |
-| Resource-Aware                 | Keeps everything under 4h H200                    | Required for prize eligibility              | `resource_aware: true` (or `false`)      | true    |
-| Exploration & Discovery        | Creates truly novel solutions                     | Big prize challenges                        | `exploration: true` (or `false`)         | false   |
-| Guardrails                     | Safety checks before submission                   | Always recommended                          | `guardrails: true` (or `false`)          | true    |
+---
 
-### Where to Edit (No Mysteries)
+### How the Patterns Work Together
 
-| What you want to change               | Where to edit it                          | How to do it                  |
-|---------------------------------------|-------------------------------------------|-------------------------------|
-| Turn patterns on/off or change numbers| `goals/your_strategy.md`                  | Just edit the text file       |
-| Change default values                 | `config/arbos.yaml`                       | One line change               |
-| Modify tool behavior                  | `agents/tools/*.py`                       | Edit Python (optional)        |
+```mermaid
+graph TD
+    A[GOAL.md Toggles] --> B[ArbosManager]
+    B --> C[Smart Routing]
+    C --> D[HyperAgent Planning]
+    C --> E[GPD]
+    C --> F[ScienceClaw]
+    C --> G[AI-Researcher]
+    D --> H[Initial Plan]
+    E --> I[Physics Results]
+    F --> J[Swarm Insights]
+    G --> K[Literature Ideas]
+    H & I & J & K --> L[Reflection Loop]
+    L --> M[Exploration & Discovery]
+    M --> N[Resource-Aware Optimization]
+    N --> O[Guardrails]
+    O --> P[Final Solution]
+```
 
 ---
 
@@ -65,7 +84,7 @@ GOAL: Solve the sponsor challenge with maximum novelty and verifier score while 
 
 reflection: 4
 planning: true
-hyper_planning: false          # Turn ON for very hard or multi-step challenges
+hyper_planning: false
 multi_agent: true
 swarm_size: 20
 exploration: true
@@ -80,12 +99,9 @@ Steps per Ralph loop:
 5. Resource check + compress if needed
 ```
 
-**Pro Tip**: Create multiple GOAL.md files (one for quantum, one for biology, one for speed, etc.) and switch between them.
-
 ---
 
 Ready to dominate Enigma?  
-Fork the repo, create your first GOAL.md, and start competing.
+Fork the repo, create your first custom GOAL.md, and start competing.
 
 $TAO 🚀
-```
