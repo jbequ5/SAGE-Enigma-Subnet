@@ -4,4 +4,4 @@
 chutes: true          # Private LLM inference (fast & cheap)
 targon: false         # Secure TEE GPUs (for sensitive work)
 celium: true          # Heavy parallel compute (for big swarms)
-default_compute: "chutes"   # fallback
+default_compute: "local"   # fallback
