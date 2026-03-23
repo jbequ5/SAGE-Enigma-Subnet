@@ -2,6 +2,11 @@
 # COMPLETE FINAL VERSION - Real Arbos + Smart Routing + SDK Compute + Chutes LLM Picker
 
 import os
+from dotenv import load_dotenv
+
+# Load .env at startup
+load_dotenv()
+
 import subprocess
 import time
 from agents.tools.reflection import reflect_and_improve
@@ -16,6 +21,7 @@ from agents.tools.compute import ComputeRouter
 
 class ArbosManager:
     def __init__(self, goal_file="goals/killer_base.md"):
+        load_dotenv()
         self.goal_file = goal_file
         self.arbos_path = "agents/arbos"
         self.compute = ComputeRouter()
