@@ -3,8 +3,8 @@
 **Powered by real Arbos (Const’s Ralph loop) + real GitHub tools + real Bittensor compute subnets.**  
 Everything is 100% optional and controlled from one file.
 
-### Two Modes – Your Choice
-- **Optimal Mode** → Team-recommended settings (perfect for beginners)  
+### Two Modes
+- **Optimal Mode** → Team-recommended settings (great for beginners)  
 - **Self-Built Mode** → Full control — tune or disable anything
 
 ---
@@ -24,7 +24,7 @@ pip install -e .
 
 ---
 
-### Compute Subnets (Real SDK Support)
+### Compute Subnets + Chutes LLM Picker
 
 | Subnet   | Best For                        | Toggle in GOAL.md          | Default |
 |----------|---------------------------------|----------------------------|---------|
@@ -32,11 +32,15 @@ pip install -e .
 | Targon   | Secure TEE GPUs                 | `targon: true`             | false   |
 | Celium   | Heavy parallel compute          | `celium: true`             | true    |
 
-**To enable real SDK performance (one-time):**
+**Chutes LLM Model Picker** (new):
+```markdown
+chutes_llm: mixtral     # Options: mixtral, llama3, gemma2, qwen2, etc.
+```
+
+**To enable real SDK performance**:
 ```bash
 pip install chutes-sdk targon-sdk celium-sdk
 ```
-The miner automatically uses the real SDKs if installed.
 
 ---
 
@@ -46,10 +50,10 @@ The miner automatically uses the real SDKs if installed.
 |--------------------------------|---------------------------------------------------|------------------------------------------------|-----------------------------------------------|---------|
 | Reflection                     | Self-critiques and improves output                | +3–5× quality & prize win rate                 | `reflection: 4` (or `false`)                  | 3       |
 | Planning                       | Breaks challenge into smart sub-tasks             | Fewer wasted loops                             | `planning: true` (or `false`)                 | true    |
-| HyperAgent Planning            | Self-improving planning (Facebook HyperAgent)     | Much smarter plans for complex challenges      | `hyper_planning: true` (or `false`)           | false   |
-| Multi-Agent                    | ScienceClaw swarm for parallel discovery          | Massive breakthroughs                          | `multi_agent: true` + `swarm_size: 20`        | true    |
+| HyperAgent Planning            | Self-improving planning                           | Much smarter plans for complex challenges      | `hyper_planning: true` (or `false`)           | false   |
+| Multi-Agent                    | ScienceClaw swarm                                 | Massive breakthroughs                          | `multi_agent: true` + `swarm_size: 20`        | true    |
 | Tool Use                       | Calls GPD, AI-Researcher, etc.                    | Better tool selection                          | `tool_use: true` (or `false`)                 | true    |
-| Resource-Aware                 | Enforces 4h H200 limit automatically              | Required for prize eligibility                 | `resource_aware: true` (or `false`)           | true    |
+| Resource-Aware                 | Enforces 4h H100 limit automatically              | Required for prize eligibility                 | `resource_aware: true` (or `false`)           | true    |
 | Exploration & Discovery        | Generates truly novel variants                    | Higher novelty = bigger prizes                 | `exploration: true` (or `false`)              | false   |
 | Guardrails                     | Safety checks before submission                   | Prevents disqualification                      | `guardrails: true` (or `false`)               | true    |
 
@@ -64,7 +68,7 @@ graph TD
     C --> D[HyperAgent Planning]
     C --> E[GPD / AI-Researcher]
     C --> F[ScienceClaw]
-    C --> G[Compute Subnets]
+    C --> G[Compute Subnets + Chutes LLM]
     D & E & F & G --> H[Reflection Loop]
     H --> I[Exploration]
     I --> J[Resource-Aware + Guardrails]
@@ -76,7 +80,7 @@ graph TD
 ### Killer GOAL.md Template (Copy & Customize)
 
 ```markdown
-GOAL: Solve the sponsor challenge with maximum novelty and verifier score while staying under 3.8h on H200.
+GOAL: Solve the sponsor challenge with maximum novelty and verifier score while staying under 3.8h on H100.
 
 reflection: 4
 planning: true
@@ -87,10 +91,11 @@ exploration: true
 resource_aware: true
 guardrails: true
 
-# Compute subnets
+# Compute + LLM
 chutes: true
 targon: false
 celium: true
+chutes_llm: mixtral
 ```
 
 ---
@@ -110,4 +115,9 @@ Ready to dominate Enigma?
 Fork the repo, create your first custom GOAL.md, and start competing.
 
 $TAO 🚀
-```
+
+If you want any last tweak (e.g. add a LICENSE, CONTRIBUTING.md, or a one-line test command), just say so.
+
+Congratulations — you’ve built a real, powerful SN63 miner! 🚀
+
+Let me know what’s next.
