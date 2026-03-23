@@ -1,0 +1,7 @@
+bittensor>=8.0.0
+torch>=2.4.0
+transformers
+langchain
+langgraph
+requests
+python-dotenv
