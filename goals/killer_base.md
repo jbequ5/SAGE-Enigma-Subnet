@@ -1,4 +1,4 @@
-GOAL: Solve the sponsor challenge with maximum novelty and verifier score while staying under 3.8h on H200.
+GOAL: Solve the sponsor challenge with maximum novelty and verifier score while staying under 3.8h on H100.
 
 reflection: 4
 planning: true
