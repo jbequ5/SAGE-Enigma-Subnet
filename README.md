@@ -23,6 +23,21 @@ pip install -e .
 4. Run: `./scripts/run_miner.sh`
 
 ---
+### API Key Setup (One-Time)
+
+1. Copy the example:
+   ```bash
+   cp .env.example .env
+   
+2. Edit .env and add your keys:
+   
+    OPENAI_API_KEY=sk-...
+   
+    ANTHROPIC_API_KEY=sk-ant-...
+   
+    GEMINI_API_KEY=...
+   
+4. Restart the Miner
 
 ### Compute Subnets + Chutes LLM Picker
 
