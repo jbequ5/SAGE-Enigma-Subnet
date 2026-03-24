@@ -30,14 +30,12 @@ pip install -e .
    cp .env.example .env
    
 2. Edit .env and add your keys:
+   ```bash
+   OPENAI_API_KEY=sk-...
+   ANTHROPIC_API_KEY=sk-ant-...
+   GEMINI_API_KEY=...
    
-    OPENAI_API_KEY=sk-...
-   
-    ANTHROPIC_API_KEY=sk-ant-...
-   
-    GEMINI_API_KEY=...
-   
-4. Restart the Miner
+3. Restart the Miner
 
 ### Compute Subnets + Chutes LLM Picker
 
@@ -76,20 +74,41 @@ pip install chutes-sdk targon-sdk celium-sdk
 
 ### How the Patterns Work Together
 
+The miner follows a **sequential, cumulative** workflow with Arbos at its core:
+
 ```mermaid
-graph TD
-    A[GOAL.md Toggles] --> B[ArbosManager]
-    B --> C[Smart Routing]
-    C --> D[HyperAgent Planning]
-    C --> E[GPD / AI-Researcher]
-    C --> F[ScienceClaw]
-    C --> G[Compute Subnets + Chutes LLM]
-    D & E & F & G --> H[Reflection Loop]
-    H --> I[Exploration]
-    I --> J[Resource-Aware + Guardrails]
-    J --> K[Final Solution]
+flowchart TD
+    A[1. Enter Challenge] --> B[2. HyperAgent Planning]
+    B --> C[3. Human Review & Edit Plan]
+    C -->|Approve| D[4. Start Tool Chain]
+
+    D --> E[AI-Researcher<br>with Prompt 1]
+    E --> F[Arbos Reflection + Prompt Redesign]
+    F --> G[GPD<br>using AI-Researcher results + Prompt 2]
+    G --> H[Arbos Reflection + Prompt Redesign]
+    H --> I[ScienceClaw<br>using previous results + Prompt 3]
+    I --> J[Arbos Reflection Loop<br>Critique Results]
+
+    J -->|Results Good?| K[Final Synthesis]
+    J -->|Needs Improvement?| B[Replan with HyperAgent]
+
+    K --> L[Resource-Aware + Guardrails]
+    L --> M[Final Solution + GOAL.md]
+
+    style A fill:#0f0a05,stroke:#ffcc00,color:#ffcc00
+    style B fill:#1a1408,stroke:#ffcc00,color:#ffcc00
+    style C fill:#1a1408,stroke:#ffcc00,color:#ffcc00
+    style D fill:#1a1408,stroke:#ffcc00,color:#ffcc00
+    style E fill:#2a1f12,stroke:#ffaa00,color:#ffaa00
+    style G fill:#2a1f12,stroke:#ffaa00,color:#ffaa00
+    style I fill:#2a1f12,stroke:#ffaa00,color:#ffaa00
+    style J fill:#0f1a0f,stroke:#00cc88,color:#00ffaa
+    style K fill:#1a1408,stroke:#ffcc00,color:#ffcc00
+    style L fill:#1a1408,stroke:#ffcc00,color:#ffcc00
+    style M fill:#1a1408,stroke:#ffcc00,color:#ffcc00
 ```
-### 🚀 New: Exploration & Discovery is now much stronger
+
+### Exploration & Discovery 
 When `exploration: true`, the miner:
 - Pulls cross-domain inspiration from **AI-Researcher**
 - Uses your chosen **Chutes LLM** (`chutes_llm`) for creative synthesis
