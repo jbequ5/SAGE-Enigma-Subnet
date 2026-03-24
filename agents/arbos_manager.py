@@ -61,7 +61,7 @@ def _smart_route(self, challenge: str):
             results.append(f"[GPD Error] {str(e)}")
 
     # ScienceClaw
-    if any(k in lower for k in ["research", "paper", "data", "science", "analyze"]):
+    if any(k in lower for k in ["research", "paper", "data", "science", "analyze", "experiment"]):
         try:
             from agents.tools.scienceclaw import run as run_scienceclaw
             cfg = self.config.get("ScienceClaw", {})
@@ -72,7 +72,7 @@ def _smart_route(self, challenge: str):
             results.append(f"[ScienceClaw Error] {str(e)}")
 
     # AI-Researcher
-    if any(k in lower for k in ["literature", "review", "web", "search"]):
+    if any(k in lower for k in ["literature", "review", "web", "search", "news"]):
         try:
             from agents.tools.ai_researcher import run as run_ai_researcher
             cfg = self.config.get("AI-Researcher", {})
@@ -98,7 +98,6 @@ def _smart_route(self, challenge: str):
         used_tools.append("Arbos Core")
 
     return "\n\n".join(results), used_tools
-
     
     def run(self, challenge: str):
         monitor = ResourceMonitor(max_hours=3.8)
