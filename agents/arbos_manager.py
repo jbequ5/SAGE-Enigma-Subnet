@@ -13,6 +13,7 @@ from agents.tools.exploration import explore_novel_variant
 from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 from agents.tools.compute import ComputeRouter
+from agents.tools.get_physics_done import run_gpd    
 
 class ArbosManager:
     def __init__(self, goal_file="goals/killer_base.md"):
@@ -44,14 +45,60 @@ class ArbosManager:
         return config
 
     def _smart_route(self, challenge: str):
-        lower = challenge.lower()
-        results = []
-        if any(k in lower for k in ["quantum", "physics", "circuit"]): results.append(run_gpd(challenge))
-        if any(k in lower for k in ["discover", "biology", "material"]): results.append(run_scienceclaw(challenge, 20))
-        if any(k in lower for k in ["research", "paper", "literature"]): results.append(run_ai_researcher(challenge))
-        if self.config.get("hyper_planning"): results.append(run_hyperagent(challenge))
-        return "\n\n".join(results), ["GPD", "ScienceClaw", "AI-Researcher"]
+    """
+    Smart routing with real Get Physics Done integration.
+    Uses the user's personal config from GOAL.md / UI.
+    """
+    lower = challenge.lower()
+    results = []
+    used_tools = []
 
+    # === GPD (Get Physics Done) Routing ===
+    if any(k in lower for k in ["quantum", "physics", "circuit", "theory", "particle", "gravity", "field"]):
+        try:
+            from agents.tools.get_physics_done import run as run_gpd
+            
+            # Get user's personal GPD config (from GOAL.md or session)
+            gpd_config = self.config.get("GPD", {}) if isinstance(self.config, dict) else {}
+            profile = gpd_config.get("profile", "deep-theory")
+            tier = gpd_config.get("tier", "1")
+
+            gpd_result = run_gpd(
+                task=challenge,
+                profile=profile,
+                tier=tier
+            )
+
+            if gpd_result.get("success"):
+                results.append(f"[GPD - {profile} / Tier {tier}]\n{gpd_result['output']}")
+            else:
+                results.append(f"[GPD Error] {gpd_result.get('error', 'Unknown error')}")
+            
+            used_tools.append("GPD")
+            
+        except Exception as e:
+            results.append(f"[GPD Exception] {str(e)}")
+            used_tools.append("GPD (failed)")
+
+    # === Other tools (keep your existing logic) ===
+    if any(k in lower for k in ["discover", "biology", "material", "chemistry"]):
+        results.append(run_scienceclaw(challenge, 20))
+        used_tools.append("ScienceClaw")
+
+    if any(k in lower for k in ["research", "paper", "literature", "review"]):
+        results.append(run_ai_researcher(challenge))
+        used_tools.append("AI-Researcher")
+
+    if self.config.get("hyper_planning", False):
+        results.append(run_hyperagent(challenge))
+        used_tools.append("HyperAgent")
+
+    # Fallback if nothing matched
+    if not results:
+        results.append("No specialized tool matched. Using default Arbos reasoning.")
+        used_tools.append("Arbos Core")
+
+    return "\n\n".join(results), used_tools
     def run(self, challenge: str):
         monitor = ResourceMonitor(max_hours=3.8)
         print(f"🔀 Running REAL Arbos with {self.compute.get_compute()} compute...")
