@@ -74,8 +74,6 @@ pip install chutes-sdk targon-sdk celium-sdk
 
 ### How the Patterns Work Together
 
-The miner follows a **sequential, cumulative** workflow with Arbos at its core:
-
 ```mermaid
 flowchart TD
     A[1. Enter Challenge] --> B[2. HyperAgent Planning]
@@ -84,16 +82,18 @@ flowchart TD
 
     D --> E[AI-Researcher<br>with Prompt 1]
     E --> F[Arbos Reflection + Prompt Redesign]
-    F --> G[GPD<br>using AI-Researcher results + Prompt 2]
+    F --> G[AutoResearch<br>using AI-Researcher + Prompt 2]
     G --> H[Arbos Reflection + Prompt Redesign]
-    H --> I[ScienceClaw<br>using previous results + Prompt 3]
-    I --> J[Arbos Reflection Loop<br>Critique Results]
+    H --> I[GPD<br>using previous results + Prompt 3]
+    I --> J[Arbos Reflection + Prompt Redesign]
+    J --> K[ScienceClaw<br>using all previous + Prompt 4]
+    K --> L[Arbos Reflection Loop<br>Final Critique]
 
-    J -->|Results Good?| K[Final Synthesis]
-    J -->|Needs Improvement?| B[Replan with HyperAgent]
+    L -->|Results Good?| M[Final Synthesis]
+    L -->|Needs Improvement?| B[Replan with HyperAgent]
 
-    K --> L[Resource-Aware + Guardrails]
-    L --> M[Final Solution + GOAL.md]
+    M --> N[Resource-Aware + Guardrails]
+    N --> O[Final Solution + GOAL.md]
 
     style A fill:#0f0a05,stroke:#ffcc00,color:#ffcc00
     style B fill:#1a1408,stroke:#ffcc00,color:#ffcc00
