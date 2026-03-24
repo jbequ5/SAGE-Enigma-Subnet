@@ -43,58 +43,51 @@ class ArbosManager:
             pass
         return config
 
-def _smart_route(self, challenge: str):
-    """Final smart routing with all real tools using user's personal config."""
-    lower = challenge.lower()
+def _smart_route(self, challenge: str, approved_plan: str = ""):
+    """Final routing using approved HyperAgent plan to craft detailed prompts."""
     results = []
     used_tools = []
 
-    # GPD (Get Physics Done)
-    if any(k in lower for k in ["quantum", "physics", "circuit", "theory", "particle", "gravity", "field"]):
+    plan_context = approved_plan[:800] if approved_plan else "No detailed plan provided."
+
+    # GPD
+    if any(k in challenge.lower() for k in ["quantum", "physics", "circuit", "theory", "particle", "gravity"]):
         try:
             from agents.tools.get_physics_done import run as run_gpd
             cfg = self.config.get("GPD", {})
-            result = run_gpd(task=challenge, profile=cfg.get("profile", "deep-theory"), tier=cfg.get("tier", "1"))
+            detailed_task = f"Challenge: {challenge}\n\nPlan context: {plan_context}\n\nSolve this physics task with high rigor using the plan."
+            result = run_gpd(task=detailed_task, profile=cfg.get("profile", "deep-theory"), tier=cfg.get("tier", "1"))
             results.append(f"[GPD — {cfg.get('profile')} / Tier {cfg.get('tier')}] {result.get('output', result.get('error'))}")
             used_tools.append("GPD")
         except Exception as e:
             results.append(f"[GPD Error] {str(e)}")
 
     # ScienceClaw
-    if any(k in lower for k in ["research", "paper", "data", "science", "analyze", "experiment"]):
+    if any(k in challenge.lower() for k in ["research", "paper", "data", "science", "analyze"]):
         try:
             from agents.tools.scienceclaw import run as run_scienceclaw
             cfg = self.config.get("ScienceClaw", {})
-            result = run_scienceclaw(task=challenge, search_intensity=cfg.get("search_intensity", "high"), max_sources=cfg.get("max_sources", 15))
+            detailed_task = f"Challenge: {challenge}\n\nPlan: {plan_context}\n\nPerform deep research and analysis."
+            result = run_scienceclaw(task=detailed_task, search_intensity=cfg.get("search_intensity", "high"), max_sources=cfg.get("max_sources", 15))
             results.append(f"[ScienceClaw] {result.get('output', result.get('error'))}")
             used_tools.append("ScienceClaw")
         except Exception as e:
             results.append(f"[ScienceClaw Error] {str(e)}")
 
     # AI-Researcher
-    if any(k in lower for k in ["literature", "review", "web", "search", "news"]):
+    if any(k in challenge.lower() for k in ["literature", "web", "search", "news"]):
         try:
             from agents.tools.ai_researcher import run as run_ai_researcher
             cfg = self.config.get("AI-Researcher", {})
-            result = run_ai_researcher(task=challenge, search_mode=cfg.get("search_mode", "deep"))
+            detailed_task = f"Challenge: {challenge}\n\nPlan: {plan_context}\n\nConduct thorough research."
+            result = run_ai_researcher(task=detailed_task, search_mode=cfg.get("search_mode", "deep"))
             results.append(f"[AI-Researcher] {result.get('output', result.get('error'))}")
             used_tools.append("AI-Researcher")
         except Exception as e:
             results.append(f"[AI-Researcher Error] {str(e)}")
 
-    # HyperAgent
-    if self.config.get("hyper_planning", False):
-        try:
-            from agents.tools.hyperagent import run as run_hyperagent
-            cfg = self.config.get("HyperAgent", {})
-            result = run_hyperagent(task=challenge, parallel_tasks=cfg.get("parallel_tasks", 5))
-            results.append(f"[HyperAgent] {result.get('output', result.get('error'))}")
-            used_tools.append("HyperAgent")
-        except Exception as e:
-            results.append(f"[HyperAgent Error] {str(e)}")
-
     if not results:
-        results.append("No specialized tool matched. Using default Arbos reasoning.")
+        results.append("No specialized tool matched. Using default reasoning.")
         used_tools.append("Arbos Core")
 
     return "\n\n".join(results), used_tools
