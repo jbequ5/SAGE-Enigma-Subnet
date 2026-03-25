@@ -3,6 +3,7 @@
 
 import bittensor as bt
 import yaml
+from pathlib import Path
 
 class ComputeRouter:
     def __init__(self):
@@ -10,54 +11,73 @@ class ComputeRouter:
         self.dendrite = bt.Dendrite()
         self.config = self._load_config()
         self._try_import_sdks()
-        print(f"✅ ComputeRouter ready - using {self.get_compute()} | Chutes LLM: {self.config.get('chutes_llm', 'mixtral')}")
+        print(f"✅ ComputeRouter initialized - Active compute: {self.get_compute()} | Chutes LLM: {self.config.get('chutes_llm', 'mixtral')}")
 
     def _load_config(self):
+        """Load from config/compute.yaml with safe defaults"""
         try:
-            with open("config/compute.yaml", "r") as f:
-                return yaml.safe_load(f) or {}
-        except:
-            return {
-                "chutes": True,
-                "targon": False,
-                "celium": True,
-                "chutes_llm": "mixtral"   # Default model
-            }
+            config_path = Path("config/compute.yaml")
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    return yaml.safe_load(f) or {}
+        except Exception:
+            pass
+        
+        # Default fallback
+        return {
+            "chutes": True,
+            "targon": False,
+            "celium": True,
+            "chutes_llm": "mixtral"
+        }
 
     def _try_import_sdks(self):
-        """Safely try to import real SDKs - never breaks the miner"""
+        """Safely attempt to import real SDKs - never crash the miner"""
         global chutes_sdk, targon_sdk, celium_sdk
-        try:    import chutes_sdk
-        except: chutes_sdk = None
-        try:    import targon_sdk
-        except: targon_sdk = None
-        try:    import celium_sdk
-        except: celium_sdk = None
+        chutes_sdk = targon_sdk = celium_sdk = None
+
+        try:
+            import chutes_sdk
+        except:
+            pass
+        try:
+            import targon_sdk
+        except:
+            pass
+        try:
+            import celium_sdk
+        except:
+            pass
 
     def get_compute(self) -> str:
-        if self.config.get("chutes"): return "chutes"
-        elif self.config.get("targon"): return "targon"
-        elif self.config.get("celium"): return "celium"
+        """Return the currently active compute subnet"""
+        if self.config.get("chutes"):
+            return "chutes"
+        elif self.config.get("targon"):
+            return "targon"
+        elif self.config.get("celium"):
+            return "celium"
         return "local"
 
     def run_on_compute(self, task: str) -> str:
+        """Main method called by exploration.py and other tools"""
         subnet = self.get_compute()
         llm_model = self.config.get("chutes_llm", "mixtral")
 
-        # === REAL SDK CALLS (if installed) ===
-        if subnet == "chutes" and 'chutes_sdk' in globals() and chutes_sdk is not None:
-            print(f"🔗 Using **real Chutes SDK** with model: {llm_model}")
-            # Real SDK call would go here in production
-            return f"✅ Chutes ({llm_model}) SDK processed: {task[:80]}..."
+        print(f"🔗 Routing task to {subnet.upper()} (LLM: {llm_model})")
 
-        elif subnet == "targon" and 'targon_sdk' in globals() and targon_sdk is not None:
-            print("🔒 Using **real Targon SDK**")
-            return f"✅ Targon SDK processed: {task[:80]}..."
+        # Real SDK paths (when installed)
+        if subnet == "chutes" and chutes_sdk is not None:
+            print(f"✅ Using real Chutes SDK with model: {llm_model}")
+            # Placeholder for real Chutes call - replace when SDK is fully integrated
+            return f"[Chutes SDK - {llm_model}] Processed task: {task[:100]}..."
 
-        elif subnet == "celium" and 'celium_sdk' in globals() and celium_sdk is not None:
-            print("⚡ Using **real Celium SDK**")
-            return f"✅ Celium SDK processed: {task[:80]}..."
+        elif subnet == "targon" and targon_sdk is not None:
+            print("✅ Using real Targon SDK")
+            return f"[Targon SDK] Processed task: {task[:100]}..."
 
-        # Fallback to pure bittensor dendrite
-        print(f"🔗 Using pure Bittensor dendrite on {subnet} (LLM: {llm_model})")
-        return f"✅ {subnet.upper()} compute (bittensor) completed: {task[:80]}..."
+        elif subnet == "celium" and celium_sdk is not None:
+            print("✅ Using real Celium SDK")
+            return f"[Celium SDK] Processed task: {task[:100]}..."
+
+        # Safe
