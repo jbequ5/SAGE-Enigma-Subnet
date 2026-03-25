@@ -45,19 +45,32 @@ class ArbosManager:
 
 def _smart_route(self, challenge: str, approved_plan: str = ""):
     """
-    Final strategic sequential routing.
-    HyperAgent plan determines how much each tool is used.
-    Tools build cumulatively with Arbos reflection and prompt redesign after each step.
+    Sequential cumulative routing with reflection + planning + prompt redesign AFTER EVERY TOOL.
     """
     lower = challenge.lower()
     results = []
     used_tools = []
     cumulative_context = approved_plan[:1200] if approved_plan else ""
 
-    # Initialize shared program.md for AutoResearch
     program_path = Path("program.md")
     if not program_path.exists():
         program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
+
+    # Helper to do Arbos reflection + redesign prompt for next tool
+    def reflect_and_redesign(last_output: str, next_tool_name: str):
+        try:
+            from agents.tools.hyperagent import run as run_hyperagent
+            reflect_task = f"""Previous tool output: {last_output}
+Overall goal: {challenge}
+Next tool: {next_tool_name}
+
+Reconstruct the previous output into a specific, high-quality prompt for the next tool.
+Maintain the overall goal and evaluation criteria throughout.
+Write the exact prompt that should be sent to the next tool."""
+            result = run_hyperagent(task=reflect_task, parallel_tasks=3)
+            return result.get("output", "Continue with previous context.")
+        except Exception:
+            return f"Continue with previous findings: {last_output[:500]}"
 
     # 1. AI-Researcher
     if any(k in lower for k in ["research", "literature", "paper", "review", "survey"]):
@@ -66,16 +79,16 @@ def _smart_route(self, challenge: str, approved_plan: str = ""):
             cfg = self.config.get("AI-Researcher", {})
             mode = cfg.get("search_mode", "deep")
 
-            task = f"""Challenge: {challenge}
-Overall goal: Maintain high novelty and verifier score.
-Plan context: {cumulative_context}
-Perform broad, high-quality search and return key findings."""
+            task = f"Challenge: {challenge}\nPlan context: {cumulative_context}\nPerform broad search."
 
             result = run_ai_researcher(task=task, search_mode=mode)
             output = result.get("output", result.get("error", ""))
             results.append(f"[AI-Researcher — {mode}]\n{output}")
             used_tools.append("AI-Researcher")
             cumulative_context += f"\n\n[AI-Researcher Output]\n{output}"
+
+            # Reflection + redesign for next tool
+            cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "AutoResearch")
         except Exception as e:
             results.append(f"[AI-Researcher Error] {str(e)}")
 
@@ -87,25 +100,19 @@ Perform broad, high-quality search and return key findings."""
             depth = cfg.get("depth", "medium")
             iterations = cfg.get("iterations", 3)
 
-            task = f"""Build on all previous findings. Focus: {challenge}
-Plan context: {cumulative_context}
-Previous findings: {cumulative_context}"""
+            task = cumulative_context   # Use the evolving context + reflection
 
-            result = run_autoresearch(
-                task=task,
-                depth=depth,
-                iterations=iterations,
-                program_md_path=str(program_path)
-            )
-
+            result = run_autoresearch(task=task, depth=depth, iterations=iterations, program_md_path=str(program_path))
             output = result.get("output", result.get("error", ""))
             results.append(f"[AutoResearch — depth:{depth}, iterations:{iterations}]\n{output}")
             used_tools.append("AutoResearch")
             cumulative_context += f"\n\n[AutoResearch Output]\n{output}"
+
+            cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "GPD")
         except Exception as e:
             results.append(f"[AutoResearch Error] {str(e)}")
 
-    # 3. GPD (Get Physics Done)
+    # 3. GPD
     if any(k in lower for k in ["quantum", "physics", "circuit", "theory", "particle", "gravity", "field"]):
         try:
             from agents.tools.get_physics_done import run as run_gpd
@@ -113,20 +120,19 @@ Previous findings: {cumulative_context}"""
             profile = cfg.get("profile", "deep-theory")
             tier = cfg.get("tier", "1")
 
-            task = f"""Challenge: {challenge}
-Plan context: {cumulative_context}
-Previous findings: {cumulative_context}
-Solve this physics task with high rigor, building on all previous results."""
+            task = cumulative_context
 
             result = run_gpd(task=task, profile=profile, tier=tier)
             output = result.get("output", result.get("error", ""))
             results.append(f"[GPD — {profile} / Tier {tier}]\n{output}")
             used_tools.append("GPD")
             cumulative_context += f"\n\n[GPD Output]\n{output}"
+
+            cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "ScienceClaw")
         except Exception as e:
             results.append(f"[GPD Error] {str(e)}")
 
-    # 4. ScienceClaw (final deep analysis)
+    # 4. ScienceClaw
     if any(k in lower for k in ["analyze", "experiment", "data", "science", "conclude"]):
         try:
             from agents.tools.scienceclaw import run as run_scienceclaw
@@ -134,14 +140,11 @@ Solve this physics task with high rigor, building on all previous results."""
             intensity = cfg.get("search_intensity", "high")
             max_src = cfg.get("max_sources", 15)
 
-            task = f"""Challenge: {challenge}
-Plan context: {cumulative_context}
-All previous findings: {cumulative_context}
-Perform final deep analysis and synthesis."""
+            task = cumulative_context
 
             result = run_scienceclaw(task=task, search_intensity=intensity, max_sources=max_src)
             output = result.get("output", result.get("error", ""))
-            results.append(f"[ScienceClaw — {intensity} intensity]\n{output}")
+            results.append(f"[ScienceClaw — {intensity}]\n{output}")
             used_tools.append("ScienceClaw")
         except Exception as e:
             results.append(f"[ScienceClaw Error] {str(e)}")
