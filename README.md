@@ -1,12 +1,21 @@
 # The Enigma Machine — Agentic Miner for Bittensor Subnet 63
 
-### Core Philosophy
-The miner uses **Arbos** as the intelligent conductor, dynamically decides which open source tools to use, reflects after every step, and repeats loop until solution or a max defined by the miner.
-
-Everything is optional and controlled from `GOAL.md`.  
+**A high-performance, reflective agentic miner** powered by real Arbos with full miner control and adaptive looping.
 
 ![Enigma](https://img.shields.io/badge/Status-Production_Ready-brightgreen)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+
+### Core Features
+
+- Real Arbos as the intelligent conductor with tight reflection loops
+- Full GOAL.md strategy/context is read and strongly used in every decision
+- Adaptive Quality Gate — Arbos scores novelty, verifier potential, and alignment before deciding to re-loop
+- Smart auto-reloop when `miner_review_after_loop: false`
+- Real ScienceClaw executed at the end of each loop
+- Long-term memory via ChromaDB
+- Resource-aware guardrails with auto-compression
+- Exploration module for novel variants
+- Professional Streamlit UI with plan approval and final miner review
 
 ### How the Ralph Loop Works
 
@@ -22,15 +31,6 @@ Everything is optional and controlled from `GOAL.md`.
 9. Results saved to long-term memory for future challenges.
 
 This tight loop makes the miner highly adaptive and capable of continuous self-improvement.
-
-### Key Features
-
-- Sequential Tool Chain with Reflection & Dynamic Prompt Redesign
-- Tool Study + Vector Retrieval for High-Fidelity Tool Mimicking **(See Below)**
-- Cumulative Context via `program.md`
-- Dynamic Reflection Depth based on Cost/Token Awareness
-- Resource-Aware Guardrails + Auto-Compression
-- Exploration Module Optional For Deeper and more Novel Ideas
 
 ### Tool Study & Tool Replication Strategy
 
