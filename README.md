@@ -1,58 +1,65 @@
 # ENIGMA MACHINE — Agentic Miner for Bittensor Subnet 63
 
-**A high-performance reflective miner** powered by Arbos with strong miner control and adaptive looping.
+**A high-performance reflective miner** where **Arbos is the primary solver**, with tools used only as needed.
 
 ### What Makes It Special
-
-- Full GOAL.md strategy/context is read and **strongly injected** into every reflection and tool call
-- Adaptive Quality Gate — Arbos scores novelty, verifier potential, and alignment before deciding to re-loop
-- Smart auto-reloop when `miner_review_after_loop: false` (up to `max_loops`)
-- MIT's ScienceClaw executed at the end of each loop
-- Long-term memory via ChromaDB + resource-aware guardrails
-- Uses Bittensor native compute and inference by default (Chutes, Targon, Lium)
-- Professional Streamlit UI with plan approval and final miner review
-
-### How the Ralph Loop Works
-
 ```mermaid
 graph TD
-    A[Miner's Custom GOAL.md] --> B[HyperAgent Planning<br>With Miner Approval]
-    B --> C[Dynamic Tool Decision]
-    C --> D[AI-Researcher]
-    D --> E[Arbos Reflection + Prompt Redesign]
-    E --> F[AutoResearch]
-    F --> E
-    E --> G[GPD]
-    G --> E
-    E --> H[ScienceClaw Swarm]
-    H --> I[Arbos Final Reflection & Critique]
+    A[Miner's GOAL.md<br>with Strategy & Context] --> B[HyperAgent Planning<br>Miner Approval]
+    B --> C[Arbos Primary Solver Loop]
     
-    I -->|Solution Good & Complete?| J[Final Synthesis + Exploration]
-    I -->|Needs Improvement or Not Finished?| K[Replan / Loop Back]
+    C --> D[Deep Reflection & Self-Critique]
+    D --> E[Adaptive Quality Gate<br>Score Novelty + Verifier + Alignment]
     
-    K --> B[HyperAgent Planning]
-    J --> L[Check Resource Guardrails]
-    L --> M[Final Solution]
+    E -->|Good Enough?| F[Finalize Solution]
+    E -->|Needs Improvement?| G[Decide Next Action]
     
-    style I fill:#1a1408,stroke:#ffcc00,color:#ffcc00
-    style K fill:#2a1f12,stroke:#ffaa00,color:#ffaa00
+    G -->|Pure Arbos Improve| D
+    G -->|Call Tool| H[Optional Tool Call<br>ScienceClaw / GPD / etc.]
+    
+    H --> D
+    F --> I[Resource Guardrails + Exploration]
+    I --> J[Final Miner Review<br>Before Submission]
+    
+    style C fill:#1a1408,stroke:#ffcc00,color:#ffcc00
+    style E fill:#2a1f12,stroke:#ffaa00,color:#ffaa00
+    style J fill:#1a1408,stroke:#00cc88,color:#00cc88
+
 ```
+- Arbos is the main intelligence — it thinks, critiques, and improves the solution directly
+- Full GOAL.md strategy/context is strongly injected and followed in every reflection
+- Adaptive Quality Gate — Arbos scores the solution and intelligently decides whether to re-loop
+- ScienceClaw is called only when Arbos determines it adds value
+- Long-term memory + resource-aware guardrails
+- Miner review controls (optional per-loop + always-on final review)
 
-**Key Mechanics:**
-- When `miner_review_after_loop: false` → Arbos runs multiple loops automatically and uses the quality gate to decide when to stop.
-- When `miner_review_after_loop: true` → Miner reviews after every loop.
-- Final review screen is **always** shown before submission.
+### How the Primary Solver Loop Works
 
-### Tool Study & Mimicking Strategy
+1. Miner writes challenge + rich strategy in `GOAL.md`
+2. HyperAgent generates initial plan (miner approves)
+3. Arbos begins solving directly with deep reflection and self-critique
+4. Arbos decides if a specialized tool is needed (ScienceClaw, GPD, etc.)
+5. If needed, tool is called; otherwise Arbos continues improving the solution
+6. Adaptive Quality Gate scores the current solution
+7. Arbos decides: Finalize or Re-loop (up to `max_loops`)
+8. Final mandatory miner review before submission
 
-Complex tools are studied once by Arbos and stored as vector profiles. Arbos retrieves only the most relevant parts at runtime and mimics them intelligently. This keeps the loop fast and reliable. **ScienceClaw** is still called directly at the end of every loop for maximum scientific depth using the full context of the previous 3 tools output.
+This design keeps Arbos at the center, making the loop tighter, smarter, and more focused on iterative self-improvement.
+
 
 ### Streamlit UI Highlights
 
-- Challenge input + editable HyperAgent plan
-- One-click "Run Tool Study Phase" button
-- Debug/Trace mode
+- Challenge input + editable plan approval
+- One-click Tool Study
+- Debug/Trace mode showing Arbos reflections
 - Final miner review before submission
+
+### Current Strengths
+
+- Arbos-centric design leads to deeper, more coherent reasoning
+- Strong use of miner strategy from GOAL.md
+- Adaptive iteration without unnecessary tool calls
+- Good balance between automation and human oversight
 
 ### Quick Start
 
@@ -78,7 +85,7 @@ streamlit run streamlit_app.py
 ```markdown
 GOAL: Solve the sponsor challenge with maximum novelty and verifier score while staying under 3.8h on H100.
 
-STRATEGY/CONTEXT: [Your custom strategy, constraints, and success criteria here]
+STRATEGY/CONTEXT: [Your detailed strategy, constraints, success criteria, and any specific instructions here]
 
 # Core Toggles
 reflection: 4
@@ -88,18 +95,16 @@ guardrails: true
 
 # Miner Control
 miner_review_after_loop: false     # true = review after every loop
-max_loops: 4
+max_loops: 5
 miner_review_final: true
 
 # Compute
 chutes: true
-targon: false
-celium: false
 chutes_llm: mixtral
 ```
 
 Ready to dominate SN63?
 
-Fork the repo, run the Tool Study, write your strategy in GOAL.md, and start winning.
+Fork the repo, run the Tool Study, write your best strategy in GOAL.md, and launch.
 
 **$TAO 🚀**
