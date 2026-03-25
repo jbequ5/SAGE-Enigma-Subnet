@@ -65,10 +65,13 @@ class ArbosManager:
     def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
         """
         FINAL OPERATIONAL _smart_route
-        - Reflection + prompt redesign after EVERY tool
+        - Reflection + prompt redesign AFTER EVERY TOOL
         - Arbos dynamically recommends compute backend per tool
         - Long-term memory + program.md cumulative context
         """
+        from agents.memory import memory
+        from pathlib import Path
+
         lower = challenge.lower()
         results = []
         used_tools = []
@@ -92,7 +95,7 @@ Overall goal: {challenge}
 Next tool: {next_tool}
 
 Reconstruct the previous output into a specific, high-quality prompt for the next tool.
-Also recommend the best compute backend for this step (chutes, targon, celium, or local) based on complexity and time remaining.
+Also recommend the best compute backend for this step (chutes, targon, celium, or local) based on complexity, time remaining, and cost.
 
 Reply in this exact format:
 Prompt: [the full prompt to send to the next tool]
@@ -144,6 +147,7 @@ Recommended Compute: [chutes/targon/celium/local]"""
 
                 redesign = reflect_and_redesign(output if 'output' in locals() else "", "AutoResearch")
                 task = redesign["prompt"]
+                compute_override = redesign.get("compute_override")
 
                 result = run_autoresearch(task=task, depth=depth, iterations=iterations, program_md_path=str(program_path))
                 output = result.get("output", result.get("error", ""))
@@ -163,7 +167,9 @@ Recommended Compute: [chutes/targon/celium/local]"""
 
                 redesign = reflect_and_redesign(output if 'output' in locals() else "", "GPD")
                 task = redesign["prompt"]
+                compute_override = redesign.get("compute_override")
 
+                # Pass compute override if the tool supports it
                 result = run_gpd(task=task, profile=profile, tier=tier)
                 output = result.get("output", result.get("error", ""))
                 results.append(f"[GPD — {profile} / Tier {tier}]\n{output}")
@@ -182,6 +188,7 @@ Recommended Compute: [chutes/targon/celium/local]"""
 
                 redesign = reflect_and_redesign(output if 'output' in locals() else "", "ScienceClaw")
                 task = redesign["prompt"]
+                compute_override = redesign.get("compute_override")
 
                 result = run_scienceclaw(task=task, search_intensity=intensity, max_sources=max_src)
                 output = result.get("output", result.get("error", ""))
@@ -202,7 +209,7 @@ Recommended Compute: [chutes/targon/celium/local]"""
             used_tools.append("Arbos Core")
 
         return "\n\n".join(results), used_tools
-
+        
     def run(self, challenge: str):
         """Main entry point"""
         print(f"🚀 Starting Arbos for challenge: {challenge[:80]}...")
