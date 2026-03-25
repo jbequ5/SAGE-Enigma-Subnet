@@ -45,16 +45,15 @@ class ArbosManager:
 
 def _smart_route(self, challenge: str, approved_plan: str = ""):
     """
-    Full sequential cumulative routing with AutoResearch + program.md
+    Full sequential cumulative routing with proper prompt hand-off.
+    Each tool receives the evolving context from previous tools.
     """
     lower = challenge.lower()
     results = []
     used_tools = []
-    previous_results = ""
+    cumulative_context = approved_plan[:800] if approved_plan else ""
 
-    plan_context = approved_plan[:1000] if approved_plan else "No plan provided."
-
-    # Initialize shared program.md
+    # Initialize program.md for AutoResearch
     program_path = Path("program.md")
     if not program_path.exists():
         program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
@@ -66,20 +65,20 @@ def _smart_route(self, challenge: str, approved_plan: str = ""):
             cfg = self.config.get("AI-Researcher", {})
             mode = cfg.get("search_mode", "deep")
 
-            task = f"Challenge: {challenge}\nPlan: {plan_context}\nPrevious: {previous_results or 'None'}\nPerform broad search."
+            task = f"Challenge: {challenge}\nPlan context: {cumulative_context}\nPerform broad, high-quality search and return key findings."
 
             result = run_ai_researcher(task=task, search_mode=mode)
             output = result.get("output", result.get("error", ""))
             results.append(f"[AI-Researcher — {mode}]\n{output}")
             used_tools.append("AI-Researcher")
-            previous_results = output
 
+            cumulative_context += f"\n\n[AI-Researcher Output]\n{output}"
             with open(program_path, "a") as f:
                 f.write(f"\n\n## AI-Researcher Output\n{output}\n")
         except Exception as e:
             results.append(f"[AI-Researcher Error] {str(e)}")
 
-    # 2. AutoResearch (uses and updates program.md)
+    # 2. AutoResearch
     if any(k in lower for k in ["research", "literature", "paper", "review", "explore", "synthesize"]):
         try:
             from agents.tools.autoresearch import run as run_autoresearch
@@ -87,7 +86,7 @@ def _smart_route(self, challenge: str, approved_plan: str = ""):
             depth = cfg.get("depth", "medium")
             iterations = cfg.get("iterations", 3)
 
-            task = f"Build on all previous findings. Focus: {challenge}\nPlan: {plan_context}"
+            task = f"Build on all previous findings. Focus: {challenge}\nPlan: {cumulative_context}"
 
             result = run_autoresearch(
                 task=task,
@@ -99,7 +98,8 @@ def _smart_route(self, challenge: str, approved_plan: str = ""):
             output = result.get("output", result.get("error", ""))
             results.append(f"[AutoResearch — depth:{depth}, iterations:{iterations}]\n{output}")
             used_tools.append("AutoResearch")
-            previous_results = result.get("program_md", output)
+
+            cumulative_context += f"\n\n[AutoResearch Output]\n{output}"
         except Exception as e:
             results.append(f"[AutoResearch Error] {str(e)}")
 
@@ -111,13 +111,14 @@ def _smart_route(self, challenge: str, approved_plan: str = ""):
             profile = cfg.get("profile", "deep-theory")
             tier = cfg.get("tier", "1")
 
-            task = f"Challenge: {challenge}\nPlan: {plan_context}\nPrevious findings: {previous_results or 'None'}\nSolve with high rigor."
+            task = f"Challenge: {challenge}\nPlan: {cumulative_context}\nPrevious findings: {cumulative_context}\nSolve with high rigor."
 
             result = run_gpd(task=task, profile=profile, tier=tier)
             output = result.get("output", result.get("error", ""))
             results.append(f"[GPD — {profile} / Tier {tier}]\n{output}")
             used_tools.append("GPD")
-            previous_results = output
+
+            cumulative_context += f"\n\n[GPD Output]\n{output}"
         except Exception as e:
             results.append(f"[GPD Error] {str(e)}")
 
@@ -129,7 +130,7 @@ def _smart_route(self, challenge: str, approved_plan: str = ""):
             intensity = cfg.get("search_intensity", "high")
             max_src = cfg.get("max_sources", 15)
 
-            task = f"Challenge: {challenge}\nPlan: {plan_context}\nAll previous findings: {previous_results or 'None'}\nPerform final deep analysis."
+            task = f"Challenge: {challenge}\nPlan: {cumulative_context}\nAll previous findings: {cumulative_context}\nPerform final deep analysis and synthesis."
 
             result = run_scienceclaw(task=task, search_intensity=intensity, max_sources=max_src)
             output = result.get("output", result.get("error", ""))
@@ -141,8 +142,6 @@ def _smart_route(self, challenge: str, approved_plan: str = ""):
     if not results:
         results.append("No specialized tool matched. Using default Arbos reasoning.")
         used_tools.append("Arbos Core")
-
-    return "\n\n".join(results), used_tools
 
     return "\n\n".join(results), used_tools
     
