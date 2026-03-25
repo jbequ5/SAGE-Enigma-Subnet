@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL VERSION - Full GOAL.md context + auto-reloop + max_loops + miner review controls
+# FINAL VERSION - Full GOAL.md context + auto-reloop + max_loops + final review
 
 import os
 import subprocess
@@ -18,9 +18,10 @@ class ArbosManager:
         self.goal_file = goal_file
         self.arbos_path = "agents/arbos"
         self.compute = ComputeRouter()
-        self.config, self.extra_context = self._load_config()
+        self.config = self._load_config()
+        self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
-        print("✅ REAL Arbos + Long-term Memory + Full GOAL.md Context loaded")
+        print("✅ REAL Arbos + Full GOAL.md Context + Auto-ReLoop loaded")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -41,84 +42,89 @@ class ArbosManager:
             "celium": False,
             "chutes_llm": "mixtral"
         }
-        extra_context = ""
-
         try:
-            with open(self.goal_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
+            with open(self.goal_file, "r") as f:
+                for line in f:
+                    line = line.strip().lower()
+                    if line.startswith("reflection:"):
+                        config["reflection"] = int(line.split(":")[1].strip())
+                    elif line.startswith("exploration:"):
+                        config["exploration"] = "true" in line
+                    elif line.startswith("resource_aware:"):
+                        config["resource_aware"] = "true" in line
+                    elif line.startswith("guardrails:"):
+                        config["guardrails"] = "true" in line
+                    elif line.startswith("miner_review_after_loop:"):
+                        config["miner_review_after_loop"] = "true" in line
+                    elif line.startswith("max_loops:"):
+                        config["max_loops"] = int(line.split(":")[1].strip())
+                    elif line.startswith("miner_review_final:"):
+                        config["miner_review_final"] = "true" in line
+                    elif line.startswith("chutes:"):
+                        config["chutes"] = "true" in line
+                    elif line.startswith("targon:"):
+                        config["targon"] = "true" in line
+                    elif line.startswith("celium:"):
+                        config["celium"] = "true" in line
+                    elif line.startswith("chutes_llm:"):
+                        config["chutes_llm"] = line.split(":")[1].strip()
+        except Exception:
+            pass
+        return config
+
+    def _load_extra_context(self) -> str:
+        """Load everything in GOAL.md after the toggles as strategic context"""
+        try:
+            with open(self.goal_file, "r") as f:
+                content = f.read()
+
+            # Split at the last toggle line and take everything after it
+            lines = content.splitlines()
+            context_lines = []
+            in_context = False
 
             for line in lines:
                 stripped = line.strip().lower()
-                if stripped.startswith("reflection:"):
-                    config["reflection"] = int(line.split(":")[1].strip())
-                elif stripped.startswith("exploration:"):
-                    config["exploration"] = "true" in stripped
-                elif stripped.startswith("resource_aware:"):
-                    config["resource_aware"] = "true" in stripped
-                elif stripped.startswith("guardrails:"):
-                    config["guardrails"] = "true" in stripped
-                elif stripped.startswith("miner_review_after_loop:"):
-                    config["miner_review_after_loop"] = "true" in stripped
-                elif stripped.startswith("max_loops:"):
-                    config["max_loops"] = int(line.split(":")[1].strip())
-                elif stripped.startswith("miner_review_final:"):
-                    config["miner_review_final"] = "true" in stripped
-                elif stripped.startswith("chutes:"):
-                    config["chutes"] = "true" in stripped
-                elif stripped.startswith("targon:"):
-                    config["targon"] = "true" in stripped
-                elif stripped.startswith("celium:"):
-                    config["celium"] = "true" in stripped
-                elif stripped.startswith("chutes_llm:"):
-                    config["chutes_llm"] = line.split(":")[1].strip()
+                if stripped.startswith(("miner_review_after_loop:", "max_loops:", "miner_review_final:",
+                                        "chutes:", "targon:", "celium:", "chutes_llm:")):
+                    in_context = True
+                    continue
+                if in_context and line.strip() and not line.strip().startswith("#"):
+                    context_lines.append(line.strip())
 
-            # Everything after the toggles becomes extra strategic context
-            full_text = "".join(lines)
-            # Simple split: take everything after the last toggle-like line
-            if "# Miner Control" in full_text or "# Compute" in full_text:
-                extra_context = full_text.split("# Compute", 1)[-1] if "# Compute" in full_text else full_text
-            else:
-                extra_context = full_text
-
-        except Exception as e:
-            print(f"Warning: Could not fully parse GOAL.md: {e}")
-
-        return config, extra_context.strip()
+            return "\n".join(context_lines) if context_lines else ""
+        except Exception:
+            return ""
 
     def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str], bool]:
         from agents.tool_study import tool_study
         import streamlit as st
 
-        full_context = f"{approved_plan}\n\nExtra Strategy from GOAL.md:\n{self.extra_context}" if self.extra_context else approved_plan
+        full_context = f"{challenge}\n\n{approved_plan}\n\n{self.extra_context}".strip()
 
-        lower = challenge.lower()
         results = []
         used_tools = []
-        cumulative_context = full_context[:2000] if full_context else ""
+        cumulative_context = full_context[:2000]
         trace_log = []
 
-        past_knowledge = memory.query(challenge, n_results=4)
-        if past_knowledge:
-            cumulative_context += "\n\nRelevant past knowledge:\n" + "\n---\n".join(past_knowledge)
-
-        program_path = Path("program.md")
-        if not program_path.exists():
-            program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Context\n{self.extra_context}\n\n## Approved Plan\n{approved_plan}\n\n")
+        # Long-term memory
+        past = memory.query(challenge, n_results=4)
+        if past:
+            cumulative_context += "\n\nPast knowledge:\n" + "\n---\n".join(past)
 
         monitor = ResourceMonitor(max_hours=3.8)
-        elapsed = monitor.elapsed_hours()
-        remaining_hours = 3.8 - elapsed
+        remaining_hours = 3.8 - monitor.elapsed_hours()
         reflection_depth = 3 if remaining_hours > 2.0 else 2 if remaining_hours > 1.0 else 1
 
-        trace_log.append(f"Time remaining: {remaining_hours:.2f}h | Reflection depth: {reflection_depth} | Extra context length: {len(self.extra_context)}")
+        trace_log.append(f"Time remaining: {remaining_hours:.2f}h | Depth: {reflection_depth} | Extra context length: {len(self.extra_context)}")
 
         def reflect_and_redesign(last_output: str, next_tool: str) -> dict:
             tool_profile = tool_study.load_relevant_profile(next_tool, query=cumulative_context + " " + last_output)
             try:
-                task = f"""You are Arbos...
+                task = f"""You are Arbos.
 
-Goal from GOAL.md: {challenge}
-Extra Strategy/Context: {self.extra_context[:800]}
+Goal: {challenge}
+Extra Strategy from Miner (GOAL.md): {self.extra_context}
 
 Previous output: {last_output}
 Next tool: {next_tool}
@@ -126,45 +132,38 @@ Time left: {remaining_hours:.2f}h
 
 Tool Profile: {tool_profile}
 
-Mimic the tool intelligently and align with the strategy above.
+Mimic the tool intelligently and align with the miner's strategy.
 
 Reply exactly:
-Prompt: [prompt]
+Prompt: [full prompt]
 Recommended Compute: [chutes/targon/celium/local]"""
 
                 response = self.compute.run_on_compute(task)
                 prompt_part = response.split("Prompt:")[-1] if "Prompt:" in response else response
                 compute_override = response.split("Recommended Compute:")[-1].strip().lower() if "Recommended Compute:" in response else None
 
-                trace_log.append(f"[{next_tool}] Profile used | Compute: {compute_override or 'default'}")
+                trace_log.append(f"[{next_tool}] Used context | Compute: {compute_override or 'default'}")
                 return {"prompt": prompt_part.strip(), "compute_override": compute_override}
             except Exception:
-                trace_log.append(f"[{next_tool}] Reflection fallback")
+                trace_log.append(f"[{next_tool}] Fallback")
                 return {"prompt": f"Continue with previous findings using {next_tool}.", "compute_override": None}
 
         last_output = ""
         max_loops = self.config.get("max_loops", 4)
 
         for loop in range(max_loops):
-            trace_log.append(f"--- Starting Loop {loop+1}/{max_loops} ---")
+            trace_log.append(f"--- Loop {loop+1}/{max_loops} ---")
 
-            tool_sequence = ["AI-Researcher", "AutoResearch", "GPD", "ScienceClaw"]
-            for tool_name in tool_sequence:
-                decide_task = f"""Challenge: {challenge}
-Extra context: {self.extra_context[:400]}
-Cumulative: {cumulative_context[:400]}
-Should we use {tool_name} now?"""
-
-                decision = self.compute.run_on_compute(decide_task)
-
-                if "YES" in decision.upper():
+            for tool_name in ["AI-Researcher", "AutoResearch", "GPD", "ScienceClaw"]:
+                decide = self.compute.run_on_compute(f"Should we use {tool_name} now? Context: {cumulative_context[:600]}")
+                if "YES" in decide.upper():
                     redesign = reflect_and_redesign(last_output, tool_name)
                     result = self.compute.run_on_compute(redesign["prompt"], override_compute=redesign.get("compute_override"))
                     output = result
 
                     results.append(f"[{tool_name}]\n{output}")
                     used_tools.append(tool_name)
-                    cumulative_context += f"\n\n[{tool_name} Output]\n{output}"
+                    cumulative_context += f"\n\n[{tool_name}]\n{output}"
                     last_output = output
 
             # Real ScienceClaw
