@@ -10,7 +10,6 @@ class LongTermMemory:
         self.collection = self.client.get_or_create_collection(name="enigma_memory")
 
     def add(self, text: str, metadata: dict = None):
-        """Add a document to long-term memory."""
         if metadata is None:
             metadata = {}
         metadata["timestamp"] = str(datetime.datetime.now())
@@ -22,12 +21,11 @@ class LongTermMemory:
         )
 
     def query(self, query_text: str, n_results: int = 5):
-        """Retrieve relevant past knowledge."""
         results = self.collection.query(
             query_texts=[query_text],
             n_results=n_results
         )
         return results.get('documents', [[]])[0]
 
-# Global memory instance
+# Global instance
 memory = LongTermMemory()
