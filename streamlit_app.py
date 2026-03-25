@@ -25,25 +25,39 @@ if "tool_configs" not in st.session_state:
         "HyperAgent": {"parallel_tasks": 5},
         "Chutes": {"llm_picker": "mixtral"}
     }
+if "debug_mode" not in st.session_state:
+    st.session_state.debug_mode = False
 
 st.subheader("1. Enter the Challenge")
 challenge = st.text_area("Main challenge for today's miner", value=st.session_state.challenge, height=120)
 
-if st.button("Generate Strategic Plan with HyperAgent"):
-    if not challenge:
-        st.error("Please enter a challenge.")
-    else:
-        st.session_state.challenge = challenge
-        with st.spinner("HyperAgent creating strategic plan..."):
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Generate Strategic Plan with HyperAgent"):
+        if not challenge:
+            st.error("Please enter a challenge.")
+        else:
+            st.session_state.challenge = challenge
+            with st.spinner("HyperAgent creating strategic plan..."):
+                try:
+                    from agents.tools.hyperagent import run_hyperagent
+                    cfg = st.session_state.tool_configs.get("HyperAgent", {})
+                    result = run_hyperagent(task=f"Create detailed plan for: {challenge}", parallel_tasks=cfg.get("parallel_tasks", 5))
+                    st.session_state.current_plan = result.get("output", "")
+                    st.session_state.program_md = f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Strategic Plan\n{st.session_state.current_plan}\n\n"
+                    st.success("Strategic plan generated!")
+                except Exception as e:
+                    st.error(f"HyperAgent failed: {e}")
+
+with col2:
+    if st.button("🔬 Run Tool Study Phase"):
+        with st.spinner("Arbos is studying all tools and building profiles..."):
             try:
-                from agents.tools.hyperagent import run_hyperagent
-                cfg = st.session_state.tool_configs.get("HyperAgent", {})
-                result = run_hyperagent(task=f"Create detailed plan for: {challenge}", parallel_tasks=cfg.get("parallel_tasks", 5))
-                st.session_state.current_plan = result.get("output", "")
-                st.session_state.program_md = f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Strategic Plan\n{st.session_state.current_plan}\n\n"
-                st.success("Strategic plan generated!")
+                from agents.tool_study import tool_study
+                tool_study.study_all_tools()
+                st.success("✅ Tool Study Phase completed! Profiles are ready.")
             except Exception as e:
-                st.error(f"HyperAgent failed: {e}")
+                st.error(f"Study failed: {e}")
 
 if st.session_state.current_plan:
     st.subheader("2. Review & Edit Plan")
@@ -52,6 +66,9 @@ if st.session_state.current_plan:
         st.session_state.current_plan = edited_plan
         st.session_state.program_md = f"# Execution Program\n\n## Challenge\n{st.session_state.challenge}\n\n## Strategic Plan\n{edited_plan}\n\n"
         st.success("Plan approved.")
+
+# Debug Mode Toggle
+st.session_state.debug_mode = st.checkbox("Enable Debug/Trace Mode", value=st.session_state.debug_mode)
 
 # Tool Configurations
 st.subheader("3. Personal Tool Configurations")
@@ -101,4 +118,8 @@ if st.button("🚀 LAUNCH SEQUENTIAL TOOL CHAIN", type="primary"):
         st.success("Tool chain launched with reflection after every tool + long-term memory!")
         st.balloons()
 
-st.caption("System Status: Reflection after every tool • Long-term memory • program.md cumulative context")
+if st.session_state.debug_mode:
+    st.subheader("Debug / Trace Mode")
+    st.info("Debug mode is enabled. Full reflection trace and profiles will be shown in future runs.")
+
+st.caption("System Status: Dynamic Reflection • Cost Awareness • Vector Retrieval • Real ScienceClaw at end")
