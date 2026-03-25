@@ -2,26 +2,26 @@ from pathlib import Path
 
 def run(task: str, **kwargs):
     """
-    Karpathy autoresearch is not a direct CLI. It works by writing program.md and letting an AI coding agent run it.
-    We simulate by writing a program.md for the user/agent.
+    Karpathy AutoResearch is NOT a CLI.
+    It works by writing a program.md file that an AI coding agent (Claude/Cursor/etc.) then executes.
     """
     program_path = Path("program.md")
-    content = f"""# Autoresearch Program for Enigma Miner
+    content = f"""# AutoResearch Program for Enigma Miner
 
 Task: {task}
 
-Instructions:
-- Run iterative ML/research experiments
-- Keep only improvements
-- Focus on novelty and verifier score
-- Stay under H100 time limits
+Instructions for the AI coding agent:
+- Read this file and start autonomous ML/research experiments
+- Focus on novelty and high verifier score
+- Keep experiments feasible under H100 time limits
+- Iterate and improve only the best variants
 
-Start the loop now.
+Start the research loop now.
 """
     program_path.write_text(content)
 
     return {
         "success": True,
-        "output": f"program.md written for AutoResearch. Run your AI coding agent (Claude/Cursor) on this directory to start the loop.",
+        "output": f"✅ AutoResearch program.md written. Open this folder in Claude/Cursor and tell the agent: 'Look at program.md and start the experiment loop.'",
         "note": "This is the real Karpathy autoresearch workflow"
     }
