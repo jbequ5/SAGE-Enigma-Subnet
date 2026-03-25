@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL CLEAN OPERATIONAL VERSION - Reflection after every tool + Long-term memory + program.md
+# FINAL VERSION - Supports miner_review_after_loop toggle + final mandatory review
 
 import os
 import subprocess
@@ -35,7 +35,9 @@ class ArbosManager:
             "hyper_planning": True,
             "exploration": True,
             "resource_aware": True,
-            "guardrails": True
+            "guardrails": True,
+            "miner_review_after_loop": False,   # New toggle
+            "miner_review_final": True
         }
         try:
             with open(self.goal_file, "r") as f:
@@ -51,27 +53,27 @@ class ArbosManager:
                         config["resource_aware"] = "true" in line
                     elif line.startswith("guardrails:"):
                         config["guardrails"] = "true" in line
+                    elif line.startswith("miner_review_after_loop:"):
+                        config["miner_review_after_loop"] = "true" in line
+                    elif line.startswith("miner_review_final:"):
+                        config["miner_review_final"] = "true" in line
         except Exception:
             pass
         return config
 
-def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
+    def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str], bool]:
         """
-        FINAL UPGRADED _smart_route with Debug/Trace Logging
-        - Dynamic Reflection Depth
-        - Cost / Token Awareness
-        - Vector retrieval from studied tool profiles
-        - REAL ScienceClaw at the end
+        Returns: (tool_results, used_tools, should_reloop)
         """
         from agents.tool_study import tool_study
+        import streamlit as st
 
         lower = challenge.lower()
         results = []
         used_tools = []
         cumulative_context = approved_plan[:1500] if approved_plan else ""
-        trace_log = []  # For debug mode in Streamlit
+        trace_log = []
 
-        # Long-term memory
         past_knowledge = memory.query(challenge, n_results=4)
         if past_knowledge:
             cumulative_context += "\n\nRelevant past knowledge from previous runs:\n" + "\n---\n".join(past_knowledge)
@@ -80,7 +82,6 @@ def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, Li
         if not program_path.exists():
             program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
 
-        # Resource monitor for dynamic decisions
         monitor = ResourceMonitor(max_hours=3.8)
         elapsed = monitor.elapsed_hours()
         remaining_hours = 3.8 - elapsed
@@ -88,17 +89,15 @@ def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, Li
 
         trace_log.append(f"Time remaining: {remaining_hours:.2f}h | Reflection depth: {reflection_depth}")
 
-        # Reflection helper using vector retrieval
         def reflect_and_redesign(last_output: str, next_tool: str) -> dict:
             tool_profile = tool_study.load_relevant_profile(next_tool, query=cumulative_context + " " + last_output)
-
             try:
                 task = f"""You are Arbos, a highly intelligent conductor.
 
 Previous tool output: {last_output}
 Overall goal: {challenge}
 Next tool: {next_tool}
-Time remaining on H100: {remaining_hours:.2f} hours
+Time remaining: {remaining_hours:.2f} hours
 Current reflection depth: {reflection_depth}
 
 Tool Profile (relevant parts):
@@ -119,7 +118,7 @@ Recommended Compute: [chutes/targon/celium/local]"""
                 if "Recommended Compute:" in response:
                     compute_override = response.split("Recommended Compute:")[-1].strip().lower()
 
-                trace_log.append(f"[{next_tool}] Profile used | Compute recommended: {compute_override or 'default'}")
+                trace_log.append(f"[{next_tool}] Profile used | Compute: {compute_override or 'default'}")
 
                 return {"prompt": prompt_part.strip(), "compute_override": compute_override}
             except Exception:
@@ -127,17 +126,15 @@ Recommended Compute: [chutes/targon/celium/local]"""
                 return {"prompt": f"Continue with previous findings using {next_tool} style.", "compute_override": None}
 
         last_output = ""
-
-        # Tool sequence - Arbos decides dynamically
         tool_sequence = ["AI-Researcher", "AutoResearch", "GPD", "ScienceClaw"]
 
         for tool_name in tool_sequence:
             decide_task = f"""Challenge: {challenge}
-Cumulative context so far: {cumulative_context[:800]}
+Cumulative context: {cumulative_context[:800]}
 Time remaining: {remaining_hours:.2f} hours
 
 Should we use the {tool_name} tool at this stage?
-Reply with only YES or NO, followed by a very short reason."""
+Reply with only YES or NO + short reason."""
 
             decision = self.compute.run_on_compute(decide_task)
             trace_log.append(f"Decision for {tool_name}: {decision[:100]}...")
@@ -167,7 +164,7 @@ Reply with only YES or NO, followed by a very short reason."""
                 results.append(f"[ScienceClaw - REAL]\n{output}")
                 used_tools.append("ScienceClaw")
                 cumulative_context += f"\n\n[ScienceClaw REAL Output]\n{output}"
-                trace_log.append("Real ScienceClaw executed at end of loop")
+                trace_log.append("Real ScienceClaw executed")
             except Exception as e:
                 results.append(f"[ScienceClaw Error] {str(e)}")
                 trace_log.append(f"ScienceClaw Error: {str(e)}")
@@ -183,18 +180,21 @@ Reply with only YES or NO, followed by a very short reason."""
             results.append("No specialized tool triggered. Using default Arbos reasoning.")
             used_tools.append("Arbos Core")
 
-        # Store trace for Streamlit debug mode
+        # Store trace for Streamlit
         st.session_state.trace_log = trace_log
 
-        return "\n\n".join(results), used_tools
-    
+        # Decide if we should offer re-loop
+        should_reloop = self.config.get("miner_review_after_loop", False)
+
+        return "\n\n".join(results), used_tools, should_reloop
+
     def run(self, challenge: str):
         """Main entry point"""
         print(f"🚀 Starting Arbos for challenge: {challenge[:80]}...")
 
-        monitor = ResourceMonitor(max_hours=3.8)
+        monitor = ResourceMonitor(max_hours=3.9)
 
-        tool_results, tools_used = self._smart_route(challenge)
+        tool_results, tools_used, should_reloop = self._smart_route(challenge)
 
         final_output = apply_guardrails(tool_results, monitor)
 
@@ -202,4 +202,4 @@ Reply with only YES or NO, followed by a very short reason."""
             final_output = explore_novel_variant(challenge, final_output)
 
         print(f"✅ Completed with tools: {tools_used}")
-        return final_output
+        return final_output, should_reloop   # Return tuple so Streamlit can handle review
