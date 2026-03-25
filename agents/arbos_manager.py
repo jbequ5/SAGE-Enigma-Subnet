@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL OPERATIONAL VERSION - Reflection after every tool + Long-term memory + program.md + Dynamic Compute Override
+# FINAL OPERATIONAL VERSION - Reflection after every tool + Long-term memory + program.md
 
 import os
 import subprocess
@@ -62,10 +62,10 @@ class ArbosManager:
             pass
         return config
 
-   def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
+    def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
         """
         FINAL REALISTIC _smart_route
-        - Uses the actual tool wrappers we just created
+        - Uses the actual tool wrappers
         - Reflection + prompt redesign after every tool
         - Long-term memory + program.md
         """
