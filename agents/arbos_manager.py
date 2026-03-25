@@ -57,7 +57,7 @@ class ArbosManager:
 
     def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
         """
-        FINAL VERSION - Mimic first three tools + REAL ScienceClaw at the end of every loop
+        FINAL CLEAN VERSION - Mimic first three tools + REAL ScienceClaw at the end
         """
         from agents.tool_study import tool_study
 
@@ -75,7 +75,7 @@ class ArbosManager:
         if not program_path.exists():
             program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
 
-        # Reflection helper using tool profiles
+        # Reflection helper
         def reflect_and_redesign(last_output: str, next_tool: str) -> dict:
             tool_profile = tool_study.load_profile(next_tool)
             try:
@@ -141,7 +141,6 @@ Reply with only YES or NO, followed by a very short reason."""
                 redesign = reflect_and_redesign(last_output, "ScienceClaw")
                 task = redesign["prompt"]
 
-                # Call the REAL ScienceClaw
                 result = run_scienceclaw(task=task)
                 output = result.get("output", result.get("error", "No output"))
                 results.append(f"[ScienceClaw - REAL]\n{output}")
