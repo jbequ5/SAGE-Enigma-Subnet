@@ -1,7 +1,5 @@
-Updated agents/arbos_manager.pyReplace your entire arbos_manager.py with this version:python
-
 # agents/arbos_manager.py
-# FINAL VERSION - Auto-reloop when miner_review_after_loop=false + Final mandatory review
+# FINAL VERSION - Auto-reloop with max_loops toggle + Final mandatory review
 
 import os
 import subprocess
@@ -36,7 +34,8 @@ class ArbosManager:
             "exploration": True,
             "resource_aware": True,
             "guardrails": True,
-            "miner_review_after_loop": False,   # false = auto-reloop, true = pause for miner review
+            "miner_review_after_loop": False,
+            "max_loops": 4,                    # New toggle
             "miner_review_final": True
         }
         try:
@@ -55,6 +54,8 @@ class ArbosManager:
                         config["guardrails"] = "true" in line
                     elif line.startswith("miner_review_after_loop:"):
                         config["miner_review_after_loop"] = "true" in line
+                    elif line.startswith("max_loops:"):
+                        config["max_loops"] = int(line.split(":")[1].strip())
                     elif line.startswith("miner_review_final:"):
                         config["miner_review_final"] = "true" in line
         except Exception:
@@ -62,7 +63,6 @@ class ArbosManager:
         return config
 
     def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str], bool]:
-        """Returns: (final_results, used_tools, should_reloop)"""
         from agents.tool_study import tool_study
         import streamlit as st
 
@@ -99,7 +99,7 @@ Time left: {remaining_hours:.2f}h
 
 Tool Profile: {tool_profile}
 
-Mimic the tool intelligently. Consider cost.
+Mimic intelligently. Consider cost.
 
 Reply exactly:
 Prompt: [prompt]
@@ -109,21 +109,20 @@ Recommended Compute: [chutes/targon/celium/local]"""
                 prompt_part = response.split("Prompt:")[-1] if "Prompt:" in response else response
                 compute_override = response.split("Recommended Compute:")[-1].strip().lower() if "Recommended Compute:" in response else None
 
-                trace_log.append(f"[{next_tool}] Profile retrieved | Compute: {compute_override or 'default'}")
+                trace_log.append(f"[{next_tool}] Profile used | Compute: {compute_override or 'default'}")
                 return {"prompt": prompt_part.strip(), "compute_override": compute_override}
             except Exception:
                 trace_log.append(f"[{next_tool}] Reflection fallback")
                 return {"prompt": f"Continue with previous findings using {next_tool}.", "compute_override": None}
 
         last_output = ""
-        max_loops = 5 if not self.config.get("miner_review_after_loop", False) else 1   # Auto-reloop limit
+        max_loops = self.config.get("max_loops", 4)
 
         for loop in range(max_loops):
-            trace_log.append(f"--- Starting Loop {loop+1} ---")
+            trace_log.append(f"--- Starting Loop {loop+1}/{max_loops} ---")
 
             tool_sequence = ["AI-Researcher", "AutoResearch", "GPD", "ScienceClaw"]
             for tool_name in tool_sequence:
-                # Decision + execution (same as before)
                 decide_task = f"""Should we use {tool_name} now? Context: {cumulative_context[:600]}"""
                 decision = self.compute.run_on_compute(decide_task)
 
@@ -146,10 +145,9 @@ Recommended Compute: [chutes/targon/celium/local]"""
                 used_tools.append("ScienceClaw")
                 cumulative_context += f"\n\n[ScienceClaw REAL]\n{output}"
 
-            # Save to memory
             memory.add(text="\n\n".join(results), metadata={"loop": loop+1})
 
-            # If miner wants review after every loop, stop here
+            # If miner wants review after every loop, stop after this one
             if self.config.get("miner_review_after_loop", False):
                 break
 
@@ -168,6 +166,5 @@ Recommended Compute: [chutes/targon/celium/local]"""
         if self.config.get("exploration", True):
             final_output = explore_novel_variant(challenge, final_output)
 
-        print(f"✅ Completed with tools: {tools_used}")
+        print(f"✅ Completed with tools: {tools_used} | Max loops used: {self.config.get('max_loops', 4)}")
         return final_output, should_reloop
-
