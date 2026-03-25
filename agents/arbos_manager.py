@@ -55,12 +55,9 @@ class ArbosManager:
             pass
         return config
 
-        def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
+    def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
         """
-        FINAL UPGRADED _smart_route
-        - Uses vector retrieval from studied tool profiles
-        - Self-refined profiles with improvement evaluation
-        - Dynamic tool selection + dynamic compute override
+        FINAL VERSION - Mimic first three tools + REAL ScienceClaw at the end of every loop
         """
         from agents.tool_study import tool_study
 
@@ -72,16 +69,15 @@ class ArbosManager:
         # Long-term memory
         past_knowledge = memory.query(challenge, n_results=4)
         if past_knowledge:
-            cumulative_context += "\n\nRelevant past knowledge:\n" + "\n---\n".join(past_knowledge)
+            cumulative_context += "\n\nRelevant past knowledge from previous runs:\n" + "\n---\n".join(past_knowledge)
 
         program_path = Path("program.md")
         if not program_path.exists():
             program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
 
+        # Reflection helper using tool profiles
         def reflect_and_redesign(last_output: str, next_tool: str) -> dict:
-            # Vector retrieval of relevant profile chunks
-            relevant_profile = tool_study.load_relevant_profile(next_tool, query=cumulative_context + " " + last_output)
-
+            tool_profile = tool_study.load_profile(next_tool)
             try:
                 task = f"""You are Arbos, a highly intelligent conductor.
 
@@ -89,8 +85,8 @@ Previous tool output: {last_output}
 Overall goal: {challenge}
 Next tool: {next_tool}
 
-Relevant Tool Profile:
-{relevant_profile}
+Tool Profile:
+{tool_profile}
 
 Using this profile, mimic the real {next_tool} tool as closely and intelligently as possible.
 Create a high-quality prompt that behaves like the real tool would.
@@ -113,9 +109,10 @@ Recommended Compute: [chutes/targon/celium/local]"""
 
         last_output = ""
 
-        tool_sequence = ["AI-Researcher", "AutoResearch", "GPD", "ScienceClaw"]
+        # === Mimic the first three tools ===
+        mimic_tools = ["AI-Researcher", "AutoResearch", "GPD"]
 
-        for tool_name in tool_sequence:
+        for tool_name in mimic_tools:
             decide_task = f"""Challenge: {challenge}
 Cumulative context so far: {cumulative_context[:800]}
 
@@ -137,6 +134,21 @@ Reply with only YES or NO, followed by a very short reason."""
                 cumulative_context += f"\n\n[{tool_name} Output]\n{output}"
                 cumulative_context += "\n\n[Arbos Reflection] " + redesign["prompt"]
                 last_output = output
+
+        # === REAL ScienceClaw at the end of every loop ===
+        if any(k in lower for k in ["analyze", "experiment", "data", "science", "conclude"]):
+            try:
+                redesign = reflect_and_redesign(last_output, "ScienceClaw")
+                task = redesign["prompt"]
+
+                # Call the REAL ScienceClaw
+                result = run_scienceclaw(task=task)
+                output = result.get("output", result.get("error", "No output"))
+                results.append(f"[ScienceClaw - REAL]\n{output}")
+                used_tools.append("ScienceClaw")
+                cumulative_context += f"\n\n[ScienceClaw REAL Output]\n{output}"
+            except Exception as e:
+                results.append(f"[ScienceClaw Error] {str(e)}")
 
         # Save to long-term memory
         if results:
