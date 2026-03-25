@@ -11,7 +11,7 @@
 - Full GOAL.md strategy/context is read and strongly used in every decision
 - Adaptive Quality Gate — Arbos scores novelty, verifier potential, and alignment before deciding to re-loop
 - Smart auto-reloop when `miner_review_after_loop: false`
-- Real ScienceClaw executed at the end of each loop
+- MIT's ScienceClaw agent swarm executed at the end of each loop with refined context
 - Long-term memory via ChromaDB
 - Resource-aware guardrails with auto-compression
 - Exploration module for novel variants
@@ -23,12 +23,11 @@
 2. File goes to HyperAgent for Planning - Must be Approved by Miner
 3. Arbos decides which tools to run
 4. Arbos decides which compute option to use for execution
-5. **Reflects and Redesigns** the prompt between tools
-6. **ScienceClaw** agent swarm runs at the end of the chain with cumulative contex
-7. **End of Loop Arbos Critique** — if the solution needs improvement, restart loop
-      - **Optional** Miner Review before Looping again
-8. **If Solution Accepted** - Final Miner Review before Submission
-9. Results saved to long-term memory for future challenges.
+5. Reflects and Redesigns the prompt between tools
+6. **End of Loop Arbos Critique** — if the solution needs improvement, restart loop
+      - *Optional*: Miner Review before Looping again
+7. **If Solution Accepted** - Final Miner Review before Submission
+8. Results saved to long-term memory for future challenges.
 
 This tight loop makes the miner highly adaptive and capable of continuous self-improvement.
 
@@ -49,13 +48,12 @@ Instead of fragile direct wrappers that often break or slow down the system, we 
 - Keeps the main reflection loop extremely tight and fast
 - Avoids dependency hell and runtime errors from external CLIs
 - Allows Arbos to intelligently mimic the unique strengths of each tool
-- Enables dynamic, context-aware behavior without breaking the 4-hour H100 limit
+- Enables dynamic, context-aware behavior without breaking compute limits
 - Real ScienceClaw is still called directly at the end of every loop for maximum scientific depth
 
 This hybrid approach (mimic first three tools + real ScienceClaw) gives us the best of both worlds: reliability + performance + true tool capability.
 
 ### Architecture Overview
-
 ```mermaid
 graph TD
     A[Miner's Custom GOAL.md] --> B[HyperAgent Planning<br>With Miner Approval]
@@ -79,6 +77,29 @@ graph TD
     style I fill:#1a1408,stroke:#ffcc00,color:#ffcc00
     style K fill:#2a1f12,stroke:#ffaa00,color:#ffaa00
 ```
+**How it works:**
+- **Adaptive Quality Gate** — Arbos scores the solution and decides whether another loop adds value
+- When `miner_review_after_loop: false` → Arbos runs multiple loops automatically and uses the quality gate to decide when to stop.
+- When `miner_review_after_loop: true` → Miner reviews after every loop.
+- Final review screen is **always** shown before submission.
+
+### Current Strengths vs Single Tool
+
+Better than running one tool alone when you:
+- Provide rich strategy/context in GOAL.md
+- Want multiple angles + reflection
+- Need human review gates
+- Want adaptive iteration without manual babysitting
+
+Still evolving — mimicking quality remains the main area for future gains.
+
+### Streamlit UI Highlights
+
+- Challenge input + HyperAgent planning
+- Human-in-the-loop plan approval
+- One-click **"Run Tool Study Phase"** button
+- Debug/Trace Mode (shows reflection steps, profiles used, compute chosen)
+- Automatic GOAL.md generation
 
 ### Quick Start
 
@@ -99,14 +120,6 @@ python -c "from agents.tool_study import tool_study; tool_study.study_all_tools(
 ```bash
 streamlit run streamlit_app.py
 ```
-
-### Streamlit UI Highlights
-
-- Challenge input + HyperAgent planning
-- Human-in-the-loop plan approval
-- One-click **"Run Tool Study Phase"** button
-- Debug/Trace Mode (shows reflection steps, profiles used, compute chosen)
-- Automatic GOAL.md generation
 
 ### Starter GOAL.md Template
 
