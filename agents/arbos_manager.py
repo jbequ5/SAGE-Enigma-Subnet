@@ -45,32 +45,39 @@ class ArbosManager:
 
 def _smart_route(self, challenge: str, approved_plan: str = ""):
     """
-    Sequential cumulative routing with reflection + planning + prompt redesign AFTER EVERY TOOL.
+    Final sequential routing with long-term memory + reflection after every tool.
     """
+    from agents.memory import memory
+
     lower = challenge.lower()
     results = []
     used_tools = []
-    cumulative_context = approved_plan[:1200] if approved_plan else ""
+    cumulative_context = approved_plan[:1500] if approved_plan else ""
+
+    # Retrieve relevant long-term memory
+    past_knowledge = memory.query(challenge, n_results=4)
+    if past_knowledge:
+        cumulative_context += "\n\nRelevant past knowledge from previous runs:\n" + "\n---\n".join(past_knowledge)
 
     program_path = Path("program.md")
     if not program_path.exists():
         program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
 
-    # Helper to do Arbos reflection + redesign prompt for next tool
-    def reflect_and_redesign(last_output: str, next_tool_name: str):
+    # Helper: Reflection + prompt redesign
+    def reflect_and_redesign(last_output: str, next_tool: str):
         try:
             from agents.tools.hyperagent import run as run_hyperagent
-            reflect_task = f"""Previous tool output: {last_output}
+            task = f"""Previous tool output: {last_output}
 Overall goal: {challenge}
-Next tool: {next_tool_name}
+Next tool: {next_tool}
 
 Reconstruct the previous output into a specific, high-quality prompt for the next tool.
 Maintain the overall goal and evaluation criteria throughout.
 Write the exact prompt that should be sent to the next tool."""
-            result = run_hyperagent(task=reflect_task, parallel_tasks=3)
-            return result.get("output", "Continue with previous context.")
+            result = run_hyperagent(task=task, parallel_tasks=3)
+            return result.get("output", f"Continue with previous findings: {last_output[:600]}")
         except Exception:
-            return f"Continue with previous findings: {last_output[:500]}"
+            return f"Continue with previous findings: {last_output[:600]}"
 
     # 1. AI-Researcher
     if any(k in lower for k in ["research", "literature", "paper", "review", "survey"]):
@@ -86,8 +93,6 @@ Write the exact prompt that should be sent to the next tool."""
             results.append(f"[AI-Researcher — {mode}]\n{output}")
             used_tools.append("AI-Researcher")
             cumulative_context += f"\n\n[AI-Researcher Output]\n{output}"
-
-            # Reflection + redesign for next tool
             cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "AutoResearch")
         except Exception as e:
             results.append(f"[AI-Researcher Error] {str(e)}")
@@ -100,14 +105,13 @@ Write the exact prompt that should be sent to the next tool."""
             depth = cfg.get("depth", "medium")
             iterations = cfg.get("iterations", 3)
 
-            task = cumulative_context   # Use the evolving context + reflection
+            task = cumulative_context
 
             result = run_autoresearch(task=task, depth=depth, iterations=iterations, program_md_path=str(program_path))
             output = result.get("output", result.get("error", ""))
             results.append(f"[AutoResearch — depth:{depth}, iterations:{iterations}]\n{output}")
             used_tools.append("AutoResearch")
             cumulative_context += f"\n\n[AutoResearch Output]\n{output}"
-
             cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "GPD")
         except Exception as e:
             results.append(f"[AutoResearch Error] {str(e)}")
@@ -127,7 +131,6 @@ Write the exact prompt that should be sent to the next tool."""
             results.append(f"[GPD — {profile} / Tier {tier}]\n{output}")
             used_tools.append("GPD")
             cumulative_context += f"\n\n[GPD Output]\n{output}"
-
             cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "ScienceClaw")
         except Exception as e:
             results.append(f"[GPD Error] {str(e)}")
@@ -148,6 +151,13 @@ Write the exact prompt that should be sent to the next tool."""
             used_tools.append("ScienceClaw")
         except Exception as e:
             results.append(f"[ScienceClaw Error] {str(e)}")
+
+    # Save final knowledge to long-term memory
+    if results:
+        memory.add(
+            text="\n\n".join(results),
+            metadata={"challenge": challenge, "tools_used": ",".join(used_tools)}
+        )
 
     if not results:
         results.append("No specialized tool matched. Using default Arbos reasoning.")
