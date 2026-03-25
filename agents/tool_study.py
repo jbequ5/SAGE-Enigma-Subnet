@@ -1,6 +1,4 @@
 # agents/tool_study.py
-# Tool Study Phase - Arbos learns each tool deeply and builds mimic profiles
-
 from pathlib import Path
 from agents.tools.hyperagent import run_hyperagent
 
@@ -10,7 +8,6 @@ class ToolStudy:
         self.profiles_dir.mkdir(exist_ok=True)
 
     def study_all_tools(self):
-        """Study all tools and save detailed profiles"""
         tools = {
             "AutoResearch": "https://github.com/karpathy/autoresearch",
             "GPD": "https://github.com/psi-oss/get-physics-done",
@@ -28,20 +25,17 @@ class ToolStudy:
     def _study_tool(self, tool_name: str, repo_url: str):
         study_task = f"""
 You are Arbos, a highly intelligent conductor.
-Carefully study the tool "{tool_name}" at {repo_url}.
+Study the tool "{tool_name}" at {repo_url}.
 
-Extract and summarize in detail:
+Provide a detailed profile including:
 - Core purpose and unique strengths
-- Exact workflow and how it iterates
-- How it uses memory or persistent state
-- What makes it different from a generic LLM call
-- Ideal prompting style to mimic its behavior
-- Key limitations and how to compensate for them
-
-Be precise and comprehensive. Focus on what makes this tool valuable for novelty and intelligence.
+- Workflow and iteration style
+- How it uses memory
+- What makes it different from generic LLM
+- Best way to mimic it with prompts
 """
 
-        result = run_hyperagent(task=study_task, parallel_tasks=3)
+        result = run_hyperagent(task=study_task, parallel_tasks=4)
         return result.get("output", "Study failed")
 
     def _save_profile(self, tool_name: str, profile: str):
@@ -52,7 +46,6 @@ Be precise and comprehensive. Focus on what makes this tool valuable for novelty
         path = self.profiles_dir / f"{tool_name.lower()}.md"
         if path.exists():
             return path.read_text()
-        return f"No profile found for {tool_name}. Using generic high-intelligence reasoning."
+        return f"No profile found for {tool_name}. Using high-intelligence generic reasoning."
 
-# Global instance
 tool_study = ToolStudy()
