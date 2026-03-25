@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# UPGRADED WITH ADAPTIVE QUALITY GATE + SMART RE-LOOP DECISION
+# FINAL STRENGTHENED VERSION WITH ADAPTIVE QUALITY GATE + SMART RE-LOOP
 
 import os
 import subprocess
@@ -113,9 +113,9 @@ APPROVED PLAN:
             tool_profile = tool_study.load_relevant_profile(next_tool, query=cumulative_context)
             few_shot = {
                 "GPD": "Real GPD breaks problems into deep theory → numerical validation → experimental implications.",
-                "AutoResearch": "Real AutoResearch writes, executes, debugs, and iterates code until program.md goal is achieved.",
+                "AutoResearch": "Real AutoResearch writes, executes, debugs, and iterates code until the goal is met.",
                 "AI-Researcher": "Real AI-Researcher finds cross-domain papers and synthesizes novel connections.",
-                "ScienceClaw": "Real ScienceClaw does rigorous scientific analysis and proposes concrete experiments."
+                "ScienceClaw": "Real ScienceClaw performs rigorous scientific analysis and proposes concrete experiments."
             }
 
             try:
@@ -182,8 +182,35 @@ Recommended Compute: [chutes/targon/celium/local]"""
             if self.config.get("miner_review_after_loop", False):
                 break
 
+        # === ADAPTIVE QUALITY GATE ===
+        critique_task = f"""Evaluate the current solution:
+
+Goal: {challenge}
+Miner Strategy: {self.extra_context}
+
+Current Solution:
+{last_output}
+
+Score on a scale of 1-10 for:
+- Novelty
+- Verifier Score Potential
+- Alignment with Miner Strategy
+- Completeness
+- Feasibility under remaining time
+
+Then decide:
+Should we do another loop? Reply with:
+Score: [numbers]
+Decision: [YES/NO - Re-loop or Finalize]
+Reason: [short reason]"""
+
+        critique = self.compute.run_on_compute(critique_task)
+        trace_log.append(f"Quality Gate Critique: {critique[:300]}...")
+
+        should_reloop = "YES" in critique.upper() and not self.config.get("miner_review_after_loop", False)
+
         st.session_state.trace_log = trace_log
-        return "\n\n".join(results), used_tools, self.config.get("miner_review_after_loop", False)
+        return "\n\n".join(results), used_tools, should_reloop
 
     def run(self, challenge: str):
         print(f"🚀 Starting Arbos for challenge: {challenge[:80]}...")
@@ -197,6 +224,5 @@ Recommended Compute: [chutes/targon/celium/local]"""
         if self.config.get("exploration", True):
             final_output = explore_novel_variant(challenge, final_output)
 
-        print(f"✅ Completed with tools: {tools_used}")
+        print(f"✅ Completed with tools: {tools_used} | Re-loop decision: {should_reloop}")
         return final_output, should_reloop
-
