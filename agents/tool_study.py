@@ -1,9 +1,10 @@
 # agents/tool_study.py
-# 2-Pass Tool Study - Arbos studies each tool, critiques its own profile,
-# and evaluates improvement potential for the overall solution
+# Upgraded Tool Study - Vector retrieval + Self-refinement on profiles
 
 from pathlib import Path
 from agents.tools.compute import ComputeRouter
+import chromadb
+from chromadb.utils import embedding_functions
 
 class ToolStudy:
     def __init__(self):
@@ -11,8 +12,13 @@ class ToolStudy:
         self.profiles_dir.mkdir(exist_ok=True)
         self.compute = ComputeRouter()
 
+        # Vector store for profile chunks
+        self.client = chromadb.PersistentClient(path="tool_profiles_vector")
+        self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
+        self.collection = self.client.get_or_create_collection(name="tool_profiles")
+
     def study_all_tools(self):
-        """Run once. 2-pass study with self-critique and improvement evaluation."""
+        """Run once. Study + self-refine each tool."""
         tools = {
             "AI-Researcher": "https://github.com/HKUDS/AI-Researcher",
             "AutoResearch": "https://github.com/karpathy/autoresearch",
@@ -21,7 +27,7 @@ class ToolStudy:
             "HyperAgent": "https://github.com/facebookresearch/HyperAgents"
         }
 
-        print("🔬 Starting 2-Pass Tool Study Phase...\n")
+        print("🔬 Starting Upgraded Tool Study Phase (with self-refinement)...\n")
 
         for tool_name, repo_url in tools.items():
             print(f"Studying {tool_name}...")
@@ -29,64 +35,61 @@ class ToolStudy:
             # Pass 1: Initial study
             initial_profile = self._study_tool(tool_name, repo_url)
 
-            # Pass 2: Self-critique + improvement evaluation
-            refined_profile = self._critique_and_refine(tool_name, initial_profile)
+            # Pass 2: Self-refinement
+            refined_profile = self._self_refine_profile(tool_name, initial_profile)
 
-            self._save_profile(tool_name, refined_profile)
-            print(f"✅ Refined profile for {tool_name} saved.\n")
+            # Save to vector store (chunked)
+            self._save_to_vector(tool_name, refined_profile)
 
-        print("✅ 2-Pass Tool Study completed! All profiles are ready.")
+            print(f"✅ Refined profile for {tool_name} saved to vector store.\n")
+
+        print("✅ Upgraded Tool Study completed.")
 
     def _study_tool(self, tool_name: str, repo_url: str) -> str:
         study_task = f"""
-You are Arbos, a highly intelligent conductor.
 Study the tool "{tool_name}" at {repo_url}.
-
-Provide a detailed profile including:
-- Core purpose and unique strengths
-- Exact workflow and iteration style
-- How it uses memory or persistent state
-- What makes it different from a generic LLM call
-- Best prompting techniques to mimic its behavior
-- Ideal use cases and known limitations
+Provide a detailed profile covering purpose, workflow, strengths, limitations, and how to mimic it.
 """
+        return self.compute.run_on_compute(study_task)
 
-        result = self.compute.run_on_compute(study_task)
-        return result
-
-    def _critique_and_refine(self, tool_name: str, initial_profile: str) -> str:
-        critique_task = f"""
-You are Arbos performing a self-critique.
+    def _self_refine_profile(self, tool_name: str, initial_profile: str) -> str:
+        refine_task = f"""
+You are Arbos performing self-refinement.
 
 Initial Profile for {tool_name}:
 {initial_profile}
 
-Critique this profile for completeness and usefulness.
-Check specifically for:
-- Clear core purpose
-- Accurate workflow description
-- Memory/persistent state handling
-- Uniqueness vs generic LLM
-- Practical prompting advice
-- Realistic limitations
+Critique this profile for:
+- Completeness
+- Accuracy
+- Usefulness for mimicking in a tight reflection loop
+- Potential to improve solution novelty and verifier score
 
-Then evaluate: Would using this tool meaningfully improve the quality, novelty, or verifier score of solutions in the Enigma miner?
-
-Produce a refined, improved profile that incorporates your critique.
-Add a final section: "Improvement Potential for Enigma Miner" with a short honest assessment.
+Then produce an improved, refined profile.
+Add a short section: "Improvement Potential for Enigma Miner"
 """
+        return self.compute.run_on_compute(refine_task)
 
-        result = self.compute.run_on_compute(critique_task)
-        return result
+    def _save_to_vector(self, tool_name: str, profile: str):
+        """Save profile as chunked documents for vector retrieval"""
+        # Split into reasonable chunks
+        chunks = [profile[i:i+800] for i in range(0, len(profile), 800)]
+        for i, chunk in enumerate(chunks):
+            self.collection.add(
+                documents=[chunk],
+                metadatas=[{"tool": tool_name, "chunk_id": i}],
+                ids=[f"{tool_name}_{i}"]
+            )
 
-    def _save_profile(self, tool_name: str, profile: str):
-        path = self.profiles_dir / f"{tool_name.lower()}.md"
-        path.write_text(profile)
-
-    def load_profile(self, tool_name: str) -> str:
-        path = self.profiles_dir / f"{tool_name.lower()}.md"
-        if path.exists():
-            return path.read_text()
+    def load_relevant_profile(self, tool_name: str, query: str, n_results: int = 3) -> str:
+        """Retrieve the most relevant chunks for the current context"""
+        results = self.collection.query(
+            query_texts=[query],
+            n_results=n_results,
+            where={"tool": tool_name}
+        )
+        if results and results["documents"]:
+            return "\n\n".join(results["documents"][0])
         return f"No profile found for {tool_name}. Using high-intelligence generic reasoning."
 
 # Global instance
