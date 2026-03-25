@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL OPERATIONAL VERSION - Reflection after every tool + Long-term memory + program.md
+# FINAL OPERATIONAL VERSION - Reflection after every tool + Long-term memory + program.md + Dynamic Compute Override
 
 import os
 import subprocess
@@ -9,7 +9,7 @@ from typing import Tuple, List
 # Core imports
 from agents.memory import memory
 
-# Tool imports (all using subfolder __init__.py structure)
+# Tool imports (subfolder structure)
 from agents.tools.hyperagent import run_hyperagent
 from agents.tools.ai_researcher import run_ai_researcher
 from agents.tools.autoresearch import run_autoresearch
@@ -63,6 +63,12 @@ class ArbosManager:
         return config
 
     def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
+        """
+        FINAL OPERATIONAL _smart_route
+        - Reflection + prompt redesign after EVERY tool
+        - Arbos dynamically recommends compute backend per tool
+        - Long-term memory + program.md cumulative context
+        """
         lower = challenge.lower()
         results = []
         used_tools = []
@@ -78,20 +84,37 @@ class ArbosManager:
         if not program_path.exists():
             program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
 
-        # Helper: Arbos reflection + prompt redesign
-        def reflect_and_redesign(last_output: str, next_tool: str) -> str:
+        # Helper: Arbos reflection + prompt redesign WITH COMPUTE OVERRIDE
+        def reflect_and_redesign(last_output: str, next_tool: str) -> dict:
             try:
                 task = f"""Previous tool output: {last_output}
 Overall goal: {challenge}
 Next tool: {next_tool}
 
 Reconstruct the previous output into a specific, high-quality prompt for the next tool.
-Maintain the overall goal and evaluation criteria throughout.
-Write the exact prompt that should be sent to the next tool."""
+Also recommend the best compute backend for this step (chutes, targon, celium, or local) based on complexity and time remaining.
+
+Reply in this exact format:
+Prompt: [the full prompt to send to the next tool]
+Recommended Compute: [chutes/targon/celium/local]"""
+
                 result = run_hyperagent(task=task, parallel_tasks=3)
-                return result.get("output", f"Continue with previous findings: {last_output[:600]}")
+                response = result.get("output", "")
+
+                prompt_part = response.split("Prompt:")[-1]
+                if "Recommended Compute:" in prompt_part:
+                    prompt = prompt_part.split("Recommended Compute:")[0].strip()
+                    compute_override = prompt_part.split("Recommended Compute:")[-1].strip().lower()
+                else:
+                    prompt = prompt_part.strip()
+                    compute_override = None
+
+                return {"prompt": prompt, "compute_override": compute_override}
             except Exception:
-                return f"Continue with previous findings: {last_output[:600]}"
+                return {
+                    "prompt": f"Continue with previous findings: {last_output[:600]}",
+                    "compute_override": None
+                }
 
         # 1. AI-Researcher
         if any(k in lower for k in ["research", "literature", "paper", "review", "survey"]):
@@ -106,7 +129,9 @@ Write the exact prompt that should be sent to the next tool."""
                 results.append(f"[AI-Researcher — {mode}]\n{output}")
                 used_tools.append("AI-Researcher")
                 cumulative_context += f"\n\n[AI-Researcher Output]\n{output}"
-                cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "AutoResearch")
+
+                redesign = reflect_and_redesign(output, "AutoResearch")
+                cumulative_context += "\n\n[Arbos Reflection] " + redesign["prompt"]
             except Exception as e:
                 results.append(f"[AI-Researcher Error] {str(e)}")
 
@@ -117,14 +142,15 @@ Write the exact prompt that should be sent to the next tool."""
                 depth = cfg.get("depth", "medium")
                 iterations = cfg.get("iterations", 3)
 
-                task = cumulative_context
+                redesign = reflect_and_redesign(output if 'output' in locals() else "", "AutoResearch")
+                task = redesign["prompt"]
 
                 result = run_autoresearch(task=task, depth=depth, iterations=iterations, program_md_path=str(program_path))
                 output = result.get("output", result.get("error", ""))
                 results.append(f"[AutoResearch — depth:{depth}, iterations:{iterations}]\n{output}")
                 used_tools.append("AutoResearch")
                 cumulative_context += f"\n\n[AutoResearch Output]\n{output}"
-                cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "GPD")
+                cumulative_context += "\n\n[Arbos Reflection] " + redesign["prompt"]
             except Exception as e:
                 results.append(f"[AutoResearch Error] {str(e)}")
 
@@ -135,14 +161,15 @@ Write the exact prompt that should be sent to the next tool."""
                 profile = cfg.get("profile", "deep-theory")
                 tier = cfg.get("tier", "1")
 
-                task = cumulative_context
+                redesign = reflect_and_redesign(output if 'output' in locals() else "", "GPD")
+                task = redesign["prompt"]
 
                 result = run_gpd(task=task, profile=profile, tier=tier)
                 output = result.get("output", result.get("error", ""))
                 results.append(f"[GPD — {profile} / Tier {tier}]\n{output}")
                 used_tools.append("GPD")
                 cumulative_context += f"\n\n[GPD Output]\n{output}"
-                cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "ScienceClaw")
+                cumulative_context += "\n\n[Arbos Reflection] " + redesign["prompt"]
             except Exception as e:
                 results.append(f"[GPD Error] {str(e)}")
 
@@ -153,7 +180,8 @@ Write the exact prompt that should be sent to the next tool."""
                 intensity = cfg.get("search_intensity", "high")
                 max_src = cfg.get("max_sources", 15)
 
-                task = cumulative_context
+                redesign = reflect_and_redesign(output if 'output' in locals() else "", "ScienceClaw")
+                task = redesign["prompt"]
 
                 result = run_scienceclaw(task=task, search_intensity=intensity, max_sources=max_src)
                 output = result.get("output", result.get("error", ""))
