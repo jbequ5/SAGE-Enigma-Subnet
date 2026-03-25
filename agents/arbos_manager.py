@@ -1,75 +1,84 @@
 # agents/arbos_manager.py
-# FINAL COMPLETE VERSION - Real Arbos + Smart Routing + SDK Compute + Chutes LLM Picker
+# FINAL OPERATIONAL VERSION - Reflection after every tool + Long-term memory + program.md
 
 import os
 import subprocess
-import time
-from agents.tools.reflection import reflect_and_improve
-from agents.tools.gpd import run_gpd
-from agents.tools.scienceclaw import run_scienceclaw
-from agents.tools.ai_researcher import run_ai_researcher
+from pathlib import Path
+from typing import Tuple, List
+
+from agents.memory import memory
 from agents.tools.hyperagent import run_hyperagent
-from agents.tools.exploration import explore_novel_variant
+from agents.tools.ai_researcher import run_ai_researcher
+from agents.tools.autoresearch import run_autoresearch
+from agents.tools.get_physics_done import run_gpd
+from agents.tools.scienceclaw import run_scienceclaw
+from agents.tools.compute import ComputeRouter
 from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
-from agents.tools.compute import ComputeRouter
+from agents.tools.exploration import explore_novel_variant   # optional
 
 class ArbosManager:
-    def __init__(self, goal_file="goals/killer_base.md"):
+    def __init__(self, goal_file: str = "goals/killer_base.md"):
         self.goal_file = goal_file
         self.arbos_path = "agents/arbos"
         self.compute = ComputeRouter()
         self.config = self._load_config()
         self._setup_real_arbos()
-        print(f"✅ REAL Arbos + Compute + Chutes LLM ({self.compute.config.get('chutes_llm', 'mixtral')}) loaded")
+        print("✅ REAL Arbos + Long-term Memory + Reflection Loop loaded")
 
     def _setup_real_arbos(self):
+        """Clone real Arbos if not present"""
         if not os.path.exists(self.arbos_path):
-            print("📥 Cloning real Arbos...")
+            print("Cloning real Arbos...")
             subprocess.run(["git", "clone", "https://github.com/unarbos/arbos.git", self.arbos_path], check=True)
 
     def _load_config(self):
-        config = {"reflection": 3, "hyper_planning": False, "exploration": False, "resource_aware": True, "guardrails": True}
+        """Load settings from GOAL.md"""
+        config = {
+            "reflection": 4,
+            "hyper_planning": True,
+            "exploration": True,
+            "resource_aware": True,
+            "guardrails": True
+        }
         try:
             with open(self.goal_file, "r") as f:
                 for line in f:
                     line = line.strip().lower()
-                    if line.startswith("reflection:"): config["reflection"] = int(line.split(":")[1])
-                    elif line.startswith("hyper_planning:"): config["hyper_planning"] = "true" in line
-                    elif line.startswith("exploration:"): config["exploration"] = "true" in line
-                    elif line.startswith("resource_aware:"): config["resource_aware"] = "true" in line
-                    elif line.startswith("guardrails:"): config["guardrails"] = "true" in line
-        except:
+                    if line.startswith("reflection:"):
+                        config["reflection"] = int(line.split(":")[1].strip())
+                    elif line.startswith("hyper_planning:"):
+                        config["hyper_planning"] = "true" in line
+                    elif line.startswith("exploration:"):
+                        config["exploration"] = "true" in line
+                    elif line.startswith("resource_aware:"):
+                        config["resource_aware"] = "true" in line
+                    elif line.startswith("guardrails:"):
+                        config["guardrails"] = "true" in line
+        except Exception:
             pass
         return config
 
-    def _smart_route(self, challenge: str, approved_plan: str = ""):
-        """
-        Final sequential routing with reflection + planning + prompt redesign AFTER EVERY TOOL.
-        Long-term memory is used at start and end.
-        """
-        from agents.memory import memory
-        from pathlib import Path   # <-- This was missing
-
+    def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
+        """Full sequential routing with reflection + prompt redesign AFTER EVERY TOOL"""
         lower = challenge.lower()
         results = []
         used_tools = []
         cumulative_context = approved_plan[:1500] if approved_plan else ""
 
-        # Long-term memory retrieval at the beginning
+        # Long-term memory retrieval
         past_knowledge = memory.query(challenge, n_results=4)
         if past_knowledge:
             cumulative_context += "\n\nRelevant past knowledge from previous runs:\n" + "\n---\n".join(past_knowledge)
 
-        # Initialize program.md
+        # Initialize program.md for AutoResearch
         program_path = Path("program.md")
         if not program_path.exists():
             program_path.write_text(f"# Execution Program\n\n## Challenge\n{challenge}\n\n## Approved Plan\n{approved_plan}\n\n")
 
-        # Helper: Arbos reflection + prompt redesign for next tool
-        def reflect_and_redesign(last_output: str, next_tool: str):
+        # Helper: Arbos reflection + prompt redesign
+        def reflect_and_redesign(last_output: str, next_tool: str) -> str:
             try:
-                from agents.tools.hyperagent import run as run_hyperagent
                 task = f"""Previous tool output: {last_output}
 Overall goal: {challenge}
 Next tool: {next_tool}
@@ -85,7 +94,6 @@ Write the exact prompt that should be sent to the next tool."""
         # 1. AI-Researcher
         if any(k in lower for k in ["research", "literature", "paper", "review", "survey"]):
             try:
-                from agents.tools.ai_researcher import run as run_ai_researcher
                 cfg = self.config.get("AI-Researcher", {})
                 mode = cfg.get("search_mode", "deep")
 
@@ -96,8 +104,6 @@ Write the exact prompt that should be sent to the next tool."""
                 results.append(f"[AI-Researcher — {mode}]\n{output}")
                 used_tools.append("AI-Researcher")
                 cumulative_context += f"\n\n[AI-Researcher Output]\n{output}"
-
-                # Reflection + redesign for next tool
                 cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "AutoResearch")
             except Exception as e:
                 results.append(f"[AI-Researcher Error] {str(e)}")
@@ -105,7 +111,6 @@ Write the exact prompt that should be sent to the next tool."""
         # 2. AutoResearch
         if any(k in lower for k in ["research", "literature", "paper", "review", "explore", "synthesize"]):
             try:
-                from agents.tools.autoresearch import run as run_autoresearch
                 cfg = self.config.get("AutoResearch", {})
                 depth = cfg.get("depth", "medium")
                 iterations = cfg.get("iterations", 3)
@@ -117,7 +122,6 @@ Write the exact prompt that should be sent to the next tool."""
                 results.append(f"[AutoResearch — depth:{depth}, iterations:{iterations}]\n{output}")
                 used_tools.append("AutoResearch")
                 cumulative_context += f"\n\n[AutoResearch Output]\n{output}"
-
                 cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "GPD")
             except Exception as e:
                 results.append(f"[AutoResearch Error] {str(e)}")
@@ -125,7 +129,6 @@ Write the exact prompt that should be sent to the next tool."""
         # 3. GPD
         if any(k in lower for k in ["quantum", "physics", "circuit", "theory", "particle", "gravity", "field"]):
             try:
-                from agents.tools.get_physics_done import run as run_gpd
                 cfg = self.config.get("GPD", {})
                 profile = cfg.get("profile", "deep-theory")
                 tier = cfg.get("tier", "1")
@@ -137,7 +140,6 @@ Write the exact prompt that should be sent to the next tool."""
                 results.append(f"[GPD — {profile} / Tier {tier}]\n{output}")
                 used_tools.append("GPD")
                 cumulative_context += f"\n\n[GPD Output]\n{output}"
-
                 cumulative_context += "\n\n[Arbos Reflection] " + reflect_and_redesign(output, "ScienceClaw")
             except Exception as e:
                 results.append(f"[GPD Error] {str(e)}")
@@ -145,7 +147,6 @@ Write the exact prompt that should be sent to the next tool."""
         # 4. ScienceClaw
         if any(k in lower for k in ["analyze", "experiment", "data", "science", "conclude"]):
             try:
-                from agents.tools.scienceclaw import run as run_scienceclaw
                 cfg = self.config.get("ScienceClaw", {})
                 intensity = cfg.get("search_intensity", "high")
                 max_src = cfg.get("max_sources", 15)
@@ -171,47 +172,21 @@ Write the exact prompt that should be sent to the next tool."""
             used_tools.append("Arbos Core")
 
         return "\n\n".join(results), used_tools
-    
+
     def run(self, challenge: str):
+        """Main entry point for the miner"""
+        print(f"🚀 Starting Arbos for challenge: {challenge[:80]}...")
+
         monitor = ResourceMonitor(max_hours=3.8)
-        print(f"🔀 Running REAL Arbos with {self.compute.get_compute()} compute...")
 
-        try:
-            tool_results, tools_used = self._smart_route(challenge)
-            initial_input = f"Challenge: {challenge}\nTools:\n{tool_results}"
-            
-            result = subprocess.run([
-                "python", f"{self.arbos_path}/arbos.py",
-                "--goal", self.goal_file,
-                "--input", initial_input
-            ], capture_output=True, text=True, timeout=3600)
-            
-            arbos_output = result.stdout.strip()
+        # Run the full smart route
+        tool_results, tools_used = self._smart_route(challenge)
 
-            # Real LLM reflection using chosen Chutes model (mixtral, llama3, gemma2, etc.)
-            def real_llm_call(prompt):
-                return self.compute.run_on_compute(prompt)
+        # Final guardrails and optional exploration
+        final_output = apply_guardrails(tool_results)
 
-            final_output, trace = reflect_and_improve(
-                task=challenge,
-                output=arbos_output,
-                llm_call=real_llm_call,
-                max_iterations=self.config.get("reflection", 3)
-            )
+        if self.config.get("exploration", True):
+            final_output = explore_novel_variant(final_output, challenge)
 
-            # Post-processing
-            final_output = monitor.check_and_compress(final_output)
-            if self.config.get("exploration"):
-                final_output = explore_novel_variant(challenge, final_output)
-            if self.config.get("guardrails"):
-                final_output = apply_guardrails(final_output, monitor.elapsed_hours())
-
-        except Exception as e:
-            final_output = f"ERROR: {str(e)}"
-
-        return {
-            "solution": final_output,
-            "status": "complete",
-            "tools_used": tools_used,
-            "compute_used": self.compute.get_compute()
-        }
+        print(f"✅ Completed with tools: {tools_used}")
+        return final_output
