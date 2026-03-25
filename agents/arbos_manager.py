@@ -65,7 +65,6 @@ class ArbosManager:
     def _smart_route(self, challenge: str, approved_plan: str = "") -> Tuple[str, List[str]]:
         """
         FINAL REALISTIC _smart_route
-        - Uses the actual tool wrappers
         - Reflection + prompt redesign after every tool
         - Long-term memory + program.md
         """
@@ -109,6 +108,8 @@ Recommended Compute: [chutes/targon/celium/local]"""
             except Exception:
                 return {"prompt": f"Continue with previous findings.", "compute_override": None}
 
+        last_output = ""
+
         # 1. AI-Researcher
         if any(k in lower for k in ["research", "literature", "paper", "review", "survey"]):
             try:
@@ -117,7 +118,8 @@ Recommended Compute: [chutes/targon/celium/local]"""
                 results.append(f"[AI-Researcher]\n{output}")
                 used_tools.append("AI-Researcher")
                 cumulative_context += f"\n\n[AI-Researcher Output]\n{output}"
-                redesign = reflect_and_redesign(output, "AutoResearch")
+                last_output = output
+                redesign = reflect_and_redesign(last_output, "AutoResearch")
                 cumulative_context += "\n\n[Arbos Reflection] " + redesign["prompt"]
             except Exception as e:
                 results.append(f"[AI-Researcher Error] {str(e)}")
@@ -125,37 +127,40 @@ Recommended Compute: [chutes/targon/celium/local]"""
         # 2. AutoResearch
         if any(k in lower for k in ["research", "literature", "paper", "review", "explore", "synthesize"]):
             try:
-                redesign = reflect_and_redesign(output if 'output' in locals() else "", "AutoResearch")
+                redesign = reflect_and_redesign(last_output, "AutoResearch")
                 result = run_autoresearch(task=redesign["prompt"])
                 output = result.get("output", result.get("error", "No output"))
                 results.append(f"[AutoResearch]\n{output}")
                 used_tools.append("AutoResearch")
                 cumulative_context += f"\n\n[AutoResearch Output]\n{output}"
                 cumulative_context += "\n\n[Arbos Reflection] " + redesign["prompt"]
+                last_output = output
             except Exception as e:
                 results.append(f"[AutoResearch Error] {str(e)}")
 
         # 3. GPD
         if any(k in lower for k in ["quantum", "physics", "circuit", "theory", "particle", "gravity", "field"]):
             try:
-                redesign = reflect_and_redesign(output if 'output' in locals() else "", "GPD")
+                redesign = reflect_and_redesign(last_output, "GPD")
                 result = run_gpd(task=redesign["prompt"], profile="deep-theory")
                 output = result.get("output", result.get("error", "No output"))
                 results.append(f"[GPD]\n{output}")
                 used_tools.append("GPD")
                 cumulative_context += f"\n\n[GPD Output]\n{output}"
                 cumulative_context += "\n\n[Arbos Reflection] " + redesign["prompt"]
+                last_output = output
             except Exception as e:
                 results.append(f"[GPD Error] {str(e)}")
 
         # 4. ScienceClaw
         if any(k in lower for k in ["analyze", "experiment", "data", "science", "conclude"]):
             try:
-                redesign = reflect_and_redesign(output if 'output' in locals() else "", "ScienceClaw")
+                redesign = reflect_and_redesign(last_output, "ScienceClaw")
                 result = run_scienceclaw(task=redesign["prompt"])
                 output = result.get("output", result.get("error", "No output"))
                 results.append(f"[ScienceClaw]\n{output}")
                 used_tools.append("ScienceClaw")
+                last_output = output
             except Exception as e:
                 results.append(f"[ScienceClaw Error] {str(e)}")
 
