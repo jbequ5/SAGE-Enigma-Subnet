@@ -9,6 +9,7 @@ from agents.arbos_manager import ArbosManager
 
 st.set_page_config(page_title="Enigma Machine Miner - SN63", layout="wide")
 st.title("🧠 Enigma Machine Miner (Bittensor SN63)")
+st.caption("Arbos Planning + Dynamic Swarm + ToolHunter + Executable Verification")
 
 if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
@@ -24,7 +25,7 @@ if st.button("🚀 Start Solving", type="primary") and challenge.strip():
         st.session_state.stage = "planning_approval"
         st.rerun()
 
-# Planning approval screen (add your existing approval UI here if you have one)
+# Planning approval screen (add your existing approval UI here if needed)
 
 if st.session_state.get("stage") == "final_review":
     solution = st.session_state.final_solution
@@ -62,12 +63,12 @@ if st.session_state.get("stage") == "final_review":
             "Verification Instructions / Code",
             height=200,
             value=st.session_state.get("verification_instructions", ""),
-            placeholder="Simulate on Quantum Rings with 5000 shots. Require fidelity > 0.95"
+            placeholder="Example: Simulate on Quantum Rings with 5000 shots. Require fidelity > 0.95"
         )
         st.session_state.verification_instructions = verification
 
         if st.button("🔄 Re-run with this Verification"):
-            with st.spinner("Re-running..."):
+            with st.spinner("Re-running with verification..."):
                 new_solution = manager._run_swarm(st.session_state.blueprint, st.session_state.challenge, verification)
                 st.session_state.final_solution = new_solution
                 st.rerun()
