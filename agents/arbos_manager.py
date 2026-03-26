@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL COMPLETE VERSION with configurable vLLM + tensor parallelism
+# FINAL UPGRADED VERSION - Real-time VRAM monitoring, dynamic tensor parallel, advanced swarm scaling, better determinism
 
 import os
 import subprocess
@@ -7,6 +7,7 @@ import json
 import concurrent.futures
 import multiprocessing
 import time
+import torch
 from typing import Tuple, List, Dict, Any
 
 from agents.memory import memory
@@ -19,15 +20,19 @@ from agents.tools.tool_hunter import tool_hunter
 # vLLM shared server
 _vllm_llm = None
 
-def get_vllm_llm(model_name: str, tensor_parallel_size: int):
+def get_vllm_llm():
     global _vllm_llm
     if _vllm_llm is None:
         try:
             from vllm import LLM
-            print(f"🚀 Initializing vLLM with model: {model_name} | TP size: {tensor_parallel_size}")
+            # Dynamic tensor parallel based on hardware
+            gpu_count = torch.cuda.device_count()
+            tp_size = min(gpu_count, 4)  # Cap at 4 for safety on typical setups
+            print(f"🚀 Initializing vLLM with {gpu_count} GPU(s) → tensor_parallel_size={tp_size}")
+            
             _vllm_llm = LLM(
-                model=model_name,
-                tensor_parallel_size=tensor_parallel_size,
+                model="mistralai/Mistral-7B-Instruct-v0.2",
+                tensor_parallel_size=tp_size,
                 gpu_memory_utilization=0.85,
                 dtype="float16",
                 max_model_len=8192,
@@ -48,7 +53,7 @@ class ArbosManager:
         self.config = self._load_config()
         self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
-        print("✅ Arbos Primary Solver loaded with configurable vLLM")
+        print("✅ Arbos Primary Solver loaded with advanced swarm + determinism")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -66,9 +71,7 @@ class ArbosManager:
             "resource_aware": True,
             "guardrails": True,
             "toolhunter_escalation": True,
-            "manual_tool_installs_allowed": True,
-            "tensor_parallel_size": 1,           # NEW - configurable
-            "vllm_model": "mistralai/Mistral-7B-Instruct-v0.2"  # NEW - configurable model
+            "manual_tool_installs_allowed": True
         }
         try:
             with open(self.goal_file, "r") as f:
@@ -78,13 +81,11 @@ class ArbosManager:
                     value = line.split(":", 1)[1].strip()
                     if key in ["miner_review_after_loop", "miner_review_final", "chutes", "resource_aware", "guardrails", "toolhunter_escalation", "manual_tool_installs_allowed"]:
                         config[key] = "true" in value.lower()
-                    elif key in ["max_loops", "max_compute_minutes", "tensor_parallel_size"]:
+                    elif key in ["max_loops", "max_compute_minutes"]:
                         config[key] = int(value)
                     elif key == "max_compute_hours":
                         config[key] = float(value)
                     elif key == "chutes_llm":
-                        config[key] = value
-                    elif key == "vllm_model":
                         config[key] = value
         except Exception:
             pass
@@ -116,7 +117,7 @@ Time available: {remaining:.2f}h"""
         task = f"""You are Planning Arbos. {full_context}
 Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposition, suggested_swarm_size, high_level_tool_hints, compute_ballpark_minutes, quality_gate_targets."""
 
-        response = self.compute.run_on_compute(task)
+        response = self.compute.run_on_compute(task, temperature=0.0)
         return self._parse_json(response)
 
     def _refine_plan(self, approved_plan: Dict, challenge: str) -> Dict:
@@ -129,7 +130,7 @@ Approved plan: {json.dumps(approved_plan)}
 Time left: {remaining:.2f}h
 Output EXACT JSON with decomposition, swarm_config, tool_map, compute_projection_minutes, risk_flags."""
 
-        response = self.compute.run_on_compute(task)
+        response = self.compute.run_on_compute(task, temperature=0.0)
         return self._parse_json(response)
 
     def _parse_json(self, raw: str) -> Dict:
@@ -169,7 +170,7 @@ Subtask: {subtask}
 Hypothesis: {hypothesis}
 Current: {solution[:700]}
 Decide: Improve / Call Tool / Finalize"""
-                response = self.compute.run_on_compute(reflect_task)
+                response = self.compute.run_on_compute(reflect_task, temperature=0.0)
                 trace.append(f"Loop {loop+1}")
 
                 if "Finalize" in response or "final" in response.lower():
@@ -180,7 +181,7 @@ Decide: Improve / Call Tool / Finalize"""
                     hunt = self._tool_hunter(gap, subtask)
                     solution += f"\n[ToolHunter]\n{hunt}"
                 elif tools and tools[0] != "none":
-                    output = self.compute.run_on_compute(f"Apply {tools[0]} to: {solution[:600]}")
+                    output = self.compute.run_on_compute(f"Apply {tools[0]} to: {solution[:600]}", temperature=0.0)
                     solution += f"\n[{tools[0]}]\n{output}"
 
                 if self.config.get("guardrails"):
@@ -207,7 +208,7 @@ Verification code:
 {verification_code}
 
 Return the verification result, pass/fail verdict, and any metrics."""
-            result = self.compute.run_on_compute(exec_task)
+            result = self.compute.run_on_compute(exec_task, temperature=0.0)
             return f"Verification Result:\n{result}"
         except Exception as e:
             return f"Verification execution failed: {str(e)}. Falling back to LLM assessment."
@@ -217,15 +218,25 @@ Return the verification result, pass/fail verdict, and any metrics."""
         swarm_config = blueprint.get("swarm_config", {"total_instances": 1})
         tool_map = blueprint.get("tool_map", {})
 
+        # Advanced swarm scaling with real-time VRAM monitoring
         total_instances = min(swarm_config.get("total_instances", 4), 6)
         if self.config.get("resource_aware"):
-            total_instances = min(total_instances, 4)
+            try:
+                free_vram = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated(0)
+                free_vram_gb = free_vram / (1024**3)
+                # Conservative scaling based on VRAM
+                if free_vram_gb < 20:
+                    total_instances = min(total_instances, 2)
+                elif free_vram_gb < 40:
+                    total_instances = min(total_instances, 3)
+            except:
+                total_instances = min(total_instances, 4)
 
         assignment = swarm_config.get("assignment", {})
         hypotheses = swarm_config.get("hypothesis_diversity", ["standard"] * len(decomposition))
 
         manager_dict = multiprocessing.Manager().dict()
-        trace_log = [f"🚀 Launching Swarm with {total_instances} instances"]
+        trace_log = [f"🚀 Launching Swarm with {total_instances} instances (VRAM-aware)"]
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=total_instances) as executor:
             futures = []
@@ -257,7 +268,7 @@ Verification Instructions: {verification_instructions or 'General SN63 standards
 Swarm results: {json.dumps(all_results, indent=2)}
 Final Synthesized Solution:"""
 
-        final_solution = self.compute.run_on_compute(synthesis_task)
+        final_solution = self.compute.run_on_compute(synthesis_task, temperature=0.0)
 
         if verification_instructions and verification_instructions.strip():
             verification_result = self._run_verification(final_solution, verification_instructions)
