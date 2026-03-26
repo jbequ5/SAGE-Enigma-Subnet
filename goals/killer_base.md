@@ -20,6 +20,7 @@ max_loops: 5                       # Maximum automatic loops when review is off
 miner_review_final: true           # Always require final miner review before submission
 
 ### Compute & Resource Management
+local_compute: false               # true = use local GPU/vLLM, false = default to Chutes
 max_compute_hours: 3.8             # Dynamic maximum compute time for the entire challenge
 resource_aware: true               # Actively enforces time budgets, early aborts slow branches, adjusts swarm size
 
