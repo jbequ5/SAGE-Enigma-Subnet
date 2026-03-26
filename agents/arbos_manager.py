@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL COMPLETE VERSION with vLLM Swarm Efficiency + Executable Verification
+# COMPLETE FINAL VERSION with vLLM Swarm Efficiency + Executable Verification
 
 import os
 import subprocess
@@ -189,7 +189,6 @@ Decide: Improve / Call Tool / Finalize"""
         return shared_results[subtask_id]
 
     def _run_verification(self, solution: str, verification_code: str) -> str:
-        """Execute miner-provided verification code."""
         if not verification_code or not verification_code.strip():
             return "No custom verification code provided."
 
@@ -255,7 +254,6 @@ Final Synthesized Solution:"""
 
         final_solution = self.compute.run_on_compute(synthesis_task)
 
-        # Run executable verification if provided
         if verification_instructions and verification_instructions.strip():
             verification_result = self._run_verification(final_solution, verification_instructions)
             final_solution += f"\n\n--- VERIFICATION RESULT ---\n{verification_result}"
