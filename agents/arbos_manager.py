@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL VERSION with Swarm Efficiency (Shared Model + VRAM-aware sizing)
+# FINAL COMPLETE VERSION with vLLM Swarm Efficiency + Executable Verification
 
 import os
 import subprocess
@@ -16,29 +16,27 @@ from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 from agents.tools.tool_hunter import tool_hunter
 
-# Global shared model for swarm efficiency
-_shared_model = None
-_shared_tokenizer = None
+# vLLM shared server
+_vllm_llm = None
 
-def get_shared_model():
-    """Load once and share across sub-Arbos workers to save VRAM."""
-    global _shared_model, _shared_tokenizer
-    if _shared_model is None:
+def get_vllm_llm():
+    global _vllm_llm
+    if _vllm_llm is None:
         try:
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-            model_name = "mistralai/Mistral-7B-Instruct-v0.2"  # Change to your preferred model
-            _shared_tokenizer = AutoTokenizer.from_pretrained(model_name)
-            _shared_model = AutoModelForCausalLM.from_pretrained(
-                model_name,
-                device_map="auto",
-                load_in_8bit=True,          # 8-bit quantization
-                torch_dtype="auto"
+            from vllm import LLM
+            print("🚀 Initializing vLLM shared model...")
+            _vllm_llm = LLM(
+                model="mistralai/Mistral-7B-Instruct-v0.2",
+                tensor_parallel_size=1,
+                gpu_memory_utilization=0.85,
+                dtype="float16",
+                max_model_len=8192
             )
-            print("✅ Shared model loaded with 8-bit quantization")
+            print("✅ vLLM loaded successfully")
         except Exception as e:
-            print(f"⚠️ Shared model failed: {e}. Falling back to per-process.")
-            _shared_model = None
-    return _shared_model, _shared_tokenizer
+            print(f"⚠️ vLLM failed: {e}. Will use per-process fallback.")
+            _vllm_llm = None
+    return _vllm_llm
 
 
 class ArbosManager:
@@ -49,7 +47,7 @@ class ArbosManager:
         self.config = self._load_config()
         self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
-        print("✅ Arbos Primary Solver loaded with Swarm Efficiency")
+        print("✅ Arbos Primary Solver loaded with vLLM + Executable Verification")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -75,26 +73,14 @@ class ArbosManager:
                     stripped = line.strip().lower()
                     key = line.split(":")[0].strip().lower()
                     value = line.split(":", 1)[1].strip()
-                    if key == "miner_review_after_loop":
-                        config["miner_review_after_loop"] = "true" in value.lower()
-                    elif key == "max_loops":
-                        config["max_loops"] = int(value)
-                    elif key == "miner_review_final":
-                        config["miner_review_final"] = "true" in value.lower()
-                    elif key == "chutes":
-                        config["chutes"] = "true" in value.lower()
-                    elif key == "chutes_llm":
-                        config["chutes_llm"] = value
+                    if key in ["miner_review_after_loop", "miner_review_final", "chutes", "resource_aware", "guardrails", "toolhunter_escalation", "manual_tool_installs_allowed"]:
+                        config[key] = "true" in value.lower()
+                    elif key in ["max_loops", "max_compute_minutes"]:
+                        config[key] = int(value)
                     elif key == "max_compute_hours":
-                        config["max_compute_hours"] = float(value)
-                    elif key == "resource_aware":
-                        config["resource_aware"] = "true" in value.lower()
-                    elif key == "guardrails":
-                        config["guardrails"] = "true" in value.lower()
-                    elif key == "toolhunter_escalation":
-                        config["toolhunter_escalation"] = "true" in value.lower()
-                    elif key == "manual_tool_installs_allowed":
-                        config["manual_tool_installs_allowed"] = "true" in value.lower()
+                        config[key] = float(value)
+                    elif key == "chutes_llm":
+                        config[key] = value
         except Exception:
             pass
         return config
@@ -202,22 +188,40 @@ Decide: Improve / Call Tool / Finalize"""
         shared_results[subtask_id] = {"subtask": subtask, "solution": solution, "trace": trace}
         return shared_results[subtask_id]
 
-    def _run_swarm(self, blueprint: Dict, challenge: str, verification_instructions: str = "") -> str:
+    def _run_verification(self, solution: str, verification_code: str) -> str:
+        """Execute miner-provided verification code."""
+        if not verification_code or not verification_code.strip():
+            return "No custom verification code provided."
+
+        try:
+            exec_task = f"""Execute this verification code safely on the solution:
+
+Solution:
+{solution[:2000]}
+
+Verification code:
+{verification_code}
+
+Return the verification result and pass/fail verdict."""
+            result = self.compute.run_on_compute(exec_task)
+            return f"Verification Result:\n{result}"
+        except Exception as e:
+            return f"Verification execution failed: {str(e)}. Falling back to LLM assessment."
+
+    def _run_swarm(self, blueprint: Dict[str, Any], challenge: str, verification_instructions: str = "") -> str:
         decomposition = blueprint.get("decomposition", ["Full challenge"])
         swarm_config = blueprint.get("swarm_config", {"total_instances": 1})
         tool_map = blueprint.get("tool_map", {})
 
-        # Swarm Efficiency: VRAM-aware instance count
         total_instances = min(swarm_config.get("total_instances", 4), 6)
         if self.config.get("resource_aware"):
-            # Rough VRAM check - reduce if likely to OOM
-            total_instances = min(total_instances, 4)  # Conservative on single H100
+            total_instances = min(total_instances, 4)
 
         assignment = swarm_config.get("assignment", {})
         hypotheses = swarm_config.get("hypothesis_diversity", ["standard"] * len(decomposition))
 
         manager_dict = multiprocessing.Manager().dict()
-        trace_log = ["Swarm started with efficiency mode"]
+        trace_log = [f"🚀 Launching Swarm with {total_instances} instances"]
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=total_instances) as executor:
             futures = []
@@ -238,25 +242,30 @@ Decide: Improve / Call Tool / Finalize"""
                 except Exception as e:
                     trace_log.append(f"Error: {e}")
 
-        # Synthesis
+        # Synthesis + Executable Verification
         all_results = dict(manager_dict)
         failed_context = "\nPrevious failed attempts:\n" + "\n---\n".join(memory.query(challenge + " failed", n_results=5)) if memory.query(challenge + " failed", n_results=5) else ""
 
         synthesis_task = f"""You are Arbos Orchestrator.
 Challenge: {challenge}
-Verification: {verification_instructions or 'General SN63 standards'}
+Verification Instructions: {verification_instructions or 'General SN63 standards'}
 {failed_context}
 Swarm results: {json.dumps(all_results, indent=2)}
 Final Synthesized Solution:"""
 
         final_solution = self.compute.run_on_compute(synthesis_task)
 
+        # Run executable verification if provided
+        if verification_instructions and verification_instructions.strip():
+            verification_result = self._run_verification(final_solution, verification_instructions)
+            final_solution += f"\n\n--- VERIFICATION RESULT ---\n{verification_result}"
+
         if self.config.get("guardrails"):
             final_solution = apply_guardrails(final_solution, ResourceMonitor(max_hours=self.config.get("max_compute_hours", 3.8)))
 
         memory.add(text=final_solution[:1500], metadata={"challenge": challenge, "status": "final"})
 
-        trace_log.append("Synthesis complete")
+        trace_log.append("Synthesis + Verification complete")
 
         import streamlit as st
         if "trace_log" not in st.session_state:
