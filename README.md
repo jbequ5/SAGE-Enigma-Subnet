@@ -1,6 +1,6 @@
 # Enigma Machine Miner – Bittensor SN63
 
-**Arbos-centric primary solver with intelligent planning, dynamic vLLM swarm, real-time ToolHunter, miner-controlled executable verification, and deterministic tooling**
+**Arbos-centric primary solver with intelligent planning, dynamic vLLM swarm, real-time ToolHunter, miner-controlled executable verification, and automatic deterministic/symbolic tooling**
 
 The most intelligent and resource-efficient solo miner on Subnet 63 (Quantum Innovate / qBitTensor Labs). Designed from first principles to solve extremely hard, well-defined computational challenges across quantum and any industry — within the strict ~4-hour H100 limit.
 
@@ -9,18 +9,18 @@ The most intelligent and resource-efficient solo miner on Subnet 63 (Quantum Inn
 ```mermaid
 flowchart TD
     A["SN63 Challenge + GOAL.md"] 
-    --> B["🔬 Intelligent Planning Arbos<br/>High-level plan + suggested swarm size + tool hints + deterministic recommendations"]
+    --> B["🔬 Intelligent Planning Arbos<br/>High-level plan + suggested swarm size + deterministic recommendations"]
 
     B --> C["Miner Approval<br/>(Streamlit UI)"]
-    C -->|"✅ Approve"| D["🧠 Orchestrator Arbos<br/>Plan Refinement → Executable Blueprint<br/>(decomposition + swarm_config + tool_map)"]
+    C -->|"✅ Approve"| D["🧠 Orchestrator Arbos<br/>Plan Refinement → Executable Blueprint"]
     C -->|"🔄 Tweak"| B
     C -->|"❌ Reject"| A
 
     D --> E["🚀 Dynamic Subprocess Agent Swarm<br/>Parallel Sub-Arbos Instances<br/>(3–6 on one H100 with vLLM + real-time VRAM monitoring)"]
 
-    E --> F1["Sub-Arbos 1<br/>Subtask + Hypothesis<br/>→ Specific ToolHunter if needed"]
-    E --> F2["Sub-Arbos 2<br/>Subtask + Hypothesis<br/>→ Specific ToolHunter if needed"]
-    E --> FN["Sub-Arbos N<br/>Subtask + Hypothesis<br/>→ Specific ToolHunter if needed"]
+    E --> F1["Sub-Arbos 1<br/>Subtask + Hypothesis<br/>→ Symbolic Module + ToolHunter if needed"]
+    E --> F2["Sub-Arbos 2<br/>Subtask + Hypothesis<br/>→ Symbolic Module + ToolHunter if needed"]
+    E --> FN["Sub-Arbos N<br/>Subtask + Hypothesis<br/>→ Symbolic Module + ToolHunter if needed"]
 
     F1 & F2 & FN --> G["🔄 Reconvene with Main Arbos<br/>Synthesis of all sub-results"]
 
@@ -35,28 +35,27 @@ flowchart TD
 ```
 
 **Key Intelligence Highlights**
-- **Intelligent Planning Arbos** creates the high-level strategy and **explicitly recommends deterministic/symbolic tools** (e.g., stim for stabilizers, quantum_rings for fidelity, pytket for optimization).
-- **Miner-Controlled Deterministic Tooling** — After seeing Arbos recommendations in the planning screen, the miner can add/edit specific tooling requirements before approving the run. This gives time to install any missing tools.
-- **Subprocess Agent Swarm** runs true parallel exploration with **subtask-specific ToolHunter**, vLLM shared inference, real-time VRAM monitoring, and dynamic tensor parallelism.
-- **Main Arbos Reconvene** synthesizes results intelligently, learning from previous failed attempts via memory.
-- **Miner-Insertable Executable Verification** — Full control over verification code or instructions.
-- **Hybrid Reasoning** — Arbos prefers deterministic/symbolic fallbacks when available; falls back to LLM only when necessary.
+- **Planning Arbos** analyzes the challenge and **recommends deterministic/symbolic tools** (e.g., Stim for stabilizers, Quantum Rings for fidelity, PyTKET for optimization).
+- **Miner-Controlled Deterministic Tooling** — After seeing recommendations, the miner can add/edit specific tooling requirements before the swarm runs. This gives time to install missing packages.
+- **Automatic Symbolic Module** — Arbos now calls deterministic/symbolic reasoning **automatically** in sub-Arbos workers for matching subtasks (stabilizer checks, fidelity estimation, circuit optimization, preprocessing).
+- **Direct Quantum Rings & OpenQuantum Support** — Built into the verification engine for real simulator execution.
+- **Hybrid Reasoning** — Prefers deterministic tools first, falls back to LLM only when necessary.
+- **Resource Awareness** — Real-time VRAM monitoring, dynamic tensor parallelism, early aborts, and compute limits.
 
 ### How Deterministic Tooling Works
 
-1. Planning Arbos analyzes the challenge and recommends deterministic tools.
-2. Miner sees recommendations in the Streamlit planning approval screen.
-3. Miner adds/edits "Deterministic Tooling Requirements" (e.g., "Use stim for stabilizer checks. Prefer symbolic fallbacks. Run fidelity with quantum_rings.").
-4. Miner has time to install any missing tools.
-5. When approved, the swarm and synthesis respect the miner’s tooling preferences.
+1. Planning Arbos shows recommendations in the Streamlit approval screen.
+2. Miner reviews and adds "Deterministic Tooling Requirements" (e.g., "Use stim for stabilizer checks. Run fidelity with quantum_rings. Prefer symbolic fallbacks.").
+3. Miner installs any missing tools while reviewing.
+4. When approved, Arbos automatically uses the symbolic module and miner-specified tools where applicable.
 
 ### GOAL.md / killer_base.md Configuration
 
 ```markdown
 ## Core Toggles (Actively Used)
 
-resource_aware: true
-guardrails: true
+resource_aware: true               # Enforces time budgets and early aborts
+guardrails: true                   # Output cleaning and sanity checks
 toolhunter_escalation: true
 manual_tool_installs_allowed: true
 
@@ -76,20 +75,20 @@ tensor_parallel_size: 1
 
 ```bash
 pip install -r requirements.txt
-pip install vllm                    # Required for best swarm performance
+pip install vllm                    # Strongly recommended for swarm performance
 streamlit run streamlit_app.py
 ```
 
-(Optional: Add `GITHUB_TOKEN` to `.env` for richer ToolHunter searches.)
+(Optional: Add `GITHUB_TOKEN` to `.env` for richer ToolHunter searches. Install `stim`, `qiskit`, `pytket`, or `quantumrings` as needed for full deterministic power.)
 
 ### Why This Wins on SN63
 
-- True intelligent decomposition with **Arbos-driven deterministic tool recommendations**
-- Miner has full control over verification **and** deterministic tooling after seeing recommendations
+- Strong intelligent decomposition with **Arbos-driven deterministic recommendations**
+- Miner has precise control over both verification **and** deterministic tooling
+- Automatic symbolic reasoning reduces LLM reliance on standard tasks
 - Parallel hypothesis exploration with per-subtask ToolHunter + vLLM efficiency
-- Strong resource awareness and real-time VRAM monitoring
-- Closed-loop reflection with long-term memory
-- Full transparency and miner oversight at every critical decision point
+- Real-time VRAM monitoring and strict compute awareness
+- Full transparency, memory-driven learning, and one-click packaging
 
 **Ready for Phase 2.**
 
@@ -97,3 +96,4 @@ streamlit run streamlit_app.py
 
 Made with focus on first-principles agentic design for Bittensor SN63.  
 Questions or feature requests? Open an issue or ping @dTAO_Dad on X.
+```
