@@ -9,11 +9,17 @@ from agents.arbos_manager import ArbosManager
 
 st.set_page_config(page_title="Enigma Machine Miner - SN63", layout="wide")
 st.title("🧠 Enigma Machine Miner (Bittensor SN63)")
-st.caption("Arbos Planning + Dynamic Swarm + ToolHunter + Executable Verification")
+st.caption("Arbos Planning + vLLM Swarm + ToolHunter + Executable Verification")
 
 if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
+
+# Sidebar
+max_hours = manager.config.get("max_compute_hours", 3.8)
+st.sidebar.metric("Max Compute Limit", f"{max_hours} hours")
+st.sidebar.metric("Resource Aware", "ON" if manager.config.get("resource_aware") else "OFF")
+st.sidebar.metric("vLLM Enabled", "Yes" if get_vllm_llm() is not None else "No (fallback)")
 
 challenge = st.text_area("SN63 Challenge", height=140, placeholder="Describe the hard problem...")
 
@@ -41,7 +47,6 @@ if st.session_state.get("stage") == "planning_approval":
             st.write(f"• {t}")
     with col2:
         st.metric("Suggested Swarm Size", plan.get("suggested_swarm_size", 1))
-        st.metric("Est. Time", f"{plan.get('compute_ballpark_minutes', 0)} min")
 
     feedback = st.text_area("Feedback / Tweak (optional)")
     col_a, col_b, col_c = st.columns(3)
@@ -64,7 +69,7 @@ if st.session_state.get("stage") == "planning_approval":
 
 # ====================== 2. REFINEMENT + SWARM ======================
 if st.session_state.get("stage") == "refinement":
-    with st.spinner("Orchestrator refining plan + launching swarm..."):
+    with st.spinner("Orchestrator refining + launching swarm..."):
         blueprint = manager._refine_plan(st.session_state.approved_plan, st.session_state.challenge)
         st.session_state.blueprint = blueprint
         final_solution, _, _ = manager._smart_route(st.session_state.challenge)
@@ -94,7 +99,7 @@ if st.session_state.get("stage") == "final_review":
                 st.error(action)
             st.info("Please install the recommended tools manually, then re-run if needed.")
         elif manual_actions:
-            st.info("ToolHunter found tools, but manual installs are disabled in config.")
+            st.info("ToolHunter found tools, but manual installs are disabled.")
         else:
             st.success("✅ No manual ToolHunter actions required.")
 
@@ -151,8 +156,6 @@ Output JSON with novelty, verifier_potential, overall_score, recommendation, ver
             col.metric(label, f"{value}/10")
 
         st.success(f"**Overall Score: {q.get('overall_score', 0)}/10** → {q.get('recommendation', '')}")
-        st.info(f"**Strength:** {q.get('key_strength', '')}")
-        st.warning(f"**Risk:** {q.get('key_risk', '')}")
 
     miner_notes = st.text_area("Your Final Notes (optional)")
 
