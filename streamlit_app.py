@@ -21,6 +21,7 @@ max_hours = manager.config.get("max_compute_hours", 3.8)
 st.sidebar.metric("Max Compute Limit", f"{max_hours} hours")
 st.sidebar.metric("Resource Aware", "ON" if manager.config.get("resource_aware") else "OFF")
 st.sidebar.metric("Guardrails", "ON" if manager.config.get("guardrails") else "OFF")
+st.sidebar.metric("Review After Loops", "ON" if manager.config.get("miner_review_after_loop") else "OFF")
 
 try:
     if torch.cuda.is_available():
@@ -46,10 +47,10 @@ if st.button("🚀 Start Solving", type="primary") and challenge.strip():
         st.session_state.stage = "planning_approval"
         st.rerun()
 
-# ====================== 1. PLANNING APPROVAL ======================
+# ====================== 1. HIGH-LEVEL PLANNING APPROVAL ======================
 if st.session_state.get("stage") == "planning_approval":
     plan = st.session_state.high_level_plan
-    st.subheader("📋 High-Level Plan – Miner Approval")
+    st.subheader("📋 Stage 1: High-Level Plan – Strategic Review")
 
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -62,30 +63,29 @@ if st.session_state.get("stage") == "planning_approval":
             st.write(f"• {t}")
         
         st.markdown("### 🔧 Arbos Deterministic Recommendations")
-        recommendations = plan.get("deterministic_recommendations", "No specific recommendations yet.")
-        st.info(recommendations)
+        st.info(plan.get("deterministic_recommendations", "No specific recommendations yet."))
 
-        st.markdown("### 🚀 Miner Enhancement Prompt (Make this a 10/10 run)")
-        st.caption("Add any final instructions to push this challenge to maximum quality.")
+        st.markdown("### 🚀 Miner Enhancement Prompt (Strategic 10/10 instructions)")
+        st.caption("Broad guidance for the entire run.")
         enhancement_prompt = st.text_area(
-            "Your custom 10/10 instructions",
-            height=160,
-            placeholder="Examples:\n• Prioritize Stim for all stabilizer subtasks\n• Use Quantum Rings with 8192 shots and require fidelity > 0.95\n• Focus swarm on novelty and IP potential\n• In synthesis emphasize licensability and verifier strength"
+            "Your strategic instructions",
+            height=140,
+            placeholder="Examples:\n• Focus heavily on novelty and IP potential\n• Prioritize verifier score above all\n• Use symbolic tools wherever possible"
         )
         st.session_state.enhancement_prompt = enhancement_prompt
-        
+
     with col2:
         st.metric("Suggested Swarm Size", plan.get("suggested_swarm_size", 1))
 
     feedback = st.text_area("Feedback / Tweak (optional)")
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        if st.button("✅ Approve & Continue", type="primary"):
+        if st.button("✅ Approve High-Level Plan", type="primary"):
             st.session_state.approved_plan = plan
             st.session_state.stage = "orchestrator_review"
             st.rerun()
     with col_b:
-        if st.button("🔄 Tweak & Re-plan"):
+        if st.button("🔄 Re-plan"):
             if feedback.strip():
                 with st.spinner("Re-planning..."):
                     tweaked = manager.plan_challenge(f"{challenge}\n\nMiner feedback: {feedback}")
@@ -96,9 +96,9 @@ if st.session_state.get("stage") == "planning_approval":
             st.session_state.clear()
             st.rerun()
 
-# ====================== 2. ORCHESTRATOR BLUEPRINT REVIEW (NEW LIGHT REVIEW) ======================
+# ====================== 2. ORCHESTRATOR BLUEPRINT REVIEW (Light Tactical Review) ======================
 if st.session_state.get("stage") == "orchestrator_review":
-    with st.spinner("Orchestrator Arbos refining blueprint..."):
+    with st.spinner("Orchestrator Arbos creating detailed blueprint..."):
         blueprint = manager._refine_plan(
             st.session_state.approved_plan, 
             st.session_state.challenge,
@@ -107,7 +107,7 @@ if st.session_state.get("stage") == "orchestrator_review":
         )
         st.session_state.blueprint = blueprint
 
-    st.subheader("🔍 Orchestrator Blueprint Review")
+    st.subheader("📋 Stage 2: Orchestrator Blueprint – Tactical Review")
 
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -115,17 +115,16 @@ if st.session_state.get("stage") == "orchestrator_review":
         for t in blueprint.get("decomposition", []):
             st.write(f"• {t}")
         
-        st.markdown("### 🔧 Updated Arbos Tool/Input Recommendations")
-        recommendations = blueprint.get("deterministic_recommendations", "No new recommendations.")
-        st.info(recommendations)
+        st.markdown("### 🔧 Updated Tool Recommendations")
+        st.info(blueprint.get("deterministic_recommendations", "No new recommendations."))
 
-        st.markdown("### 🚀 Miner Enhancement Prompt (Final 10/10 instructions)")
-        st.caption("You can still adjust here before the swarm launches.")
+        st.markdown("### 🚀 Final Miner Enhancement Prompt")
+        st.caption("Last chance for adjustments before swarm launch.")
         final_enhancement = st.text_area(
-            "Final custom instructions",
-            height=140,
+            "Final instructions",
+            height=120,
             value=st.session_state.get("enhancement_prompt", ""),
-            placeholder="Any last adjustments..."
+            placeholder="Any last tactical adjustments..."
         )
         st.session_state.enhancement_prompt = final_enhancement
 
@@ -134,7 +133,7 @@ if st.session_state.get("stage") == "orchestrator_review":
 
     col_a, col_b, col_c = st.columns(3)
     with col_a:
-        if st.button("✅ Approve & Launch Swarm", type="primary"):
+        if st.button("✅ Approve Blueprint & Launch Swarm", type="primary"):
             st.session_state.stage = "final_review"
             final_solution, _, _ = manager._smart_route(st.session_state.challenge)
             st.session_state.final_solution = final_solution
@@ -151,7 +150,7 @@ if st.session_state.get("stage") == "orchestrator_review":
                 st.session_state.blueprint = blueprint
                 st.rerun()
     with col_c:
-        if st.button("❌ Go Back"):
+        if st.button("❌ Go Back to High-Level Plan"):
             st.session_state.stage = "planning_approval"
             st.rerun()
 
@@ -176,8 +175,6 @@ if st.session_state.get("stage") == "final_review":
             for action in manual_actions:
                 st.error(action)
             st.info("Please install the recommended tools manually, then re-run if needed.")
-        elif manual_actions:
-            st.info("ToolHunter found tools, but manual installs are disabled.")
         else:
             st.success("✅ No manual ToolHunter actions required.")
 
@@ -222,7 +219,7 @@ if st.session_state.get("stage") == "final_review":
                 st.session_state.final_solution = new_solution
                 st.rerun()
 
-        # Quality gate (unchanged)
+        # Quality gate
         if "quality_critique" not in st.session_state:
             with st.spinner("Running quality gate..."):
                 task = f"""You are Arbos. Evaluate with this verification: {verification or 'General SN63 standards'}
