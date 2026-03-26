@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL FULL UPGRADE - Arbos-centric SN63 Miner with vLLM + Executable Verification
+# FINAL COMPLETE VERSION with vLLM Swarm Efficiency + Executable Verification
 
 import os
 import subprocess
@@ -16,7 +16,7 @@ from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 from agents.tools.tool_hunter import tool_hunter
 
-# vLLM shared server for swarm efficiency
+# vLLM shared server
 _vllm_llm = None
 
 def get_vllm_llm():
