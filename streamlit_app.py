@@ -31,49 +31,43 @@ if "compute_source" not in st.session_state:
         index=1  # default to Chutes
     )
 
+    endpoint = None
+
     if compute_option == "Chutes (decentralized GPUs - recommended if no local GPU)":
         st.markdown("### 🚀 Go to Chutes to rent compute")
-        st.markdown("[Open Chutes Dashboard](https://chutes.ai)  ← Click here to select GPUs and pay")
+        st.markdown("[Open Chutes Dashboard](https://chutes.ai) ← Click here to select GPUs and pay")
         st.caption("After renting, copy the endpoint URL Chutes gives you and paste it below.")
-        chutes_endpoint = st.text_input(
+        endpoint = st.text_input(
             "Chutes Endpoint URL",
             placeholder="https://your-chutes-endpoint.chutes.ai",
-            help="Paste the endpoint you get after renting compute on Chutes"
+            help="Paste the endpoint you receive after renting on Chutes"
         )
-        st.session_state.custom_endpoint = chutes_endpoint if chutes_endpoint.strip() else None
 
     elif compute_option == "Already running (use existing endpoint)":
         endpoint = st.text_input(
             "Existing compute endpoint URL",
             placeholder="https://my-hosted-miner.com/api",
-            help="If you already have a running remote instance, enter its endpoint here."
+            help="Enter the endpoint of your already running instance"
         )
-        st.session_state.custom_endpoint = endpoint if endpoint.strip() else None
 
     elif compute_option == "Custom / Hosted (RunPod, Vast, AWS, etc.)":
-        endpoint = st.text_input("Custom compute endpoint URL", placeholder="https://...")
-        st.session_state.custom_endpoint = endpoint
+        endpoint = st.text_input(
+            "Custom compute endpoint URL",
+            placeholder="https://..."
+        )
 
     if st.button("Continue with this compute source", type="primary"):
-        if compute_option == "Local GPU (if available)":
-            st.session_state.compute_source = "local"
-            if torch.cuda.is_available():
-                st.success(f"✅ Local GPU detected: {torch.cuda.get_device_name(0)}")
-            else:
-                st.warning("No local GPU found.")
+        st.session_state.compute_source = {
+            "Local GPU (if available)": "local",
+            "Chutes (decentralized GPUs - recommended if no local GPU)": "chutes",
+            "Already running (use existing endpoint)": "already_running",
+            "Custom / Hosted (RunPod, Vast, AWS, etc.)": "custom"
+        }[compute_option]
 
-        elif compute_option == "Chutes (decentralized GPUs - recommended if no local GPU)":
-            st.session_state.compute_source = "chutes"
-            if st.session_state.get("custom_endpoint"):
-                st.success("Chutes endpoint saved.")
-            else:
-                st.info("Chutes selected — endpoint will be used once provided.")
+        st.session_state.custom_endpoint = endpoint if endpoint and endpoint.strip() else None
 
-        elif compute_option == "Already running (use existing endpoint)":
-            st.session_state.compute_source = "already_running"
-
-        else:
-            st.session_state.compute_source = "custom"
+        # Pass to ComputeRouter
+        manager.compute.set_compute_source(st.session_state.compute_source, st.session_state.custom_endpoint)
 
         st.session_state.stage = "planning_approval"
         st.rerun()
