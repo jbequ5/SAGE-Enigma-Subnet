@@ -2,7 +2,7 @@
 
 **Arbos-centric primary solver with intelligent planning, dynamic vLLM swarm, VRAM monitoring, real-time ToolHunter, miner-controlled executable verification, and automatic deterministic/symbolic tooling**
 
-The most intelligent and resource-efficient solo miner on Subnet 63 (Quantum Innovate / qBitTensor Labs). 
+The most intelligent and resource-efficient solo miner on Subnet 63, Enigma. 
 
 Designed from first principles to solve extremely hard, well-defined computational challenges across quantum and any industry — within any strict compute limit set by the miner.
 
