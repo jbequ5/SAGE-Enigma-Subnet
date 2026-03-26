@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# COMPLETE FINAL VERSION with vLLM Swarm Efficiency + Executable Verification
+# FINAL FULL UPGRADE - Arbos-centric SN63 Miner with vLLM + Executable Verification
 
 import os
 import subprocess
@@ -16,7 +16,7 @@ from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 from agents.tools.tool_hunter import tool_hunter
 
-# vLLM shared server
+# vLLM shared server for swarm efficiency
 _vllm_llm = None
 
 def get_vllm_llm():
@@ -34,7 +34,7 @@ def get_vllm_llm():
             )
             print("✅ vLLM loaded successfully")
         except Exception as e:
-            print(f"⚠️ vLLM failed: {e}. Will use per-process fallback.")
+            print(f"⚠️ vLLM failed: {e}. Falling back to per-process mode.")
             _vllm_llm = None
     return _vllm_llm
 
@@ -201,7 +201,7 @@ Solution:
 Verification code:
 {verification_code}
 
-Return the verification result and pass/fail verdict."""
+Return the verification result, pass/fail verdict, and any metrics."""
             result = self.compute.run_on_compute(exec_task)
             return f"Verification Result:\n{result}"
         except Exception as e:
@@ -241,7 +241,7 @@ Return the verification result and pass/fail verdict."""
                 except Exception as e:
                     trace_log.append(f"Error: {e}")
 
-        # Synthesis + Executable Verification
+        # Synthesis
         all_results = dict(manager_dict)
         failed_context = "\nPrevious failed attempts:\n" + "\n---\n".join(memory.query(challenge + " failed", n_results=5)) if memory.query(challenge + " failed", n_results=5) else ""
 
@@ -254,6 +254,7 @@ Final Synthesized Solution:"""
 
         final_solution = self.compute.run_on_compute(synthesis_task)
 
+        # Executable Verification
         if verification_instructions and verification_instructions.strip():
             verification_result = self._run_verification(final_solution, verification_instructions)
             final_solution += f"\n\n--- VERIFICATION RESULT ---\n{verification_result}"
