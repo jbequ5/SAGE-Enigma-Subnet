@@ -9,13 +9,13 @@ from agents.arbos_manager import ArbosManager
 
 st.set_page_config(page_title="Enigma Machine Miner - SN63", layout="wide")
 st.title("🧠 Enigma Machine Miner (Bittensor SN63)")
-st.caption("Intelligent Planning Arbos + Dynamic Swarm + ToolHunter + Strong Resource Awareness")
+st.caption("Intelligent Planning Arbos + Dynamic Swarm + ToolHunter + Resource Aware")
 
 if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
 
-# Sidebar info
+# Sidebar
 max_hours = manager.config.get("max_compute_hours", 3.8)
 st.sidebar.metric("Max Compute Limit", f"{max_hours} hours")
 st.sidebar.metric("Resource Aware", "Enabled" if manager.config.get("resource_aware") else "Disabled")
@@ -36,9 +36,7 @@ if st.button("🚀 Start Solving", type="primary") and challenge.strip():
 if st.session_state.get("stage") == "planning_approval":
     plan = st.session_state.high_level_plan
     st.subheader("📋 High-Level Plan – Miner Approval")
-    # ... (same as previous version - approval UI remains clean)
-
-    # Approval buttons (same as before)
+    # (keep your existing approval UI code here - it remains unchanged)
 
 # ====================== FINAL REVIEW ======================
 if st.session_state.get("stage") == "final_review":
@@ -48,23 +46,27 @@ if st.session_state.get("stage") == "final_review":
 
     st.subheader("🔍 Final Miner Review")
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Solution", "ToolHunter Escalations", "Memory History", "Quality Gate"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Solution", "ToolHunter Manual Actions", "Memory History", "Quality Gate"])
 
     with tab1:
         st.text_area("Final Synthesized Solution", solution, height=450)
 
     with tab2:
-        st.markdown("**ToolHunter Manual Recommendations**")
-        manual_found = any("MANUAL REQUIRED" in str(entry) for entry in trace)
-        if manual_found:
-            for entry in trace:
-                if "MANUAL REQUIRED" in str(entry):
-                    st.warning(entry)
+        st.markdown("### ⚠️ ToolHunter Manual Actions Needed")
+        manual_actions = [entry for entry in trace if isinstance(entry, str) and "MANUAL REQUIRED" in entry.upper()]
+        
+        if manual_actions and manager.config.get("manual_tool_installs_allowed", True):
+            st.warning("**Manual Tool Installation Required**")
+            for action in manual_actions:
+                st.error(action)
+            st.info("Please install the recommended tools manually, then re-run the challenge if the improvement is significant.")
+        elif manual_actions:
+            st.info("ToolHunter found tools, but manual installs are disabled in config.")
         else:
-            st.success("No manual ToolHunter escalations.")
+            st.success("✅ No manual ToolHunter actions required.")
 
     with tab3:
-        st.markdown("**Memory History (Re-loop Learning)**")
+        st.markdown("### Memory History (Re-loop Learning)")
         past = memory.query(st.session_state.challenge, n_results=8)
         if past:
             for i, p in enumerate(past, 1):
@@ -73,85 +75,20 @@ if st.session_state.get("stage") == "final_review":
             st.info("No previous attempts in memory.")
 
     with tab4:
-        # Quality gate (same structured scoring as before)
-        pass  # keep your existing quality gate code here
+        # Your existing quality gate code goes here
+        pass
 
-    # Packaging button (same as before)
-    with tab4:
-        st.json(blueprint, expanded=False)
-        with st.expander("Full Execution Trace"):
-            for line in trace:
-                st.write(line)
-
-    with tab5:
-        if "quality_critique" not in st.session_state:
-            with st.spinner("Running final SN63 quality gate..."):
-                critique_task = f"""You are Arbos performing final evaluation.
-
-Final solution:
-{solution[:2500]}...
-
-Output EXACT JSON:
-{{
-  "novelty": 9.2,
-  "verifier_potential": 9.5,
-  "alignment": 9.8,
-  "completeness": 9.0,
-  "efficiency": 8.7,
-  "ip_licensability": 9.1,
-  "overall_score": 9.3,
-  "recommendation": "Submit / Minor tweak / Re-loop",
-  "key_strength": "...",
-  "key_risk": "..."
-}}"""
-
-                raw = manager.compute.run_on_compute(critique_task)
-                try:
-                    start = raw.find("{")
-                    end = raw.rfind("}") + 1
-                    critique_json = json.loads(raw[start:end])
-                    st.session_state.quality_critique = critique_json
-                except:
-                    st.session_state.quality_critique = {"overall_score": 7.0, "recommendation": "Manual review needed"}
-
-        q = st.session_state.quality_critique
-        cols = st.columns(6)
-        metrics = [
-            ("Novelty", q.get("novelty", 0)),
-            ("Verifier", q.get("verifier_potential", 0)),
-            ("Alignment", q.get("alignment", 0)),
-            ("Completeness", q.get("completeness", 0)),
-            ("Efficiency", q.get("efficiency", 0)),
-            ("IP", q.get("ip_licensability", 0))
-        ]
-        for col, (label, value) in zip(cols, metrics):
-            col.metric(label, f"{value}/10")
-
-        st.success(f"**Overall Score: {q.get('overall_score', 0)}/10** → {q.get('recommendation', '')}")
-        st.info(f"**Strength:** {q.get('key_strength', '')}")
-        st.warning(f"**Risk:** {q.get('key_risk', '')}")
-
-    # Miner notes
-    miner_notes = st.text_area("Your Final Notes (optional)", placeholder="e.g., Manually integrate Tool X from ToolHunter recommendation...")
+    miner_notes = st.text_area("Your Final Notes (optional)")
 
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("📦 Package for SN63 Submission", type="primary"):
-            self._package_submission(solution, blueprint, trace, miner_notes, st.session_state.challenge)
-            st.success("✅ Submission package created in ./submissions/")
+            _package_submission(solution, blueprint, trace, miner_notes, st.session_state.challenge)
+            st.success("Submission package created!")
             st.balloons()
 
-    with col2:
-        if st.button("🔄 Request Re-loop"):
-            st.info("Re-loop requested. Implement full re-orchestration if needed.")
-
-    with col3:
-        if st.button("❌ Discard & Restart"):
-            st.session_state.clear()
-            st.rerun()
-
-def _package_submission(self, solution: str, blueprint: dict, trace: list, notes: str, challenge: str):
-    """Create clean submission package including memory history."""
+# Package function (add at the bottom)
+def _package_submission(solution: str, blueprint: dict, trace: list, notes: str, challenge: str):
     ts = datetime.now().strftime("%Y%m%d_%H%M")
     sub_dir = Path("submissions") / f"sn63_{ts}"
     sub_dir.mkdir(parents=True, exist_ok=True)
@@ -162,7 +99,6 @@ def _package_submission(self, solution: str, blueprint: dict, trace: list, notes
     (sub_dir / "miner_notes.txt").write_text(notes)
     (sub_dir / "challenge.txt").write_text(challenge)
 
-    # Include recent memory history
     past = memory.query(challenge, n_results=8)
     (sub_dir / "memory_history.txt").write_text("\n\n".join(past))
 
