@@ -1,5 +1,6 @@
 # agents/arbos_manager.py
-# PRIMARY SOLVER VERSION - Arbos-centric with intelligent planning, dynamic swarm, ToolHunter, and dynamic compute limits
+# PRIMARY SOLVER VERSION - Arbos-centric with intelligent planning, dynamic swarm, 
+# ToolHunter, dynamic compute limits, and enhanced re-loop memory
 
 import os
 import subprocess
@@ -15,7 +16,7 @@ from agents.tools.compute import ComputeRouter
 from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 from agents.tools.exploration import explore_novel_variant
-from agents.tools.tool_hunter import tool_hunter   # Full ToolHunter
+from agents.tools.tool_hunter import tool_hunter
 
 
 class ArbosManager:
@@ -28,7 +29,7 @@ class ArbosManager:
         self._setup_real_arbos()
         print("✅ Arbos Primary Solver Mode loaded")
         print(f"   → Dynamic compute limit: {self.config.get('max_compute_hours')} hours")
-        print("   → Planning Arbos + Orchestrator + Dynamic Swarm + ToolHunter enabled")
+        print("   → Enhanced re-loop memory + Planning + Swarm + ToolHunter enabled")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -46,7 +47,6 @@ class ArbosManager:
             "miner_review_final": True,
             "chutes": True,
             "chutes_llm": "mixtral",
-            # Dynamic compute limits (configurable in killer_base.md)
             "max_compute_hours": 3.8,
             "max_compute_minutes": 228
         }
@@ -103,17 +103,17 @@ class ArbosManager:
 MINER STRATEGY (HIGH PRIORITY):
 {self.extra_context}
 
-Time available: {remaining_hours:.2f}h on current hardware"""
+Time available: {remaining_hours:.2f}h"""
 
-        past = memory.query(challenge, n_results=4)
+        past = memory.query(challenge, n_results=6)
         if past:
-            full_context += "\n\nPast similar challenges:\n" + "\n---\n".join(past)
+            full_context += "\n\nPast attempts and critiques:\n" + "\n---\n".join(past)
 
         planning_task = f"""You are Planning Arbos, a meta-planner specialized for Bittensor SN63 challenges.
 
 {full_context}
 
-Create a high-level executable plan.
+Create a high-level executable plan for an extremely hard problem.
 Strictly follow miner strategy. Bias toward novelty, verifier potential, and realistic compute use.
 
 Output EXACTLY this JSON (no extra text):
@@ -189,16 +189,14 @@ Project realistic compute time. Propose conservative fallback if needed."""
             }
 
     # ===================================================================
-    # TOOL HUNTER (per sub-Arbos)
+    # TOOL HUNTER
     # ===================================================================
     def _tool_hunter(self, gap_description: str, subtask: str) -> str:
-        """Real ToolHunter with miner escalation."""
         result = tool_hunter.hunt_and_integrate(
             gap_description=gap_description,
             subtask=subtask,
             challenge_context=f"SN63 challenge: {subtask}"
         )
-        
         if result["status"] == "success":
             return f"ToolHunter SUCCESS: {result.get('tool_name')} | Integration ready"
         else:
@@ -210,7 +208,7 @@ Project realistic compute time. Propose conservative fallback if needed."""
     def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
                           shared_results: dict, subtask_id: int) -> dict:
         max_hours = self.config.get("max_compute_hours", 3.8)
-        monitor = ResourceMonitor(max_hours=max_hours / 3)  # conservative per-subtask share
+        monitor = ResourceMonitor(max_hours=max_hours / 3)
         start_time = time.time()
 
         solution = f"Subtask: {subtask}\nHypothesis: {hypothesis}"
@@ -246,9 +244,15 @@ Decide: Improve / Call Tool / Finalize"""
             else:
                 solution = response
 
-            if time.time() - start_time > (max_hours * 1800 / 6):  # rough per-subtask cap
+            if time.time() - start_time > (max_hours * 1800 / 6):
                 trace.append("Subtask time cap reached")
                 break
+
+        # Store subtask result in memory
+        memory.add(
+            text=f"Subtask result: {solution[:800]}...",
+            metadata={"subtask": subtask, "hypothesis": hypothesis, "status": "completed", "subtask_id": subtask_id}
+        )
 
         shared_results[subtask_id] = {
             "subtask": subtask,
@@ -260,7 +264,7 @@ Decide: Improve / Call Tool / Finalize"""
         return shared_results[subtask_id]
 
     # ===================================================================
-    # DYNAMIC SWARM + SYNTHESIS
+    # DYNAMIC SWARM + SYNTHESIS + STRONGER RE-LOOP MEMORY
     # ===================================================================
     def _run_swarm(self, blueprint: Dict[str, Any], challenge: str) -> str:
         decomposition = blueprint.get("decomposition", ["Full challenge"])
@@ -295,21 +299,31 @@ Decide: Improve / Call Tool / Finalize"""
                 except Exception as e:
                     trace_log.append(f"✗ Subtask error: {e}")
 
-        # Synthesis + Reconvene
+        # Synthesis with enhanced re-loop memory
         all_results = dict(manager_dict)
+        failed_attempts = memory.query(challenge + " failed", n_results=5)
+        failed_context = "\nPrevious failed attempts and critiques:\n" + "\n---\n".join(failed_attempts) if failed_attempts else ""
+
         synthesis_task = f"""You are Arbos Orchestrator. Synthesize the swarm results into one coherent, high-novelty, verifier-strong solution.
 
 Challenge: {challenge}
-Previous failed attempts in memory (if any) have been considered.
+{failed_context}
 
 Swarm results:
 {json.dumps(all_results, indent=2)}
 
-Follow miner strategy from killer_base.md.
+Follow miner strategy from killer_base.md. Learn from previous failures.
 
 Final Synthesized Solution:"""
 
         final_solution = self.compute.run_on_compute(synthesis_task)
+
+        # Store final attempt for future re-loops
+        memory.add(
+            text=final_solution[:1500],
+            metadata={"challenge": challenge, "status": "final_attempt", "timestamp": time.time()}
+        )
+
         trace_log.append("Swarm synthesis complete")
 
         import streamlit as st
@@ -327,24 +341,20 @@ Final Synthesized Solution:"""
 
         trace_log = ["🚀 Starting Arbos Orchestrator"]
 
-        # 1. Planning Arbos
         trace_log.append("→ Running Intelligent Planning Arbos...")
         high_level_plan = self.plan_challenge(challenge)
 
         st.session_state.high_level_plan = high_level_plan
         st.session_state.trace_log = trace_log
 
-        # Assume approval (Streamlit sets approved_plan after miner click)
-        approved_plan = high_level_plan
+        approved_plan = high_level_plan   # Streamlit will override with real approval in full flow
 
-        # 2. Refinement
         trace_log.append("→ Running Orchestrator Arbos Refinement...")
         blueprint = self._refine_plan(approved_plan, challenge)
 
         st.session_state.blueprint = blueprint
         st.session_state.trace_log = trace_log
 
-        # 3. Dynamic Swarm
         trace_log.append("→ Launching parallel Sub-Arbos swarm with per-subtask ToolHunter...")
         final_solution = self._run_swarm(blueprint, challenge)
 
@@ -366,5 +376,11 @@ Final Synthesized Solution:"""
         if self.config.get("exploration", True):
             final_output = explore_novel_variant(challenge, final_output)
 
-        print(f"✅ Completed with swarm execution.")
+        # Store final output
+        memory.add(
+            text=final_output[:1000],
+            metadata={"challenge": challenge, "status": "final", "compute_used": monitor.elapsed_hours()}
+        )
+
+        print(f"✅ Completed.")
         return final_output, should_reloop
