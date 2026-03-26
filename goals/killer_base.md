@@ -12,6 +12,10 @@ resource_aware: true
 
 guardrails: true
 
+toolhunter_escalation: true
+
+manual_tool_installs_allowed: true
+
 **Miner Input**
 
 miner_review_after_loop: false     **#true = review after every loop**
