@@ -65,10 +65,10 @@ Your main strategy and control file is **`goals/killer_base.md`**. It is injecte
 Solve the sponsor challenge with maximum novelty and verifier score while staying under *DESIRED COMPUTE LIMIT* 
 
 ## Core Strategy Example (MINER EDIT/ADD)
-Produce novel, verifier-strong, licensable solutions for extremely hard SN63 challenges (quantum circuits, stabilizer preprocessing, hybrid optimization, etc.) while staying strictly within compute limits and maximizing IP/value.
+Produce novel, verifier-strong, licensable solutions for extremely SN63 challenges (quantum circuits, stabilizer preprocessing, hybrid optimization, etc.) while staying strictly within compute limits and maximizing IP/value.
 
 Always prioritize:
-- High novelty + verifier potential on Quantum Rings simulator
+- High novelty + verifier potential
 - Efficient use of Compute
 - Clear, reproducible outputs
 
