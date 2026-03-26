@@ -2,6 +2,7 @@
 import streamlit as st
 import json
 import zipfile
+import torch
 from pathlib import Path
 from datetime import datetime
 
@@ -15,11 +16,30 @@ if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
 
-# Sidebar
+# ====================== SIDEBAR - Real-time Hardware Info ======================
+st.sidebar.header("System Status")
+
 max_hours = manager.config.get("max_compute_hours", 3.8)
 st.sidebar.metric("Max Compute Limit", f"{max_hours} hours")
+
 st.sidebar.metric("Resource Aware", "ON" if manager.config.get("resource_aware") else "OFF")
-st.sidebar.metric("vLLM Enabled", "Yes" if get_vllm_llm() is not None else "No (fallback)")
+st.sidebar.metric("Guardrails", "ON" if manager.config.get("guardrails") else "OFF")
+
+# Real-time VRAM monitoring
+try:
+    if torch.cuda.is_available():
+        free_vram = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated(0)
+        free_vram_gb = free_vram / (1024 ** 3)
+        total_vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+        st.sidebar.metric("VRAM Free / Total", f"{free_vram_gb:.1f} / {total_vram_gb:.1f} GB")
+    else:
+        st.sidebar.metric("VRAM", "No GPU detected")
+except:
+    st.sidebar.metric("VRAM", "Monitoring unavailable")
+
+# Tensor Parallel Size
+tp_size = manager.config.get("tensor_parallel_size", 1)
+st.sidebar.metric("Tensor Parallel Size (vLLM)", tp_size)
 
 challenge = st.text_area("SN63 Challenge", height=140, placeholder="Describe the hard problem...")
 
@@ -69,7 +89,7 @@ if st.session_state.get("stage") == "planning_approval":
 
 # ====================== 2. REFINEMENT + SWARM ======================
 if st.session_state.get("stage") == "refinement":
-    with st.spinner("Orchestrator refining + launching swarm..."):
+    with st.spinner("Orchestrator refining plan + launching swarm..."):
         blueprint = manager._refine_plan(st.session_state.approved_plan, st.session_state.challenge)
         st.session_state.blueprint = blueprint
         final_solution, _, _ = manager._smart_route(st.session_state.challenge)
