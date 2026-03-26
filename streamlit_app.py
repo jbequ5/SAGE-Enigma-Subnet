@@ -70,7 +70,7 @@ if st.session_state.get("stage") == "planning_approval":
         enhancement_prompt = st.text_area(
             "Your custom 10/10 instructions",
             height=160,
-            placeholder="Examples:\n• Prioritize Stim for all stabilizer subtasks\n• Use Quantum Rings with 8192 shots and require fidelity > 0.95\n• Focus swarm on novelty and IP potential\n• In synthesis emphasize licensability and verifier strength\n• Avoid any tool that requires manual install"
+            placeholder="Examples:\n• Prioritize Stim for all stabilizer subtasks\n• Use Quantum Rings with 8192 shots and require fidelity > 0.95\n• Focus swarm on novelty and IP potential\n• In synthesis emphasize licensability and verifier strength"
         )
         st.session_state.enhancement_prompt = enhancement_prompt
         
@@ -82,7 +82,7 @@ if st.session_state.get("stage") == "planning_approval":
     with col_a:
         if st.button("✅ Approve & Continue", type="primary"):
             st.session_state.approved_plan = plan
-            st.session_state.stage = "refinement"
+            st.session_state.stage = "orchestrator_review"
             st.rerun()
     with col_b:
         if st.button("🔄 Tweak & Re-plan"):
@@ -96,9 +96,9 @@ if st.session_state.get("stage") == "planning_approval":
             st.session_state.clear()
             st.rerun()
 
-# ====================== 2. REFINEMENT + SWARM ======================
-if st.session_state.get("stage") == "refinement":
-    with st.spinner("Orchestrator refining plan + launching swarm..."):
+# ====================== 2. ORCHESTRATOR BLUEPRINT REVIEW (NEW LIGHT REVIEW) ======================
+if st.session_state.get("stage") == "orchestrator_review":
+    with st.spinner("Orchestrator Arbos refining blueprint..."):
         blueprint = manager._refine_plan(
             st.session_state.approved_plan, 
             st.session_state.challenge,
@@ -106,10 +106,54 @@ if st.session_state.get("stage") == "refinement":
             st.session_state.get("enhancement_prompt", "")
         )
         st.session_state.blueprint = blueprint
-        final_solution, _, _ = manager._smart_route(st.session_state.challenge)
-        st.session_state.final_solution = final_solution
-        st.session_state.stage = "final_review"
-        st.rerun()
+
+    st.subheader("🔍 Orchestrator Blueprint Review")
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown("**Detailed Decomposition:**")
+        for t in blueprint.get("decomposition", []):
+            st.write(f"• {t}")
+        
+        st.markdown("### 🔧 Updated Arbos Tool/Input Recommendations")
+        recommendations = blueprint.get("deterministic_recommendations", "No new recommendations.")
+        st.info(recommendations)
+
+        st.markdown("### 🚀 Miner Enhancement Prompt (Final 10/10 instructions)")
+        st.caption("You can still adjust here before the swarm launches.")
+        final_enhancement = st.text_area(
+            "Final custom instructions",
+            height=140,
+            value=st.session_state.get("enhancement_prompt", ""),
+            placeholder="Any last adjustments..."
+        )
+        st.session_state.enhancement_prompt = final_enhancement
+
+    with col2:
+        st.metric("Final Swarm Size", blueprint.get("swarm_config", {}).get("total_instances", 1))
+
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+        if st.button("✅ Approve & Launch Swarm", type="primary"):
+            st.session_state.stage = "final_review"
+            final_solution, _, _ = manager._smart_route(st.session_state.challenge)
+            st.session_state.final_solution = final_solution
+            st.rerun()
+    with col_b:
+        if st.button("🔄 Re-refine Blueprint"):
+            with st.spinner("Re-refining..."):
+                blueprint = manager._refine_plan(
+                    st.session_state.approved_plan, 
+                    st.session_state.challenge,
+                    st.session_state.get("deterministic_tooling", ""),
+                    st.session_state.get("enhancement_prompt", "")
+                )
+                st.session_state.blueprint = blueprint
+                st.rerun()
+    with col_c:
+        if st.button("❌ Go Back"):
+            st.session_state.stage = "planning_approval"
+            st.rerun()
 
 # ====================== 3. FINAL REVIEW ======================
 if st.session_state.get("stage") == "final_review":
@@ -163,7 +207,7 @@ if st.session_state.get("stage") == "final_review":
                 "Deterministic Tooling Requirements",
                 height=180,
                 value=st.session_state.get("deterministic_tooling", ""),
-                placeholder="Example: Use stim for stabilizer checks. Run fidelity with quantum_rings. Prefer symbolic fallbacks."
+                placeholder="Example: Use stim for stabilizer checks. Run fidelity with quantum_rings."
             )
             st.session_state.deterministic_tooling = deterministic_tooling
 
@@ -178,7 +222,7 @@ if st.session_state.get("stage") == "final_review":
                 st.session_state.final_solution = new_solution
                 st.rerun()
 
-        # Quality gate
+        # Quality gate (unchanged)
         if "quality_critique" not in st.session_state:
             with st.spinner("Running quality gate..."):
                 task = f"""You are Arbos. Evaluate with this verification: {verification or 'General SN63 standards'}
