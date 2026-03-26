@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL COMPLETE VERSION with vLLM Swarm Efficiency + Executable Verification
+# FINAL UPGRADED VERSION - All 4 weak points addressed
 
 import os
 import subprocess
@@ -30,11 +30,12 @@ def get_vllm_llm():
                 tensor_parallel_size=1,
                 gpu_memory_utilization=0.85,
                 dtype="float16",
-                max_model_len=8192
+                max_model_len=8192,
+                enforce_eager=True  # Better determinism
             )
-            print("✅ vLLM loaded successfully")
+            print("✅ vLLM loaded")
         except Exception as e:
-            print(f"⚠️ vLLM failed: {e}. Falling back to per-process mode.")
+            print(f"⚠️ vLLM failed: {e}. Falling back.")
             _vllm_llm = None
     return _vllm_llm
 
@@ -47,11 +48,10 @@ class ArbosManager:
         self.config = self._load_config()
         self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
-        print("✅ Arbos Primary Solver loaded with vLLM + Executable Verification")
+        print("✅ Arbos loaded with full upgrades")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
-            print("Cloning real Arbos...")
             subprocess.run(["git", "clone", "https://github.com/unarbos/arbos.git", self.arbos_path], check=True)
 
     def _load_config(self):
@@ -65,7 +65,8 @@ class ArbosManager:
             "resource_aware": True,
             "guardrails": True,
             "toolhunter_escalation": True,
-            "manual_tool_installs_allowed": True
+            "manual_tool_installs_allowed": True,
+            "sub_arbos_reflection_depth": 5   # NEW: deeper iteration
         }
         try:
             with open(self.goal_file, "r") as f:
@@ -73,9 +74,9 @@ class ArbosManager:
                     stripped = line.strip().lower()
                     key = line.split(":")[0].strip().lower()
                     value = line.split(":", 1)[1].strip()
-                    if key in ["miner_review_after_loop", "miner_review_final", "chutes", "resource_aware", "guardrails", "toolhunter_escalation", "manual_tool_installs_allowed"]:
+                    if key in config and isinstance(config[key], bool):
                         config[key] = "true" in value.lower()
-                    elif key in ["max_loops", "max_compute_minutes"]:
+                    elif key in ["max_loops", "max_compute_minutes", "sub_arbos_reflection_depth"]:
                         config[key] = int(value)
                     elif key == "max_compute_hours":
                         config[key] = float(value)
@@ -111,7 +112,7 @@ Time available: {remaining:.2f}h"""
         task = f"""You are Planning Arbos. {full_context}
 Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposition, suggested_swarm_size, high_level_tool_hints, compute_ballpark_minutes, quality_gate_targets."""
 
-        response = self.compute.run_on_compute(task)
+        response = self.compute.run_on_compute(task, temperature=0.0)  # Better determinism
         return self._parse_json(response)
 
     def _refine_plan(self, approved_plan: Dict, challenge: str) -> Dict:
@@ -124,7 +125,7 @@ Approved plan: {json.dumps(approved_plan)}
 Time left: {remaining:.2f}h
 Output EXACT JSON with decomposition, swarm_config, tool_map, compute_projection_minutes, risk_flags."""
 
-        response = self.compute.run_on_compute(task)
+        response = self.compute.run_on_compute(task, temperature=0.0)
         return self._parse_json(response)
 
     def _parse_json(self, raw: str) -> Dict:
@@ -158,13 +159,15 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, compute_projection
             solution = f"Subtask: {subtask}\nHypothesis: {hypothesis}"
             trace = [f"Sub-Arbos {subtask_id} started"]
 
-            for loop in range(3):
+            reflection_depth = self.config.get("sub_arbos_reflection_depth", 5)
+
+            for loop in range(reflection_depth):
                 reflect_task = f"""You are a focused sub-Arbos.
 Subtask: {subtask}
 Hypothesis: {hypothesis}
 Current: {solution[:700]}
 Decide: Improve / Call Tool / Finalize"""
-                response = self.compute.run_on_compute(reflect_task)
+                response = self.compute.run_on_compute(reflect_task, temperature=0.0)
                 trace.append(f"Loop {loop+1}")
 
                 if "Finalize" in response or "final" in response.lower():
@@ -175,7 +178,7 @@ Decide: Improve / Call Tool / Finalize"""
                     hunt = self._tool_hunter(gap, subtask)
                     solution += f"\n[ToolHunter]\n{hunt}"
                 elif tools and tools[0] != "none":
-                    output = self.compute.run_on_compute(f"Apply {tools[0]} to: {solution[:600]}")
+                    output = self.compute.run_on_compute(f"Apply {tools[0]} to: {solution[:600]}", temperature=0.0)
                     solution += f"\n[{tools[0]}]\n{output}"
 
                 if self.config.get("guardrails"):
@@ -193,7 +196,7 @@ Decide: Improve / Call Tool / Finalize"""
             return "No custom verification code provided."
 
         try:
-            exec_task = f"""Execute this verification code safely on the solution:
+            exec_task = f"""Execute this verification code safely:
 
 Solution:
 {solution[:2000]}
@@ -201,11 +204,11 @@ Solution:
 Verification code:
 {verification_code}
 
-Return the verification result, pass/fail verdict, and any metrics."""
-            result = self.compute.run_on_compute(exec_task)
+Return result, pass/fail, and metrics."""
+            result = self.compute.run_on_compute(exec_task, temperature=0.0)
             return f"Verification Result:\n{result}"
         except Exception as e:
-            return f"Verification execution failed: {str(e)}. Falling back to LLM assessment."
+            return f"Verification execution failed: {str(e)}"
 
     def _run_swarm(self, blueprint: Dict[str, Any], challenge: str, verification_instructions: str = "") -> str:
         decomposition = blueprint.get("decomposition", ["Full challenge"])
@@ -241,7 +244,6 @@ Return the verification result, pass/fail verdict, and any metrics."""
                 except Exception as e:
                     trace_log.append(f"Error: {e}")
 
-        # Synthesis
         all_results = dict(manager_dict)
         failed_context = "\nPrevious failed attempts:\n" + "\n---\n".join(memory.query(challenge + " failed", n_results=5)) if memory.query(challenge + " failed", n_results=5) else ""
 
@@ -252,9 +254,8 @@ Verification Instructions: {verification_instructions or 'General SN63 standards
 Swarm results: {json.dumps(all_results, indent=2)}
 Final Synthesized Solution:"""
 
-        final_solution = self.compute.run_on_compute(synthesis_task)
+        final_solution = self.compute.run_on_compute(synthesis_task, temperature=0.0)
 
-        # Executable Verification
         if verification_instructions and verification_instructions.strip():
             verification_result = self._run_verification(final_solution, verification_instructions)
             final_solution += f"\n\n--- VERIFICATION RESULT ---\n{verification_result}"
