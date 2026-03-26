@@ -1,6 +1,6 @@
 # agents/arbos_manager.py
 # Arbos-centric SN63 Miner - Intelligent Planning + Dynamic Swarm + ToolHunter
-# Dynamic compute limits + Strong resource_aware + Guardrails in-loop
+# Dynamic compute + Strong resource_aware + Guardrails in-loop (reflection removed)
 
 import os
 import subprocess
@@ -37,7 +37,6 @@ class ArbosManager:
 
     def _load_config(self):
         config = {
-            "reflection": 4,                    # Controls reflection depth per sub-Arbos
             "miner_review_after_loop": False,
             "max_loops": 5,
             "miner_review_final": True,
@@ -52,9 +51,7 @@ class ArbosManager:
             with open(self.goal_file, "r") as f:
                 for line in f:
                     stripped = line.strip().lower()
-                    if stripped.startswith("reflection:"):
-                        config["reflection"] = int(line.split(":")[1].strip())
-                    elif stripped.startswith("miner_review_after_loop:"):
+                    if stripped.startswith("miner_review_after_loop:"):
                         config["miner_review_after_loop"] = "true" in stripped
                     elif stripped.startswith("max_loops:"):
                         config["max_loops"] = int(line.split(":")[1].strip())
@@ -109,7 +106,7 @@ Time available: {remaining_hours:.2f}h"""
 
 {full_context}
 
-Create a high-level executable plan for an extremely hard, well-defined problem.
+Create a high-level executable plan.
 Strictly follow miner strategy. Bias toward novelty, verifier potential, and realistic compute use.
 
 Output EXACTLY this JSON (no extra text):
@@ -147,7 +144,7 @@ MINER STRATEGY:
 
 Time left: {remaining_hours:.2f}h
 
-Refine the approved plan into a precise executable blueprint with intelligent decomposition.
+Refine into precise executable blueprint.
 
 Output EXACTLY this JSON:
 {{
@@ -164,7 +161,7 @@ Output EXACTLY this JSON:
   "early_abort_triggers": ["if any subtask > 40min"]
 }}
 
-Project realistic H100 time based on resource_aware setting. Propose conservative fallback if needed."""
+Project realistic time. Use resource_aware logic for conservative fallback if needed."""
 
         response = self.compute.run_on_compute(refinement_task)
         return self._parse_json(response)
@@ -188,7 +185,6 @@ Project realistic H100 time based on resource_aware setting. Propose conservativ
     # TOOL HUNTER
     # ===================================================================
     def _tool_hunter(self, gap_description: str, subtask: str) -> str:
-        """Calls full ToolHunter with miner escalation support."""
         result = tool_hunter.hunt_and_integrate(
             gap_description=gap_description,
             subtask=subtask,
@@ -197,17 +193,17 @@ Project realistic H100 time based on resource_aware setting. Propose conservativ
         if result.get("status") == "success":
             return f"ToolHunter SUCCESS: {result.get('tool_name')} | Integration ready"
         else:
-            return f"ToolHunter MANUAL REQUIRED:\n{result.get('miner_recommendation', result.get('reason', 'No suitable tool found'))}"
+            return f"ToolHunter MANUAL REQUIRED:\n{result.get('miner_recommendation', result.get('reason', 'No tool found'))}"
 
     # ===================================================================
-    # SUB-ARBOS WORKER (with resource_aware + guardrails)
+    # SUB-ARBOS WORKER - with strong resource_aware + guardrails
     # ===================================================================
     def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
                           shared_results: dict, subtask_id: int) -> dict:
         max_hours = self.config.get("max_compute_hours", 3.8)
         monitor = ResourceMonitor(max_hours=max_hours / 3.0)
 
-        # Resource-aware early abort
+        # Strong resource_aware early abort
         if self.config.get("resource_aware") and monitor.elapsed_hours() > max_hours * 0.75:
             solution = "Early abort: time budget exceeded to protect overall compute limit."
             trace = ["Resource-aware early abort triggered"]
@@ -215,9 +211,7 @@ Project realistic H100 time based on resource_aware setting. Propose conservativ
             solution = f"Subtask: {subtask}\nHypothesis: {hypothesis}"
             trace = [f"Sub-Arbos {subtask_id} started on {subtask}"]
 
-            reflection_depth = self.config.get("reflection", 4)
-
-            for loop in range(min(3, reflection_depth)):
+            for loop in range(3):
                 reflect_task = f"""You are a focused sub-Arbos for SN63.
 
 Subtask: {subtask}
@@ -228,7 +222,7 @@ Critique rigorously for novelty, verifier potential, and alignment.
 Decide: Improve / Call Tool / Finalize"""
 
                 response = self.compute.run_on_compute(reflect_task)
-                trace.append(f"Reflection {loop+1}: {response[:120]}...")
+                trace.append(f"Reflection {loop+1}: {response[:150]}...")
 
                 if "Finalize" in response or "final" in response.lower():
                     break
@@ -252,15 +246,10 @@ Decide: Improve / Call Tool / Finalize"""
                     trace.append("Subtask hard time cap reached")
                     break
 
-        # Store in long-term memory
+        # Store in memory
         memory.add(
             text=solution[:1000],
-            metadata={
-                "subtask": subtask,
-                "hypothesis": hypothesis,
-                "status": "completed",
-                "subtask_id": subtask_id
-            }
+            metadata={"subtask": subtask, "hypothesis": hypothesis, "status": "completed"}
         )
 
         shared_results[subtask_id] = {
@@ -356,19 +345,18 @@ Final Synthesized Solution:"""
 
         trace_log = ["🚀 Starting Arbos Orchestrator"]
 
-        # 1. Planning Arbos
         trace_log.append("→ Running Intelligent Planning Arbos...")
         high_level_plan = self.plan_challenge(challenge)
         st.session_state.high_level_plan = high_level_plan
         st.session_state.trace_log = trace_log
 
-        # 2. Refinement (assume approval for now - Streamlit handles real gate)
+        approved_plan = high_level_plan  # Streamlit will set real approval
+
         trace_log.append("→ Running Orchestrator Arbos Refinement...")
-        blueprint = self._refine_plan(high_level_plan, challenge)
+        blueprint = self._refine_plan(approved_plan, challenge)
         st.session_state.blueprint = blueprint
         st.session_state.trace_log = trace_log
 
-        # 3. Dynamic Swarm
         trace_log.append("→ Launching parallel Sub-Arbos swarm with per-subtask ToolHunter...")
         final_solution = self._run_swarm(blueprint, challenge)
 
@@ -379,7 +367,7 @@ Final Synthesized Solution:"""
         return final_solution, tools_used, should_reloop
 
     def run(self, challenge: str):
-        print(f"🚀 Starting Arbos Orchestrator for challenge: {challenge[:80]}...")
+        print(f"🚀 Starting Arbos Orchestrator for: {challenge[:80]}...")
 
         monitor = ResourceMonitor(max_hours=self.config.get("max_compute_hours", 3.8))
 
