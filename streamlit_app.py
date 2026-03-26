@@ -16,16 +16,12 @@ if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
 
-# ====================== SIDEBAR - Real-time Hardware Info ======================
-st.sidebar.header("System Status")
-
+# Sidebar
 max_hours = manager.config.get("max_compute_hours", 3.8)
 st.sidebar.metric("Max Compute Limit", f"{max_hours} hours")
-
 st.sidebar.metric("Resource Aware", "ON" if manager.config.get("resource_aware") else "OFF")
 st.sidebar.metric("Guardrails", "ON" if manager.config.get("guardrails") else "OFF")
 
-# Real-time VRAM monitoring
 try:
     if torch.cuda.is_available():
         free_vram = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated(0)
@@ -37,7 +33,6 @@ try:
 except:
     st.sidebar.metric("VRAM", "Monitoring unavailable")
 
-# Tensor Parallel Size
 tp_size = manager.config.get("tensor_parallel_size", 1)
 st.sidebar.metric("Tensor Parallel Size (vLLM)", tp_size)
 
@@ -65,8 +60,12 @@ if st.session_state.get("stage") == "planning_approval":
         st.markdown("**Rough Decomposition:**")
         for t in plan.get("rough_decomposition", []):
             st.write(f"• {t}")
-        st.markdown("**Arbos Recommendations:**")
-        st.write(plan.get("deterministic_recommendations", "No specific recommendations yet."))
+        
+        # NEW: Show Arbos's deterministic/symbolic recommendations prominently
+        st.markdown("### 🔧 Arbos Deterministic Recommendations")
+        recommendations = plan.get("deterministic_recommendations", "No specific recommendations yet.")
+        st.info(recommendations)
+        
     with col2:
         st.metric("Suggested Swarm Size", plan.get("suggested_swarm_size", 1))
 
