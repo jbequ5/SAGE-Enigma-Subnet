@@ -94,6 +94,22 @@ if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
 
+# ====================== QUICK PROMPT BAR (Persistent at top) ======================
+st.markdown("### 🚀 QUICK MINER PROMPT")
+quick_prompt = st.text_area(
+    "Quick Enhancement Prompt (applied instantly to current session)",
+    height=80,
+    placeholder="Maximize novelty • Prioritize symbolic tools • Require formal verification...",
+    key="quick_prompt"
+)
+
+if st.button("Apply Quick Prompt to Current Session", type="primary"):
+    if quick_prompt.strip():
+        st.session_state.enhancement_prompt = quick_prompt.strip()
+        st.success("Quick prompt applied to current enhancement prompt!")
+
+st.markdown("---")
+
 # ====================== SIDEBAR ======================
 st.sidebar.title("🛠️ ALLIED OPERATIONS")
 st.sidebar.metric("Mode", "Production + Self-Improvement")
@@ -172,6 +188,7 @@ if st.session_state.get("stage") == "planning_approval":
         enhancement_prompt = st.text_area(
             "Your strategic instructions",
             height=160,
+            value=st.session_state.get("enhancement_prompt", ""),
             placeholder="Maximize novelty and IP potential..."
         )
         st.session_state.enhancement_prompt = enhancement_prompt
@@ -262,12 +279,11 @@ if st.session_state.get("stage") == "final_review":
         st.markdown("### Memory History (Re-loop Learning)")
         st.info("Memory history would load here from your memory system.")
 
-    # ==================== SELF-IMPROVEMENT TAB (FULLY CONNECTED) ====================
+    # ==================== SELF-IMPROVEMENT TAB (Fully Connected) ====================
     with tab4:
         st.markdown("### 🧬 SELF-IMPROVEMENT LOOP (trajrl-inspired)")
         st.caption("Analyze trajectories • Diagnose failures • Suggest better prompts")
 
-        # History Table
         history = manager.get_run_history(n=5)
         if history:
             st.dataframe(pd.DataFrame(history), use_container_width=True)
