@@ -273,12 +273,12 @@ if st.session_state.get("stage") == "final_review":
         # Replace with your actual memory.query when available
         st.info("Memory history would load here from your memory system.")
 
-    # ==================== SELF-IMPROVEMENT TAB (trajrl-inspired) ====================
+    # ==================== SELF-IMPROVEMENT TAB ====================
     with tab4:
-        st.markdown("### 🧬 SELF-IMPROVEMENT LOOP")
+        st.markdown("### 🧬 SELF-IMPROVEMENT LOOP (trajrl-inspired)")
         st.caption("Analyze trajectories • Diagnose failures • Suggest better prompts")
 
-        # History Table (replace with real data later)
+        # History Table (replace with real data from memory later)
         history_data = {
             "Run": ["#47", "#46", "#45"],
             "Score": [8.7, 6.2, 9.1],
