@@ -1,31 +1,132 @@
-# streamlit_app.py
 import streamlit as st
 import json
 import zipfile
-import torch
 from pathlib import Path
 from datetime import datetime
 
 from agents.arbos_manager import ArbosManager
 
-st.set_page_config(page_title="Enigma Machine Miner - SN63", layout="wide")
-st.title("🧠 Enigma Machine Miner (Bittensor SN63)")
-st.caption("Compute Setup → Two-Stage Review → Parallel Swarm → Verification")
+# ====================== PAGE CONFIG & BUNKER THEME ======================
+st.set_page_config(
+    page_title="ENIGMA MINER - SN63",
+    page_icon="🔒",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
+# Full bunker background with Enigma on table (replace URL with your saved image)
+bunker_bg_url = "https://i.imgur.com/YOUR_BUNKER_IMAGE_URL.jpg"   # ← CHANGE THIS
+
+st.markdown(f"""
+<style>
+    [data-testid="stAppViewContainer"] {{
+        background-image: url("{https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/6e9e5059-d813-470c-b43e-c39eeccb173c.jpg}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+
+    [data-testid="stHeader"], footer, [data-testid="stToolbar"] {{
+        visibility: hidden;
+    }}
+
+    /* Semi-transparent green classified overlay */
+    .stApp {{
+        background: linear-gradient(rgba(8, 28, 18, 0.88), rgba(12, 38, 24, 0.92));
+    }}
+
+    /* Retro military green glowing text */
+    h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
+        color: #00ff9d !important;
+        font-family: 'Courier New', monospace;
+        text-shadow: 0 0 12px #00ff9d, 0 0 25px #00aa77;
+        letter-spacing: 1.5px;
+    }}
+
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea,
+    .stCodeBlock {{
+        background-color: rgba(0, 25, 15, 0.95) !important;
+        color: #00ff9d !important;
+        border: 2px solid #00cc88;
+        font-family: 'Courier New', monospace;
+        box-shadow: 0 0 10px rgba(0, 255, 150, 0.4);
+    }}
+
+    .stButton > button {{
+        background-color: #002211;
+        color: #00ff9d;
+        border: 2px solid #00aa77;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        box-shadow: 0 0 15px rgba(0, 255, 150, 0.6);
+    }}
+
+    .stButton > button:hover {{
+        background-color: #004422;
+        border-color: #00ff9d;
+        box-shadow: 0 0 25px #00ff9d;
+    }}
+
+    /* Top Secret watermark */
+    .stApp::before {{
+        content: "TOP SECRET — ENIGMA MINER COMMAND POST 1943";
+        position: fixed;
+        top: 25px;
+        right: 40px;
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        color: rgba(255, 60, 60, 0.18);
+        transform: rotate(-8deg);
+        pointer-events: none;
+        z-index: 9999;
+        letter-spacing: 6px;
+    }}
+
+    .stMetric {{
+        background: rgba(0, 30, 20, 0.7);
+        border: 1px solid #00aa77;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>🔒 ENIGMA MINER</h1>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #ffaa44; margin-top: 0;'>WWII BUNKER COMMAND POST • SUBNET 63</h3>", unsafe_allow_html=True)
+st.caption("Arbos Planning • vLLM Swarm • ToolHunter • Verification")
+
+# ====================== SESSION STATE & MANAGER ======================
 if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
 
-# ====================== PRE-RUN TOOLHUNTER DISCOVERY ======================
-st.sidebar.title("🛠️ ToolHunter Setup")
-if st.sidebar.button("🔍 Pre-Run ToolHunter Discovery (using GOAL.md)"):
-    with st.spinner("Analyzing GOAL.md and discovering relevant tools/models..."):
-        goal_path = "goals/killer_base.md"
+# ====================== SIDEBAR (ToolHunter + Compute Info) ======================
+st.sidebar.title("🛠️ BUNKER OPERATIONS")
+max_hours = manager.config.get("max_compute_hours", 3.8)
+st.sidebar.metric("Max Compute Limit", f"{max_hours} hours")
+
+if torch.cuda.is_available():
+    try:
+        free_vram = torch.cuda.get_device_properties(0).total_memory - torch.cuda.memory_allocated(0)
+        st.sidebar.metric("VRAM Free", f"{free_vram / (1024**3):.1f} GB")
+    except:
+        pass
+
+# ToolHunter pre-run
+if st.sidebar.button("🔍 Pre-Run ToolHunter Discovery (GOAL.md)"):
+    with st.spinner("Analyzing goals/killer_base.md..."):
         try:
-            with open(goal_path, "r") as f:
+            with open("goals/killer_base.md", "r") as f:
                 goal_content = f.read()
+            discovered = manager.discover_from_goal(goal_content)
+            if discovered:
+                st.sidebar.success(f"✅ Added {len(discovered)} tools/models")
+            else:
+                st.sidebar.warning("No strong matches.")
         except Exception as e:
-            st.error(f"Could not read GOAL.md: {e}")
+            st.sidebar.error(f"Error: {e}")
             st.stop()
 
         discovered = manager.discover_from_goal(goal_content)
