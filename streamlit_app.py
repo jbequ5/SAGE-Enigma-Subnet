@@ -17,7 +17,7 @@ if "arbos_manager" not in st.session_state:
 manager = st.session_state.arbos_manager
 
 # ====================== PRE-RUN TOOLHUNTER DISCOVERY ======================
-st.sidebar.title("ToolHunter Setup")
+st.sidebar.title("🛠️ ToolHunter Setup")
 if st.sidebar.button("🔍 Pre-Run ToolHunter Discovery (using GOAL.md)"):
     with st.spinner("Analyzing GOAL.md and discovering relevant tools/models..."):
         goal_path = "goals/killer_base.md"
@@ -56,20 +56,11 @@ if "compute_source" not in st.session_state:
 
     if compute_option == "Chutes (decentralized GPUs - recommended if no local GPU)":
         st.markdown("### 🚀 Go to Chutes to rent compute")
-        st.markdown("[Open Chutes Dashboard](https://chutes.ai) ← Click here to select GPUs and pay")
-        st.caption("After renting, copy the endpoint URL Chutes gives you and paste it below.")
-        endpoint = st.text_input(
-            "Chutes Endpoint URL",
-            placeholder="https://your-chutes-endpoint.chutes.ai",
-            help="Paste the endpoint you receive after renting on Chutes"
-        )
+        st.markdown("[Open Chutes Dashboard](https://chutes.ai)")
+        endpoint = st.text_input("Chutes Endpoint URL", placeholder="https://your-chutes-endpoint.chutes.ai")
 
     elif compute_option == "Already running (use existing endpoint)":
-        endpoint = st.text_input(
-            "Existing compute endpoint URL",
-            placeholder="https://my-hosted-miner.com/api",
-            help="Enter the endpoint of your already running instance"
-        )
+        endpoint = st.text_input("Existing compute endpoint URL", placeholder="https://my-hosted-miner.com/api")
 
     elif compute_option == "Custom / Hosted (RunPod, Vast, AWS, etc.)":
         endpoint = st.text_input("Custom compute endpoint URL", placeholder="https://...")
@@ -114,12 +105,12 @@ if st.session_state.get("stage") == "planning_approval":
         st.markdown("### 🔧 Arbos Deterministic Recommendations")
         st.info(plan.get("deterministic_recommendations", "No specific recommendations yet."))
 
-        st.markdown("### 🚀 Miner Enhancement Prompt (10/10 Instructions)")
-        st.caption("Broad guidance for the entire run. You can also specify exact models here.")
+        st.markdown("### 🚀 **Miner Enhancement Prompt (10/10 Instructions)**")
+        st.caption("**Required / Highly Recommended** — Tell Arbos your strategy, model preferences, tool priorities, novelty focus, etc.")
         enhancement_prompt = st.text_area(
             "Your strategic instructions",
-            height=140,
-            placeholder="Examples:\n• Focus heavily on novelty and IP potential\n• Use TheBloke/Llama-3-70B-Instruct for synthesis\n• Prioritize symbolic tools wherever possible"
+            height=160,
+            placeholder="Examples:\n• Maximize novelty and IP potential\n• Use TheBloke/Llama-3-70B-Instruct for synthesis\n• Prioritize symbolic tools and verifier strength\n• Focus on Quantum Rings fidelity"
         )
         st.session_state.enhancement_prompt = enhancement_prompt
 
@@ -167,11 +158,11 @@ if st.session_state.get("stage") == "orchestrator_review":
         st.markdown("### 🔧 Updated Tool Recommendations")
         st.info(blueprint.get("deterministic_recommendations", "No new recommendations."))
 
-        st.markdown("### 🚀 Final Miner Enhancement Prompt")
-        st.caption("Last chance for adjustments before swarm launch.")
+        st.markdown("### 🚀 **Final Miner Enhancement Prompt**")
+        st.caption("**Last chance** to add model requests, tool priorities, or strategic adjustments.")
         final_enhancement = st.text_area(
             "Final instructions",
-            height=120,
+            height=140,
             value=st.session_state.get("enhancement_prompt", ""),
             placeholder="Any last tactical adjustments or model requests..."
         )
@@ -242,11 +233,14 @@ if st.session_state.get("stage") == "final_review":
             st.info("No previous attempts in memory.")
 
     with tab4:
-        st.markdown("### 🔬 Custom Verification & Deterministic Tooling")
+        st.markdown("### 🔬 **Verification & Deterministic Tooling**")
+        st.caption("**Important:** Provide any custom verification code or tool requirements here.")
+
         col_v, col_d = st.columns(2)
         with col_v:
+            st.markdown("**Verification Instructions / Code**")
             verification = st.text_area(
-                "Verification Instructions / Code",
+                "",
                 height=180,
                 value=st.session_state.get("verification_instructions", ""),
                 placeholder="Example: Simulate on Quantum Rings with 5000 shots. Require fidelity > 0.95"
@@ -254,11 +248,12 @@ if st.session_state.get("stage") == "final_review":
             st.session_state.verification_instructions = verification
 
         with col_d:
+            st.markdown("**Deterministic Tooling Requirements**")
             deterministic_tooling = st.text_area(
-                "Deterministic Tooling Requirements",
+                "",
                 height=180,
                 value=st.session_state.get("deterministic_tooling", ""),
-                placeholder="Example: Use stim for stabilizer checks. Prefer symbolic fallbacks."
+                placeholder="Example: Use stim for stabilizer checks. Prefer symbolic fallbacks. Use TheBloke/Llama-3-70B-Instruct for synthesis."
             )
             st.session_state.deterministic_tooling = deterministic_tooling
 
@@ -273,6 +268,7 @@ if st.session_state.get("stage") == "final_review":
                 st.session_state.final_solution = new_solution
                 st.rerun()
 
+        # Quality gate
         if "quality_critique" not in st.session_state:
             with st.spinner("Running quality gate..."):
                 task = f"""You are Arbos. Evaluate with this verification: {verification or 'General SN63 standards'}
