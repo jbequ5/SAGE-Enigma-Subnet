@@ -7,7 +7,7 @@ from datetime import datetime
 
 from agents.arbos_manager import ArbosManager
 
-# ====================== PAGE CONFIG & DARK BUNKER THEME ======================
+# ====================== PAGE CONFIG & VERY DARK BUNKER THEME ======================
 st.set_page_config(
     page_title="ALLIED ENIGMA MINER - SN63",
     page_icon="🔒",
@@ -30,12 +30,12 @@ st.markdown(f"""
         visibility: hidden;
     }}
 
-    /* VERY DARK overlay for excellent readability */
+    /* VERY DARK overlay for maximum readability */
     .stApp {{
         background: linear-gradient(rgba(0, 5, 3, 0.98), rgba(0, 12, 8, 0.99));
     }}
 
-    /* Main terminal panel */
+    /* Terminal-style panel */
     .main-panel {{
         background-color: rgba(0, 10, 6, 0.94);
         border: 3px solid #00ff9d;
@@ -124,6 +124,7 @@ if st.sidebar.button("🔍 Pre-Run ToolHunter Discovery (GOAL.md)"):
 # ====================== STAGE 0: COMPUTE SETUP ======================
 if "compute_source" not in st.session_state:
     st.subheader("🔌 Compute Setup")
+
     compute_option = st.radio(
         "Choose compute source:",
         options=[
@@ -268,16 +269,16 @@ if st.session_state.get("stage") == "final_review":
             st.success("✅ No ToolHunter actions required.")
 
     with tab3:
-        st.markdown("### Memory History")
-        # your original memory code here
-        st.info("Memory history would load here.")
+        st.markdown("### Memory History (Re-loop Learning)")
+        # Replace with your actual memory.query when available
+        st.info("Memory history would load here from your memory system.")
 
-    # ==================== NEW SELF-IMPROVEMENT TAB ====================
+    # ==================== SELF-IMPROVEMENT TAB (trajrl-inspired) ====================
     with tab4:
-        st.markdown("### 🧬 SELF-IMPROVEMENT LOOP (trajrl-inspired)")
-        st.caption("Analyze trajectories • Diagnose failures • Improve future prompts")
+        st.markdown("### 🧬 SELF-IMPROVEMENT LOOP")
+        st.caption("Analyze trajectories • Diagnose failures • Suggest better prompts")
 
-        # History Table
+        # History Table (replace with real data later)
         history_data = {
             "Run": ["#47", "#46", "#45"],
             "Score": [8.7, 6.2, 9.1],
@@ -288,18 +289,19 @@ if st.session_state.get("stage") == "final_review":
         st.dataframe(pd.DataFrame(history_data), use_container_width=True)
 
         if st.button("🔍 Run Arbos Self-Critique on Last Runs", type="primary"):
-            with st.spinner("Arbos analyzing patterns across trajectories..."):
+            with st.spinner("Arbos analyzing patterns across runs..."):
                 st.success("✅ Self-Critique Complete")
                 st.markdown("""
                 **Arbos Diagnosis:**
-                - Consistent weakness in novelty across recent runs.
-                - Verifier is solid but symbolic tools are underused.
-                - **Recommended prompt improvement:**
+                - Consistent weakness in **novelty**.
+                - Verifier is strong but symbolic tools are underused.
+                - **Recommended prompt addition:**
                   "Prioritize novel symbolic approaches and mathematical insights. Require at least one new tool or formal proof technique."
                 """)
-                if st.button("✅ Apply Suggestion to Current Prompt"):
-                    st.session_state.enhancement_prompt = st.session_state.get("enhancement_prompt", "") + "\n\nPrioritize novel symbolic approaches..."
-                    st.success("Suggestion applied!")
+                if st.button("✅ Apply Suggestion to Current Enhancement Prompt"):
+                    current = st.session_state.get("enhancement_prompt", "")
+                    st.session_state.enhancement_prompt = current + "\n\nPrioritize novel symbolic approaches and mathematical insights."
+                    st.success("Suggestion applied to current prompt!")
 
         st.markdown("**Manual Self-Improvement Instruction**")
         manual = st.text_area("Tell Arbos how to improve next run", height=100,
