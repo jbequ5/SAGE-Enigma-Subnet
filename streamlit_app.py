@@ -28,7 +28,7 @@ if "compute_source" not in st.session_state:
             "Already running (use existing endpoint)",
             "Custom / Hosted (RunPod, Vast, AWS, etc.)"
         ],
-        index=1  # default to Chutes
+        index=1
     )
 
     endpoint = None
@@ -63,13 +63,11 @@ if "compute_source" not in st.session_state:
         st.session_state.compute_source = source_map[compute_option]
         st.session_state.custom_endpoint = endpoint if endpoint and endpoint.strip() else None
 
-        # Pass to ComputeRouter
         manager.compute.set_compute_source(st.session_state.compute_source, st.session_state.custom_endpoint)
-
         st.session_state.stage = "planning_approval"
         st.rerun()
 
-    st.stop()  # Stop until compute source is chosen
+    st.stop()
 
 # ====================== STAGE 1: HIGH-LEVEL PLANNING APPROVAL ======================
 if st.session_state.get("stage") == "planning_approval":
@@ -95,7 +93,7 @@ if st.session_state.get("stage") == "planning_approval":
         st.markdown("### 🔧 Arbos Deterministic Recommendations")
         st.info(plan.get("deterministic_recommendations", "No specific recommendations yet."))
 
-        st.markdown("### 🚀 Miner Enhancement Prompt (Strategic 10/10 instructions)")
+        st.markdown("### 🚀 Miner Enhancement Prompt (10/10 Instructions)")
         st.caption("Broad guidance for the entire run. You can also specify exact models here.")
         enhancement_prompt = st.text_area(
             "Your strategic instructions",
@@ -198,15 +196,21 @@ if st.session_state.get("stage") == "final_review":
         st.text_area("Final Solution", solution, height=400)
 
     with tab2:
-        st.markdown("### ⚠️ ToolHunter Manual Actions Needed")
-        manual_actions = [entry for entry in trace if isinstance(entry, str) and "MANUAL REQUIRED" in entry.upper()]
-        if manual_actions and manager.config.get("manual_tool_installs_allowed", True):
-            st.warning("**Manual Tool Installation Required**")
+        st.markdown("### ⚠️ ToolHunter Results & Manual Actions")
+        manual_actions = [entry for entry in trace if isinstance(entry, str) and ("MANUAL REQUIRED" in entry.upper() or "ToolHunter found" in entry)]
+        
+        if manual_actions:
+            st.warning("**ToolHunter Recommendations Found**")
             for action in manual_actions:
-                st.error(action)
-            st.info("Please install the recommended tools or models manually, then re-run if needed.")
+                st.info(action)
+                # One-click Apply button
+                if "found specialized" in action.lower() or "model:" in action.lower():
+                    if st.button("🔄 Apply Recommended Model/Tool", key=action[:50]):
+                        st.session_state.deterministic_tooling = action
+                        st.success("✅ Recommendation copied to Deterministic Tooling field. You can now re-run.")
+                        st.rerun()
         else:
-            st.success("✅ No manual ToolHunter actions required.")
+            st.success("✅ No ToolHunter actions required.")
 
     with tab3:
         st.markdown("### Memory History (Re-loop Learning)")
