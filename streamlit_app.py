@@ -16,6 +16,27 @@ if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
 
+# ====================== PRE-RUN TOOLHUNTER DISCOVERY ======================
+st.sidebar.title("ToolHunter Setup")
+if st.sidebar.button("🔍 Pre-Run ToolHunter Discovery (using GOAL.md)"):
+    with st.spinner("Analyzing GOAL.md and discovering relevant tools/models..."):
+        goal_path = "goals/killer_base.md"
+        try:
+            with open(goal_path, "r") as f:
+                goal_content = f.read()
+        except Exception as e:
+            st.error(f"Could not read GOAL.md: {e}")
+            st.stop()
+
+        discovered = manager.discover_from_goal(goal_content)
+        
+        if discovered:
+            st.success(f"✅ Discovered and added {len(discovered)} relevant tools/models")
+            st.info("Registry updated. ToolHunter will now use these during runs.")
+        else:
+            st.warning("No strong matches found.")
+        st.rerun()
+
 # ====================== STAGE 0: COMPUTE SETUP ======================
 if "compute_source" not in st.session_state:
     st.subheader("🔌 Compute Setup")
@@ -203,7 +224,6 @@ if st.session_state.get("stage") == "final_review":
             st.warning("**ToolHunter Recommendations Found**")
             for action in manual_actions:
                 st.info(action)
-                # One-click Apply button
                 if "found specialized" in action.lower() or "model:" in action.lower():
                     if st.button("🔄 Apply Recommended Model/Tool", key=action[:50]):
                         st.session_state.deterministic_tooling = action
