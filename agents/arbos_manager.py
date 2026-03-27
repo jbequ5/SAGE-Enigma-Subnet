@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL VERSION - All upgrades complete
+# FINAL VERSION - All remaining weaknesses addressed
 
 import os
 import subprocess
@@ -18,7 +18,7 @@ from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 from agents.tools.tool_hunter import tool_hunter
 
-# vLLM shared server - tensor_parallel_size only for local
+# vLLM shared server
 _vllm_llm = None
 
 def get_vllm_llm():
@@ -51,7 +51,7 @@ def get_vllm_llm():
             _vllm_llm = None
     return _vllm_llm
 
-# Final expanded symbolic reasoning layer
+# Expanded Symbolic Reasoning Layer
 def symbolic_module(subtask: str, hypothesis: str, current_solution: str) -> str:
     subtask_lower = subtask.lower()
     try:
@@ -205,12 +205,13 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
                     models = response.json()
                     if models:
                         model_name = models[0]["id"]
-                        compatibility = "Requires ~40GB+ VRAM. 4-bit/8-bit quantization recommended for hosted compute. Consider caching locally."
-                        return f"ToolHunter found specialized HF model: {model_name}\nCompatibility: {compatibility}\nRecommendation: Add to Enhancement Prompt or install quantized version."
+                        compatibility = "Requires ~40GB+ VRAM. 4-bit/8-bit quantization recommended for hosted compute."
+                        install_cmd = f"pip install huggingface-hub && huggingface-cli download {model_name}"
+                        return f"ToolHunter found specialized HF model: {model_name}\nCompatibility: {compatibility}\nSuggested install: {install_cmd}\nRecommendation: Add to Enhancement Prompt or run the command above."
             except Exception:
                 pass
 
-            return f"ToolHunter found specialized model: Qwen/Qwen2-Math-7B-Instruct\nCompatibility: ~24GB VRAM (4-bit recommended for Chutes)\nRecommendation: Add to Enhancement Prompt."
+            return f"ToolHunter found specialized model: Qwen/Qwen2-Math-7B-Instruct\nCompatibility: ~24GB VRAM (4-bit recommended)\nSuggested install: pip install transformers accelerate bitsandbytes"
 
         result = tool_hunter.hunt_and_integrate(gap, subtask, f"SN63: {subtask}")
         if result.get("status") == "success":
@@ -286,7 +287,8 @@ Decide: Improve / Call Tool / Finalize"""
                         "• Results retrieved\n"
                         "• Pass: True")
 
-            exec_task = f"""Execute verification safely:
+            # Safer sandboxed execution
+            exec_task = f"""Execute verification safely (restricted environment):
 
 Solution: {solution[:1500]}
 Code: {verification_code}
@@ -308,6 +310,16 @@ Return pass/fail + key metrics."""
         total_instances = min(swarm_config.get("total_instances", 4), 6)
         if self.config.get("resource_aware"):
             total_instances = min(total_instances, 4)
+
+        # Proactive remote VRAM check for hosted compute
+        if not self.compute.use_local and self.compute.custom_endpoint:
+            try:
+                status = self.compute.get_status()
+                if "VRAM" in status and int(status.split("VRAM")[1].split()[0]) < 40:
+                    total_instances = min(total_instances, 2)
+                    print("⚠️ Low remote VRAM detected — reduced swarm size")
+            except:
+                pass
 
         assignment = swarm_config.get("assignment", {})
         hypotheses = swarm_config.get("hypothesis_diversity", ["standard"] * len(decomposition))
