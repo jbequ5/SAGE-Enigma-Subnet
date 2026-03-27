@@ -35,15 +35,6 @@ st.markdown(f"""
         background: linear-gradient(rgba(0, 5, 3, 0.98), rgba(0, 12, 8, 0.99));
     }}
 
-    /* Terminal-style panel */
-    .main-panel {{
-        background-color: rgba(0, 10, 6, 0.94);
-        border: 3px solid #00ff9d;
-        border-radius: 8px;
-        padding: 25px;
-        box-shadow: 0 0 50px rgba(0, 255, 150, 0.65);
-    }}
-
     h1, h2, h3, .stMarkdown h1, .stMarkdown h2 {{
         color: #00ff9d !important;
         font-family: 'Courier New', monospace;
@@ -79,7 +70,6 @@ st.markdown(f"""
         box-shadow: 0 0 55px #00ff9d;
     }}
 
-    /* Allied watermark */
     .stApp::before {{
         content: "ALLIED COMMAND POST — US ARMY SIGNALS INTELLIGENCE";
         position: fixed;
@@ -270,37 +260,34 @@ if st.session_state.get("stage") == "final_review":
 
     with tab3:
         st.markdown("### Memory History (Re-loop Learning)")
-        # Replace with your actual memory.query when available
         st.info("Memory history would load here from your memory system.")
 
-    # ==================== SELF-IMPROVEMENT TAB ====================
+    # ==================== SELF-IMPROVEMENT TAB (Fully Connected) ====================
     with tab4:
         st.markdown("### 🧬 SELF-IMPROVEMENT LOOP (trajrl-inspired)")
         st.caption("Analyze trajectories • Diagnose failures • Suggest better prompts")
 
-        # History Table (replace with real data from memory later)
-        history_data = {
-            "Run": ["#47", "#46", "#45"],
-            "Score": [8.7, 6.2, 9.1],
-            "Novelty": [9.1, 5.8, 8.4],
-            "Verifier": [8.4, 7.9, 9.3],
-            "Main Issue": ["Low novelty", "Verifier failed", "None"]
-        }
-        st.dataframe(pd.DataFrame(history_data), use_container_width=True)
+        # History Table
+        history = manager.get_run_history(n=5)
+        if history:
+            st.dataframe(pd.DataFrame(history), use_container_width=True)
+        else:
+            st.info("No run history yet.")
 
         if st.button("🔍 Run Arbos Self-Critique on Last Runs", type="primary"):
             with st.spinner("Arbos analyzing patterns across runs..."):
+                critique = manager.self_critique(st.session_state.challenge, n_runs=5)
                 st.success("✅ Self-Critique Complete")
-                st.markdown("""
+                st.markdown(f"""
                 **Arbos Diagnosis:**
-                - Consistent weakness in **novelty**.
-                - Verifier is strong but symbolic tools are underused.
+                - Common issues: {critique.get('common_issues', [])}
+                - Weak areas: {critique.get('weak_areas', [])}
                 - **Recommended prompt addition:**
-                  "Prioritize novel symbolic approaches and mathematical insights. Require at least one new tool or formal proof technique."
+                  {critique.get('recommended_prompt_additions', 'No suggestion available.')}
                 """)
                 if st.button("✅ Apply Suggestion to Current Enhancement Prompt"):
                     current = st.session_state.get("enhancement_prompt", "")
-                    st.session_state.enhancement_prompt = current + "\n\nPrioritize novel symbolic approaches and mathematical insights."
+                    st.session_state.enhancement_prompt = manager.apply_self_improvement(current, critique)
                     st.success("Suggestion applied to current prompt!")
 
         st.markdown("**Manual Self-Improvement Instruction**")
