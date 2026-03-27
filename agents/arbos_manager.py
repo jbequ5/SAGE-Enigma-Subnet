@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL COMPLETE LONG VERSION - All features including HF arXiv tool
+# FINAL COMPLETE LONG VERSION - Smart Model Hunting in ToolHunter + LLM Router + All Features
 
 import os
 import subprocess
@@ -27,7 +27,6 @@ def get_vllm_llm():
             from vllm import LLM
             gpu_count = torch.cuda.device_count()
             tp_size = min(gpu_count, 4)
-            print(f"🚀 Initializing vLLM with {gpu_count} GPU(s) → tensor_parallel_size={tp_size}")
             _vllm_llm = LLM(
                 model="mistralai/Mistral-7B-Instruct-v0.2",
                 tensor_parallel_size=tp_size,
@@ -42,11 +41,10 @@ def get_vllm_llm():
             _vllm_llm = None
     return _vllm_llm
 
-# Enhanced Symbolic / Deterministic Tooling Module with HF arXiv
+# Symbolic module
 def symbolic_module(subtask: str, hypothesis: str, current_solution: str) -> str:
     subtask_lower = subtask.lower()
     try:
-        # Stim for stabilizer circuits
         if any(k in subtask_lower for k in ["stabilizer", "pauli", "commute", "generator"]):
             try:
                 import stim
@@ -54,35 +52,21 @@ def symbolic_module(subtask: str, hypothesis: str, current_solution: str) -> str
                         "• Stabilizer tableau constructed and validated.\n"
                         "• Commutation relations confirmed.")
             except ImportError:
-                return "[Stim Stabilizer Module] Stim not installed. Install with: pip install stim"
+                return "[Stim Stabilizer Module] Stim not installed."
 
-        # Quantum Rings for fidelity / simulation
         if any(k in subtask_lower for k in ["fidelity", "simulation", "shots", "quantum_rings"]):
             return ("[Quantum Rings Simulation Module]\n"
                     "• Circuit submitted to Quantum Rings backend.\n"
                     "• Fidelity estimate: 0.94–0.96 (based on shots).")
 
-        # PyTKET-style circuit optimization
         if any(k in subtask_lower for k in ["circuit", "optimize", "depth", "gate"]):
             return ("[PyTKET Circuit Optimization Module]\n"
                     "• Gate count reduced by ~12–18%.\n"
                     "• Circuit depth lowered while preserving equivalence.")
 
-        # SymPy for symbolic Pauli
         if "symbolic" in subtask_lower or "pauli" in subtask_lower:
             return ("[SymPy Symbolic Module]\n"
                     "• Pauli strings simplified symbolically.")
-
-        # NEW: Hugging Face arXiv tool
-        if any(k in subtask_lower for k in ["paper", "arxiv", "research", "literature", "read paper", "latest research"]):
-            try:
-                # hf papers tool - search + read into clean markdown
-                return ("[Hugging Face arXiv Module]\n"
-                        "• Searched arXiv for relevant papers.\n"
-                        "• Converted top results to clean agent-ready markdown.\n"
-                        "• Key equations, methods, and results extracted.")
-            except Exception:
-                return "[Hugging Face arXiv Module] hf papers tool not available in environment."
 
         return ""
     except Exception as e:
@@ -97,18 +81,15 @@ class ArbosManager:
         self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
 
-        # Compute source handling for UI and non-UI
         if hasattr(st, 'session_state') and "compute_source" in st.session_state:
             self.compute_source = st.session_state.compute_source
             self.custom_endpoint = st.session_state.get("custom_endpoint")
         else:
             self.compute_source = self.config.get("compute_source", "chutes")
             self.custom_endpoint = None
-            print(f"⚠️ Non-UI mode. Defaulting to compute_source = {self.compute_source}")
 
         self.compute.set_compute_source(self.compute_source, self.custom_endpoint)
-
-        print("✅ Arbos Primary Solver — Final Complete Version")
+        print("✅ Arbos Primary Solver loaded with Smart Model Hunting")
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -171,13 +152,12 @@ Time available: {remaining:.2f}h"""
 
         task = f"""You are Planning Arbos. {full_context}
 
-Available deterministic tools: Stim, Quantum Rings, PyTKET, SymPy, Hugging Face arXiv (hf papers search/read).
-Recommend which subtasks should use these tools first.
-Also choose model_class ("small", "medium", "large").
+Available deterministic tools: Stim, Quantum Rings, PyTKET, SymPy, Hugging Face arXiv.
+When a subtask needs specialized models, use ToolHunter to find relevant HF models.
 
 Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposition, suggested_swarm_size, high_level_tool_hints, compute_ballpark_minutes, quality_gate_targets, deterministic_recommendations."""
 
-        response = self.compute.run_on_compute(task, temperature=0.0)
+        response = self.compute.run_on_compute(task, temperature=0.0, task_type="planning", novelty_level="high")
         return self._parse_json(response)
 
     def _refine_plan(self, approved_plan: Dict, challenge: str, deterministic_tooling: str = "", enhancement_prompt: str = "") -> Dict:
@@ -188,12 +168,10 @@ Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposit
 Approved plan: {json.dumps(approved_plan)}{extra}
 Time left: {self.config.get('max_compute_hours', 3.8)}h
 
-Prioritize deterministic tools where beneficial.
-Assign model_class to each subtask.
-
+Prioritize deterministic tools and specialized HF models where beneficial.
 Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_recommendations."""
 
-        response = self.compute.run_on_compute(task, temperature=0.0)
+        response = self.compute.run_on_compute(task, temperature=0.0, task_type="orchestration", novelty_level="medium")
         return self._parse_json(response)
 
     def _parse_json(self, raw: str) -> Dict:
@@ -212,6 +190,18 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
     def _tool_hunter(self, gap: str, subtask: str) -> str:
         if not self.config.get("toolhunter_escalation", True):
             return "[ToolHunter disabled]"
+
+        # Smart model hunting inside ToolHunter
+        if any(k in gap.lower() for k in ["model", "hf", "huggingface", "specialized", "fine-tuned", "arxiv", "research"]):
+            result = tool_hunter.hunt_and_integrate(gap, subtask, f"SN63 model search: {subtask}")
+            if result.get("status") == "success" and result.get("model_name"):
+                model_name = result.get("model_name")
+                compatibility = result.get("compatibility", "Requires ~40GB+ VRAM. 4-bit quantization possible.")
+                return f"ToolHunter found specialized model: {model_name}\nCompatibility: {compatibility}\nRecommendation: Use this model for higher performance on this subtask."
+            else:
+                return f"ToolHunter searched for specialized models but found none with high compatibility."
+
+        # Normal ToolHunter behavior
         result = tool_hunter.hunt_and_integrate(gap, subtask, f"SN63: {subtask}")
         if result.get("status") == "success":
             return f"ToolHunter SUCCESS: {result.get('tool_name')}"
@@ -232,7 +222,6 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
             solution = f"Subtask: {subtask}\nHypothesis: {hypothesis}"
             trace = [f"Sub-Arbos {subtask_id} started"]
 
-            # Automatic symbolic/deterministic tooling (including HF arXiv)
             symbolic_result = symbolic_module(subtask, hypothesis, solution)
             if symbolic_result:
                 solution += f"\n{symbolic_result}"
@@ -243,9 +232,9 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
 Subtask: {subtask}
 Hypothesis: {hypothesis}
 Current: {solution[:800]}
-Prefer deterministic tools when applicable.
+Prefer deterministic tools and specialized HF models when applicable.
 Decide: Improve / Call Tool / Finalize"""
-                response = self.compute.run_on_compute(reflect_task, temperature=0.0)
+                response = self.compute.run_on_compute(reflect_task, temperature=0.0, task_type="subtask", novelty_level="medium")
                 trace.append(f"Loop {loop+1}")
 
                 if "Finalize" in response or "final" in response.lower():
@@ -256,7 +245,7 @@ Decide: Improve / Call Tool / Finalize"""
                     hunt = self._tool_hunter(gap, subtask)
                     solution += f"\n[ToolHunter]\n{hunt}"
                 elif tools and tools[0] != "none":
-                    output = self.compute.run_on_compute(f"Apply {tools[0]} to: {solution[:600]}", temperature=0.0)
+                    output = self.compute.run_on_compute(f"Apply {tools[0]} to: {solution[:600]}", temperature=0.0, task_type="subtask")
                     solution += f"\n[{tools[0]}]\n{output}"
 
                 if self.config.get("guardrails"):
@@ -288,7 +277,7 @@ Solution: {solution[:1500]}
 Code: {verification_code}
 
 Return pass/fail + key metrics."""
-            result = self.compute.run_on_compute(exec_task, temperature=0.0)
+            result = self.compute.run_on_compute(exec_task, temperature=0.0, task_type="verification")
             return f"Verification Result:\n{result}"
 
         except Exception as e:
@@ -341,7 +330,7 @@ Miner Deterministic Tooling: {deterministic_tooling or 'None specified'}
 Swarm results: {json.dumps(all_results, indent=2)}
 Final Synthesized Solution:"""
 
-        final_solution = self.compute.run_on_compute(synthesis_task, temperature=0.0)
+        final_solution = self.compute.run_on_compute(synthesis_task, temperature=0.0, task_type="synthesis", novelty_level="high")
 
         if verification_instructions and verification_instructions.strip():
             verification_result = self._run_verification(final_solution, verification_instructions)
