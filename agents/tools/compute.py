@@ -1,5 +1,5 @@
 # agents/tools/compute.py
-# Final version with automatic quantization proxying
+# Final version with proactive remote VRAM check
 
 import torch
 import requests
@@ -92,4 +92,12 @@ class ComputeRouter:
         return "[External Compute Failed]"
 
     def get_status(self):
+        # Proactive remote VRAM check (if endpoint supports it)
+        try:
+            if self.custom_endpoint:
+                r = requests.get(self.custom_endpoint + "/status", timeout=5)
+                if r.status_code == 200:
+                    return r.json().get("vram_info", f"Source: {self.compute_source}")
+        except:
+            pass
         return f"Source: {self.compute_source} | Model routing active"
