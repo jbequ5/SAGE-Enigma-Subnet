@@ -36,77 +36,87 @@ flowchart TD
     I --> K["Submit to SN63<br/>submission_package.zip"]
 ```
 
-**Key Intelligence Highlights**
+### Key Intelligence Highlights
 
-**Full Miner Control**
+**Full Miner Control**  
 - Planning approval, post-planning deterministic tooling field, executable verification input, specialized/custom LLM input, enhancement prompt, final review, and one-click packaging.
-  
-**Intelligent Planning Arbos**
+
+**Intelligent Planning Arbos**  
 - Creates the high-level strategy and **explicitly recommends deterministic/symbolic tools and custom HF LLMs** (Stim for stabilizers, Quantum Rings for fidelity, PyTKET for circuit optimization, SymPy for symbolic Pauli) or (e.g., TheBloke/Llama-3-70B-Instruct, Qwen/Qwen2-Math-7B-Instruct, etc.) for models.
-  
-**Miner-Controlled Deterministic Tooling**
+
+**Miner-Controlled Deterministic Tooling**  
 - After seeing Arbos recommendations in the planning approval screen, the miner can add or override specific tooling/model requirements before the swarm runs.
-  
-**Miner Enhancement Prompt (10/10 Instructions)**
+
+**Miner Enhancement Prompt (10/10 Instructions)**  
 - Dedicated field in the planning approval screen where the miner can give final custom instructions to push the entire run to maximum quality (tool priorities, novelty focus, synthesis style, verifier strength, model preference, IP/licensability, etc.). These instructions are injected into refinement and synthesis.
-  
-**Orchestrator Arbos**
+
+**Orchestrator Arbos**  
 - Takes the approved plan and refines it into an executable blueprint, assigning subtasks, swarm configuration, tool_map, and model classes while incorporating miner deterministic tooling/model and enhancement instructions.
-  
-**Dynamic Parallel Subprocess Agent Swarm** with **per-subtask ToolHunter**
-- Each Sub-Arbos independently explores hypotheses and can call ToolHunter for gaps in real time. If ToolHunter failed to use a tool it needed, You find out right after the swarm finishes, in the ToolHunter tab of the final review — with clear, actionable messages.
-  
-**Automatic Symbolic Reasoning Module**
+
+**Dynamic Parallel Subprocess Agent Swarm with per-subtask ToolHunter**  
+- Each Sub-Arbos independently explores hypotheses and can call ToolHunter for gaps in real time. If ToolHunter failed to use a tool it needed, you find out right after the swarm finishes, in the ToolHunter tab of the final review — with clear, actionable messages.
+
+**Automatic Symbolic Reasoning Module**  
 - Arbos swarm now **automatically calls** deterministic/symbolic logic in `_sub_arbos_worker` for matching subtasks (stabilizer checks, fidelity estimation, circuit optimization, preprocessing). LLM is used only when truly needed.
-  
-**Intelligent Verification System**
+
+**Intelligent Verification System**  
 - Miner can provide custom executable verification code or instructions. The system supports **direct Quantum Rings and OpenQuantum SDK integration** for real simulator execution and deterministic metrics (fidelity, shots, pass/fail). Verification results are fed back into the quality gate and final synthesis.
-  
-**Adaptive Re-loop & Memory**
+
+**Adaptive Re-loop & Memory**  
 - Strong long-term memory across loops with explicit meta-reflection on failures. This is stored and used on future challenges. The miner keeps getting smarter and more efficient with every run.
+
+---
 
 ### Dynamic LLM Logic
 
-The system uses a smart **LLM Router** that dynamically selects the best model for each task:
-- High-novelty, planning, orchestration, and synthesis tasks → "best" models (largest / most capable available)
-- Routine sub-tasks, verification, and ToolHunter calls → "fast" / smaller models
-- Miner can override any model choice by naming a specific model (including Hugging Face models) in the **Miner Enhancement Prompt**.
+The system uses a smart **LLM Router** that dynamically selects the best model for each task:  
+- High-novelty, planning, orchestration, and synthesis tasks → "best" models (largest / most capable available)  
+- Routine sub-tasks, verification, and ToolHunter calls → "fast" / smaller models  
+- Miner can override any model choice by naming a specific model (including Hugging Face models) in the **Miner Enhancement Prompt**.  
 - External compute endpoints (Chutes, custom, already-running) receive the `preferred_model` field so they can load the requested model when possible.
+
+---
 
 ### Accepting Miner Models & Smart Model Hunting
 
-**ToolHunter now includes smart model hunting**:
-- When a gap mentions models, HF, specialized capabilities, or research, ToolHunter actively searches for relevant Hugging Face models.
-- It returns the model name + **compatibility notes** (VRAM requirements, quantization options like 4-bit, etc.).
+**ToolHunter now includes smart model hunting**:  
+- When a gap mentions models, HF, specialized capabilities, or research, ToolHunter actively searches for relevant Hugging Face models.  
+- It returns the model name + **compatibility notes** (VRAM requirements, quantization options like 4-bit, etc.).  
 - The miner sees these recommendations in the ToolHunter tab during final review, together with manual action options (e.g., “Rent larger GPU”, “Use 4-bit version”, “Switch to alternative endpoint”, or “Install quantized version locally”).
 
-**How to use custom/specialized models**:
-- In the **Miner Enhancement Prompt** (planning approval screen), simply write the exact model name you want, for example:
-  - "Use TheBloke/Llama-3-70B-Instruct for synthesis"
-  - "For stabilizer subtasks, prefer Qwen2-Math-7B-Instruct"
-- Arbos will respect the request and pass it to the LLM Router and external compute.
-- If the compute provider cannot load the model (e.g., insufficient VRAM), the system falls back gracefully to a fast/default model and logs a clear warning in the trace so the miner knows what happened.
+**How to use custom/specialized models**:  
+- In the **Miner Enhancement Prompt** (planning approval screen), simply write the exact model name you want, for example:  
+  - "Use TheBloke/Llama-3-70B-Instruct for synthesis"  
+  - "For stabilizer subtasks, prefer Qwen2-Math-7B-Instruct"  
+- Arbos will respect the request and pass it to the LLM Router and external compute.  
+- If the compute provider cannot load the model (e.g., insufficient VRAM), the system falls back gracefully to a fast/default model and logs a clear warning in the trace.
+
+---
 
 ### How Deterministic Tooling Works
 
-- Planning Arbos analyzes the challenge and shows clear deterministic tool recommendations.
-- Miner reviews them and can immediately add/edit "Deterministic Tooling Requirements" (e.g., "Use stim for stabilizer checks. Prefer symbolic fallbacks. Run fidelity simulation with quantum_rings.").
-- Miner has time to install any recommended tools.
+- Planning Arbos analyzes the challenge and shows clear deterministic tool recommendations.  
+- Miner reviews them and can immediately add/edit "Deterministic Tooling Requirements" (e.g., "Use stim for stabilizer checks. Prefer symbolic fallbacks. Run fidelity simulation with quantum_rings.").  
+- Miner has time to install any recommended tools.  
 - When approved, Arbos automatically uses the symbolic module **and** respects the miner-specified preferences in the parallel swarm.
+
+---
 
 ### Miner Enhancement Prompt (Make this a 10/10 run)
 
 In the planning approval screen there is a dedicated field titled **"🚀 Miner Enhancement Prompt (Make this a 10/10 run)"**.
 
-Use it to give Arbos any final custom instructions, such as:
-- Tool priorities or constraints
-- Desired focus (novelty, verifier strength, IP/licensability, efficiency, etc.)
-- Synthesis preferences
-- Swarm behavior adjustments
-- Any other challenge-specific guidance
+Use it to give Arbos any final custom instructions, such as:  
+- Tool priorities or constraints  
+- Desired focus (novelty, verifier strength, IP/licensability, efficiency, etc.)  
+- Synthesis preferences  
+- Swarm behavior adjustments  
+- Any other challenge-specific guidance  
 - **Specific model requests** (e.g. exact Hugging Face model names)
 
 These instructions are automatically injected into the Orchestrator refinement and final synthesis so Arbos respects them throughout the entire run.
+
+---
 
 ### GOAL.md / killer_base.md Configuration
 
@@ -120,7 +130,7 @@ Solve the sponsor challenge with maximum novelty and verifier score while stayin
 ## Core Strategy (MINER INPUT)
 Produce novel, verifier-strong, licensable solutions for SN63 challenges while staying strictly within compute limits and maximizing IP/value.
 
-Always prioritize: (INER INPUT)
+Always prioritize: (MINER INPUT)
 
 ## Toggles & Explanations
 
@@ -173,17 +183,3 @@ streamlit run streamlit_app.py
 Made with focus on first-principles agentic design for Bittensor SN63.  
 Questions or feature requests? Open an issue or ping @dTAO_Dad on X.
 ```
-
-**Summary of additions (only these were added):**
-- New section **"Dynamic LLM Logic"** explaining the router and how it chooses models.
-- New section **"Accepting Miner Models & Smart Model Hunting"** covering ToolHunter’s model search, compatibility notes, and miner options.
-- Small note inside the Miner Enhancement Prompt section mentioning specific model requests.
-- One line in the flowchart for clarity (D → E with "✅ Approve").
-
-The rest of your README is 100% unchanged.
-
-You now have the complete, up-to-date README with dynamic LLM logic, miner model acceptance, and ToolHunter model hunting clearly documented.
-
-**Streamlit_app.py** — Use the exact version I gave you in the previous message (it is already fully compatible with all these features).
-
-Let me know if you want any tiny tweaks!
