@@ -1,5 +1,5 @@
 # agents/arbos_manager.py
-# FINAL UPGRADED VERSION - Hybrid ToolHunter + GOAL.md + Self-Improvement Loop (trajrl-inspired)
+# FINAL UPGRADED VERSION - Hybrid ToolHunter + GOAL.md + Persistent History + Self-Improvement (trajrl-inspired)
 
 import os
 import subprocess
@@ -10,6 +10,7 @@ import time
 import torch
 from datetime import datetime
 from typing import Tuple, List, Dict, Any
+from pathlib import Path
 
 from agents.memory import memory
 from agents.tools.tool_hunter import hunt_and_integrate, load_registry, save_registry
@@ -27,15 +28,10 @@ def get_vllm_llm():
         try:
             from vllm import LLM
             import streamlit as st
-            compute_source = st.session_state.get("compute_source") if hasattr(st, 'session_state') else "chutes"
+            compute_source = st.session_state.get("compute_source", "chutes")
             is_local = compute_source == "local"
             
-            tp_size = 1
-            if is_local:
-                tp_size = min(torch.cuda.device_count(), 4)
-                print(f"✅ Using tensor_parallel_size = {tp_size} for LOCAL compute")
-            else:
-                print("ℹ️ Hosted compute selected — tensor_parallel_size ignored")
+            tp_size = min(torch.cuda.device_count(), 4) if is_local else 1
 
             _vllm_llm = LLM(
                 model="mistralai/Mistral-7B-Instruct-v0.2",
@@ -85,15 +81,20 @@ class ArbosManager:
         self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
 
-        if hasattr(st, 'session_state') and "compute_source" in st.session_state:
-            self.compute_source = st.session_state.compute_source
-            self.custom_endpoint = st.session_state.get("custom_endpoint")
-        else:
-            self.compute_source = self.config.get("compute_source", "chutes")
-            self.custom_endpoint = None
+        self.history_file = Path("submissions/run_history.json")
+        self._ensure_history_file()
 
+        self.compute_source = self.config.get("compute_source", "chutes")
+        self.custom_endpoint = None
         self.compute.set_compute_source(self.compute_source, self.custom_endpoint)
-        print("✅ Arbos Primary Solver loaded with hybrid ToolHunter + GOAL.md discovery + Self-Improvement")
+
+        print("✅ ArbosManager loaded with Persistent History + Self-Improvement")
+
+    def _ensure_history_file(self):
+        self.history_file.parent.mkdir(parents=True, exist_ok=True)
+        if not self.history_file.exists():
+            with open(self.history_file, "w") as f:
+                json.dump([], f, indent=2)
 
     def _setup_real_arbos(self):
         if not os.path.exists(self.arbos_path):
@@ -138,23 +139,14 @@ class ArbosManager:
             return ""
 
     def discover_from_goal(self, goal_content: str) -> list:
-        """Pre-run discovery: Use GOAL.md to guide smarter ToolHunter hunt"""
         registry = load_registry()
-
         discovery_task = f"""You are ToolHunter in pre-run discovery mode.
 
 GOAL.md content (use this as strong guiding context):
 {goal_content[:5000]}
 
-Task:
-Analyze the goals, strategy, and priorities.
-Suggest the most relevant tools, libraries, or Hugging Face models that would help achieve them.
-Prioritize deterministic/symbolic tools, planning harnesses, math/quantum models, and efficiency tools.
-
-For each suggestion provide:
-- Name
-- Why it fits the GOAL.md
-- Install command
+Task: Analyze the goals and suggest the most relevant tools, libraries, or Hugging Face models.
+Prioritize deterministic/symbolic tools and specialized HF models.
 
 Return a clean, actionable list."""
 
@@ -204,10 +196,7 @@ Time available: {remaining:.2f}h"""
 
         task = f"""You are Planning Arbos. {full_context}
 
-Available deterministic tools: Stim, Quantum Rings, PyTKET, SymPy, Hugging Face arXiv.
-When a subtask needs specialized models, use ToolHunter to find relevant HF models.
-
-Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposition, suggested_swarm_size, high_level_tool_hints, compute_ballpark_minutes, quality_gate_targets, deterministic_recommendations."""
+Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposition, suggested_swarm_size, deterministic_recommendations."""
 
         response = self.compute.run_on_compute(task, temperature=0.0, task_type="planning", novelty_level="high")
         return self._parse_json(response)
@@ -220,7 +209,6 @@ Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposit
 Approved plan: {json.dumps(approved_plan)}{extra}
 Time left: {self.config.get('max_compute_hours', 3.8)}h
 
-Prioritize deterministic tools and specialized HF models where beneficial.
 Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_recommendations."""
 
         response = self.compute.run_on_compute(task, temperature=0.0, task_type="orchestration", novelty_level="medium")
@@ -305,12 +293,6 @@ Decide: Improve / Call Tool / Finalize"""
                         "• Shots: 8192\n"
                         "• Pass: True")
 
-            if "openquantum" in verification_code.lower():
-                return ("Direct OpenQuantum Verification:\n"
-                        "• Job submitted to SDK\n"
-                        "• Results retrieved\n"
-                        "• Pass: True")
-
             exec_task = f"""Execute verification safely:
 
 Solution: {solution[:1500]}
@@ -391,58 +373,73 @@ Final Synthesized Solution:"""
         return final_solution
 
     def _smart_route(self, challenge: str) -> Tuple[str, List[str], bool]:
-        import streamlit as st
         high_level_plan = self.plan_challenge(challenge)
-        st.session_state.high_level_plan = high_level_plan
-
-        approved_plan = high_level_plan
         blueprint = self._refine_plan(
-            approved_plan, 
+            high_level_plan, 
             challenge,
-            st.session_state.get("deterministic_tooling", ""),
-            st.session_state.get("enhancement_prompt", "")
+            "",
+            ""
         )
-        st.session_state.blueprint = blueprint
-
-        verification = st.session_state.get("verification_instructions", "")
-        final_solution = self._run_swarm(blueprint, challenge, verification, st.session_state.get("deterministic_tooling", ""))
+        final_solution = self._run_swarm(blueprint, challenge)
         return final_solution, ["swarm"], False
 
     def run(self, challenge: str):
         return self._smart_route(challenge)
 
-    # ====================== NEW: SELF-IMPROVEMENT METHODS ======================
-    def get_run_history(self, n: int = 10) -> List[Dict]:
-        """Return recent runs for self-critique (replace with real persistent storage later)"""
-        past = memory.query("sn63", n_results=n * 3)
+    # ====================== PERSISTENT HISTORY + SELF-IMPROVEMENT ======================
+    def save_run_to_history(self, challenge: str, enhancement_prompt: str, solution: str, 
+                            score: float, novelty: float, verifier: float, main_issue: str = "None"):
+        """Save completed run to persistent history file"""
+        self.history_file.parent.mkdir(parents=True, exist_ok=True)
         history = []
-        for i, item in enumerate(past[:n]):
-            history.append({
-                "run_id": f"#{i+1}",
-                "score": round(7.0 + (i % 3), 1),
-                "novelty": round(8.0 - (i % 3), 1),
-                "verifier": round(8.5, 1),
-                "main_issue": "Low novelty" if i % 3 == 0 else "None"
-            })
-        return history
+        if self.history_file.exists():
+            try:
+                with open(self.history_file, "r") as f:
+                    history = json.load(f)
+            except:
+                history = []
+
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "challenge": challenge[:200],
+            "enhancement_prompt": enhancement_prompt[:500],
+            "score": round(score, 1),
+            "novelty": round(novelty, 1),
+            "verifier": round(verifier, 1),
+            "main_issue": main_issue
+        }
+        history.append(entry)
+
+        with open(self.history_file, "w") as f:
+            json.dump(history[-100:], f, indent=2)  # keep last 100 runs
+
+    def get_run_history(self, n: int = 10) -> List[Dict]:
+        """Load real persistent run history"""
+        if not self.history_file.exists():
+            return []
+        try:
+            with open(self.history_file, "r") as f:
+                history = json.load(f)
+            return history[-n:]
+        except:
+            return []
 
     def self_critique(self, challenge: str, n_runs: int = 5) -> Dict[str, Any]:
-        """trajrl-style self-critique: analyze patterns across multiple runs"""
         history = self.get_run_history(n_runs)
-        
+        if not history:
+            return {"common_issues": ["No history yet"], "weak_areas": [], "recommended_prompt_additions": "", "overall_advice": "Run some submissions first."}
+
         critique_task = f"""You are Arbos Self-Improvement Analyst.
 
 Challenge: {challenge}
 Recent run history:
 {json.dumps(history, indent=2)}
 
-Analyze patterns:
-- What is the most common failure mode?
-- Which areas (novelty, verifier, efficiency, IP) are consistently weak?
-- What prompt changes or tool priorities would most improve future runs?
-- Suggest 1-2 concrete additions to the Miner Enhancement Prompt.
-
-Return clean JSON with keys: common_issues, weak_areas, recommended_prompt_additions, overall_advice"""
+Analyze patterns and return clean JSON with:
+- common_issues (list)
+- weak_areas (list)
+- recommended_prompt_additions (string)
+- overall_advice (string)"""
 
         response = self.compute.run_on_compute(critique_task, temperature=0.3, task_type="self_critique")
         
@@ -459,7 +456,6 @@ Return clean JSON with keys: common_issues, weak_areas, recommended_prompt_addit
             }
 
     def apply_self_improvement(self, current_prompt: str, critique: Dict) -> str:
-        """Apply self-critique suggestions to the current enhancement prompt"""
         addition = critique.get("recommended_prompt_additions", "")
         if addition and addition.strip():
             return current_prompt.strip() + "\n\n" + addition.strip()
