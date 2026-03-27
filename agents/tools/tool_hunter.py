@@ -1,16 +1,15 @@
 # agents/tools/tool_hunter.py
-# FULL CAPABILITIES: Real GitHub/arXiv search, ranking, safe clone/install, Quantum Rings adapter, testing, miner escalation
-# Hybrid: Registry first (fast) → Full live hunt when needed
+# Hybrid ToolHunter: Registry first (fast) → Full live hunt when needed
 
+import json
 import os
 import subprocess
-import json
 import tempfile
 import time
 import requests
 from pathlib import Path
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Dict, Any, List
 
 from agents.memory import memory
 from agents.tools.compute import ComputeRouter
@@ -39,13 +38,13 @@ class ToolHunter:
         self.temp_dir = Path(tempfile.gettempdir()) / "toolhunter_cache"
         self.temp_dir.mkdir(exist_ok=True)
         self.github_token = os.getenv("GITHUB_TOKEN", "")
-        print("🔍 ToolHunter FULLY EXPANDED: Real search + clone + Quantum Rings adapter + miner escalation + hybrid registry")
+        print("🔍 ToolHunter: Hybrid mode active (registry + live search)")
 
     def hunt_and_integrate(self, gap_description: str, subtask: str, challenge_context: str = "") -> Dict[str, Any]:
-        # Hybrid Step 1: Fast registry lookup
         registry = load_registry()
         query = (gap_description + " " + subtask).lower()
 
+        # Step 1: Fast registry lookup
         for tool in registry.get("tools", []):
             keywords = [k.lower() for k in tool.get("keywords", [])]
             if any(k in query for k in keywords):
@@ -67,10 +66,9 @@ class ToolHunter:
                     "source": "registry"
                 }
 
-        # Hybrid Step 2: Full live hunt if registry didn't match well
+        # Step 2: Full live hunt if registry match is weak
         monitor = ResourceMonitor(max_hours=0.5)
 
-        # === REAL SEARCH (GitHub + arXiv) ===
         search_task = f"""Generate precise search queries for this SN63 gap:
 Gap: {gap_description}
 Subtask: {subtask}
@@ -83,7 +81,6 @@ Queries: ["github query1", "arxiv query2"]"""
 
         candidates = self._real_search(queries)
 
-        # === RANK + DECISION ===
         decision_task = f"""Rank these candidates for SN63 gap: {gap_description}
 
 Candidates:
@@ -102,7 +99,6 @@ JSON only."""
         if result.get("chosen_tool") in (None, "none") or result.get("confidence", 0) < 5:
             return self._create_skip_result(result.get("reason", "No suitable tool"))
 
-        # === SAFE INTEGRATION + TEST ===
         integration_attempt = self._attempt_safe_install_and_test(result, gap_description, subtask)
 
         if integration_attempt["success"]:
@@ -119,7 +115,6 @@ JSON only."""
             memory.add(text=f"ToolHunter success: {result['chosen_tool']}", metadata={"subtask": subtask, "confidence": result["confidence"]})
             return {"status": "success", **result, "test_result": integration_attempt["test_output"], "miner_action": None}
 
-        # === MINER ESCALATION ===
         recommendation = self._generate_miner_recommendation(result, integration_attempt, gap_description, subtask)
         return {
             "status": "manual_required",
@@ -132,10 +127,8 @@ JSON only."""
         }
 
     def _real_search(self, queries: List[str]) -> List[Dict]:
-        """Real GitHub + arXiv search."""
         candidates = []
         for q in queries[:2]:
-            # GitHub
             try:
                 url = f"https://api.github.com/search/repositories?q={q.replace(' ', '+')}&sort=stars&order=desc&per_page=3"
                 headers = {"Authorization": f"token {self.github_token}"} if self.github_token else {}
@@ -152,7 +145,6 @@ JSON only."""
             except Exception:
                 pass
 
-            # arXiv
             try:
                 arxiv_url = f"http://export.arxiv.org/api/query?search_query=all:{q.replace(' ', '+')}&max_results=3"
                 r = requests.get(arxiv_url, timeout=10)
@@ -201,16 +193,14 @@ Promising Tool: {tool}
 
 Automated attempt failed: {attempt.get('test_output', 'Unknown')[:400]}
 
-Manual Steps (run in your H100 environment):
+Manual Steps:
 1. git clone {tool}
 2. cd <repo>
 3. pip install -e . --no-deps
-4. Test: python -c "import {tool.split('/')[-1].replace('-','_') or 'module'}; print('OK')"
+4. Test import
 
-Add this wrapper to your sub-Arbos:
-{decision.get('integration_code', '# Paste suggested wrapper here')}
-
-Once working, re-run or add to registry manually."""
+Add this wrapper:
+{decision.get('integration_code', '# Paste suggested wrapper here')}"""
 
     def _extract_queries(self, response: str) -> List[str]:
         try:
@@ -231,5 +221,4 @@ Once working, re-run or add to registry manually."""
     def _create_skip_result(self, reason: str) -> Dict:
         return {"status": "skip", "reason": reason}
 
-# Singleton
 tool_hunter = ToolHunter()
