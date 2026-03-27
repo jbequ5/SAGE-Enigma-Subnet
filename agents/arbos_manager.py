@@ -136,7 +136,7 @@ class ArbosManager:
             return ""
 
     def discover_from_goal(self, goal_content: str) -> list:
-        """Pre-run discovery: Use GOAL.md to guide smarter ToolHunter hunt and populate registry"""
+        """Pre-run discovery: Use GOAL.md to guide smarter ToolHunter hunt"""
         registry = load_registry()
 
         discovery_task = f"""You are ToolHunter in pre-run discovery mode.
@@ -145,7 +145,7 @@ GOAL.md content (use this as strong guiding context):
 {goal_content[:5000]}
 
 Task:
-Analyze the goals, strategy, and priorities above.
+Analyze the goals, strategy, and priorities.
 Suggest the most relevant tools, libraries, or Hugging Face models that would help achieve them.
 Prioritize deterministic/symbolic tools, planning harnesses, math/quantum models, and efficiency tools.
 
@@ -238,7 +238,6 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
             }
 
     def _tool_hunter(self, gap: str, subtask: str) -> str:
-        """Runtime ToolHunter - uses hybrid approach"""
         result = hunt_and_integrate(gap, subtask)
         if result.get("status") == "success":
             return f"ToolHunter ({result.get('source', 'unknown')}): {result.get('recommendation')}"
