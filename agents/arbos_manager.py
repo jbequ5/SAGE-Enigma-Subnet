@@ -107,7 +107,7 @@ class ArbosManager:
         self.early_stop_threshold = 0.65              # from original audit spec
         self.current_mean_solution = None
 
-        print("✅ ArbosManager v2.4 loaded with EGGROLL + Agent-Reach + Validation Oracle + VectorDB + robustness guards")
+        logger.info("✅ ArbosManager v2.4 loaded with EGGROLL + Agent-Reach + Validation Oracle + VectorDB + robustness guards")
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
