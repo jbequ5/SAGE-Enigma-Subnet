@@ -17,6 +17,7 @@ from agents.memory import memory
 from agents.tools.tool_hunter import hunt_and_integrate, load_registry, save_registry
 
 from agents.tools.compute import ComputeRouter
+from agents.tools.compute import compute_energy
 from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 
