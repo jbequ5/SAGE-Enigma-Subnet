@@ -95,9 +95,10 @@ class ArbosManager:
         self.alpha = 0.05
         self.max_repair_attempts = 3
         self.early_stop_threshold = 0.65
+        self.loop_count = 0
         self.current_mean_solution = None
 
-        logger.info("✅ ArbosManager v2.4 fully loaded with all integrations")
+        logger.info("✅ ArbosManager v2.5 fully loaded with all integrations and audit fixes")
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -351,7 +352,7 @@ Decide: Improve / Call Tool / Finalize"""
         vector_db.add_eggroll({"solution": solution, "validation_score": oracle_result["validation_score"]})
         return f"ValidationOracle: score={oracle_result['validation_score']:.3f} | vvd_ready={oracle_result['vvd_ready']} | notes={oracle_result.get('notes','')}"
 
-    # SWARM with early-stop readiness (Phase 10)
+    # SWARM with early-stop (Phase 10)
     def _run_swarm(self, blueprint: Dict[str, Any], challenge: str, 
                    verification_instructions: str = "", 
                    deterministic_tooling: str = "") -> str:
@@ -405,6 +406,13 @@ Final Synthesized Solution:"""
             verification_result = self._run_verification(final_solution, verification_instructions)
             final_solution += f"\n\n--- VERIFICATION RESULT ---\n{verification_result}"
 
+            # Early-stop logic (Phase 10)
+            score = self.validator.last_score
+            if score < self.early_stop_threshold and self.loop_count >= 2:
+                logger.info(f"Early-stop triggered. Validation score {score:.3f} below threshold after {self.loop_count} loops.")
+                trace_log.append(f"Early-stop triggered (score {score:.3f})")
+                return final_solution
+
         if self.config.get("guardrails"):
             final_solution = apply_guardrails(final_solution, ResourceMonitor(max_hours=self.config.get("max_compute_hours", 3.8)))
 
@@ -417,6 +425,7 @@ Final Synthesized Solution:"""
             st.session_state.trace_log = []
         st.session_state.trace_log.extend(trace_log)
 
+        self.loop_count += 1
         return final_solution
 
     def _smart_route(self, challenge: str) -> Tuple[str, List[str], bool]:
@@ -431,6 +440,7 @@ Final Synthesized Solution:"""
         return final_solution, ["swarm"], False
 
     def run(self, challenge: str):
+        self.loop_count = 0  # reset on new run
         return self._smart_route(challenge)
 
     # PERSISTENT HISTORY + SELF-IMPROVEMENT
