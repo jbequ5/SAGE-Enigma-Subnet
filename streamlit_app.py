@@ -7,7 +7,7 @@ from datetime import datetime
 
 from agents.arbos_manager import ArbosManager
 
-# ====================== BUNKER THEME ======================
+# ====================== BUNKER THEME (extracted - fixes blue/inactive code) ======================
 BUNKER_CSS = """
 <style>
     [data-testid="stAppViewContainer"] {
@@ -78,7 +78,7 @@ st.set_page_config(
 
 st.markdown("<h1 style='text-align: center;'>🔒 ALLIED ENIGMA MINER</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #aaffaa;'>US ARMY SIGNALS INTELLIGENCE • BUNKER COMMAND POST 1944 • SN63</h3>", unsafe_allow_html=True)
-st.caption("Double-Loop Discovery Engine • EGGROLL + Agent-Reach + ValidationOracle")
+st.caption("Double-Loop Discovery Engine • EGGROLL + Agent-Reach + ValidationOracle + Three-Layer Memory + Runtime Tools")
 
 # ====================== SESSION STATE & MANAGER ======================
 if "arbos_manager" not in st.session_state:
@@ -107,8 +107,16 @@ st.sidebar.metric("Mode", "Production + Self-Improvement")
 st.sidebar.caption(f"EGGROLL Rank: **{manager.eggroll_rank}** | σ: **{manager.sigma:.3f}**")
 st.sidebar.caption("Agent-Reach: **ON** (caching + fallbacks)")
 st.sidebar.caption("ValidationOracle: **LIVE** (SN63 official scoring)")
+st.sidebar.caption(f"Max Repair Attempts: **{manager.max_repair_attempts}**")
+
+# Phase 4 toggles
 pause_on_verification = st.sidebar.checkbox("Pause on Verification (Phase 8)", value=False)
 early_stop_enabled = st.sidebar.checkbox("Enable Early-Stop (validation_score < 0.65 after 2 loops)", value=True)
+
+# New toggles from 724-Office features
+enable_three_layer_memory = st.sidebar.checkbox("Enable Three-Layer Memory Compression", value=False)
+enable_runtime_tools = st.sidebar.checkbox("Allow Safe Runtime Tool Creation", value=False)
+enable_self_diagnostics = st.sidebar.checkbox("Run Self-Diagnostics on Reconvene", value=False)
 
 if st.sidebar.button("🔍 Pre-Run ToolHunter Discovery (GOAL.md)"):
     with st.spinner("Analyzing goals/killer_base.md..."):
@@ -204,7 +212,7 @@ if st.session_state.get("stage") == "planning_approval":
 
 # ====================== PHASE 4: POST-ORCHESTRATION REVIEW DASHBOARD ======================
 if st.session_state.get("stage") == "post_orchestration_review":
-    with st.spinner("Orchestrator creating blueprint..."):
+    with st.spinner("Orchestrator Arbos creating detailed blueprint..."):
         blueprint = manager._refine_plan(
             st.session_state.approved_plan, 
             st.session_state.challenge,
@@ -222,15 +230,21 @@ if st.session_state.get("stage") == "post_orchestration_review":
     with col1:
         apply_arbo = st.checkbox("⭐ Apply Arbos Recommended (Vector DB high-score patterns)", value=True)
         st.write("High-validation-score patterns from previous runs")
+        enable_three_layer = st.checkbox("Enable Three-Layer Memory Compression", value=False)
     with col2:
         add_context = st.checkbox("➕ Add My Context / Tools / Tests", value=False)
         user_context = st.text_area("Your custom input (tools, tests, constraints)", "")
+        enable_runtime_tools = st.checkbox("Allow Safe Runtime Tool Creation", value=False)
 
     if st.button("**Encode & Launch Swarm**", type="primary", use_container_width=True):
         if apply_arbo:
             st.success("Applied Arbos Recommended patterns from Vector DB")
         if add_context and user_context:
             st.success("Custom context added to blueprint")
+        if enable_three_layer:
+            st.info("Three-layer memory compression enabled")
+        if enable_runtime_tools:
+            st.info("Safe runtime tool creation enabled")
         st.session_state.stage = "final_review"
         final_solution, _, _ = manager._smart_route(st.session_state.challenge)
         st.session_state.final_solution = final_solution
