@@ -15,14 +15,13 @@ class ValidationOracle:
             raise FileNotFoundError(str(self.validator_path))
         logger.info(f"✅ ValidationOracle initialized with: {self.validator_path}")
 
-        # Store last run results for easy access in packaging
+        # For easy access in packaging
         self.last_score = 0.0
         self.last_fidelity = 0.0
         self.last_vvd_ready = False
         self.last_notes = ""
 
     def run(self, candidate_solution: Dict[str, Any], timeout: int = 300) -> Dict[str, Any]:
-        """Run official SN63 miner validation code and return structured metrics."""
         try:
             input_json = json.dumps(candidate_solution)
             result = subprocess.run(
@@ -34,9 +33,9 @@ class ValidationOracle:
             )
             
             if result.returncode != 0:
-                logger.warning(f"Validator failed (code {result.returncode}): {result.stderr[:500]}")
+                logger.warning(f"Validator failed: {result.stderr[:500]}")
                 error_result = {"validation_score": 0.0, "passed": False, "error": result.stderr.strip()}
-                self._update_last_results(error_result)
+                self._update_last(error_result)
                 return error_result
 
             metrics = json.loads(result.stdout)
@@ -48,26 +47,16 @@ class ValidationOracle:
                 "notes": metrics.get("details", ""),
                 "raw_output": metrics
             }
-            self._update_last_results(result_dict)
+            self._update_last(result_dict)
             return result_dict
 
-        except json.JSONDecodeError:
-            logger.error("Validator returned invalid JSON")
-            error_result = {"validation_score": 0.0, "passed": False, "error": "Invalid JSON output"}
-            self._update_last_results(error_result)
-            return error_result
-        except subprocess.TimeoutExpired:
-            logger.error("Validator timed out")
-            error_result = {"validation_score": 0.0, "passed": False, "error": "Timeout"}
-            self._update_last_results(error_result)
-            return error_result
         except Exception as e:
             logger.exception("Validator error")
             error_result = {"validation_score": 0.0, "passed": False, "error": str(e)}
-            self._update_last_results(error_result)
+            self._update_last(error_result)
             return error_result
 
-    def _update_last_results(self, result: Dict):
+    def _update_last(self, result: Dict):
         self.last_score = result.get("validation_score", 0.0)
         self.last_fidelity = result.get("fidelity", 0.0)
         self.last_vvd_ready = result.get("vvd_ready", False)
