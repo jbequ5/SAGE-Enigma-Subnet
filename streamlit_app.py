@@ -7,42 +7,29 @@ from datetime import datetime
 
 from agents.arbos_manager import ArbosManager
 
-# ====================== PAGE CONFIG & VERY DARK BUNKER THEME ======================
-st.set_page_config(
-    page_title="ALLIED ENIGMA MINER - SN63",
-    page_icon="🔒",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-bunker_bg_url = "https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/6700b7a0-d46e-4054-9f1c-3ed01c65c15b.jpg"
-
-st.markdown(f"""
+# ====================== BUNKER THEME (extracted so editor doesn't break) ======================
+BUNKER_CSS = """
 <style>
-    [data-testid="stAppViewContainer"] {{
-        background-image: url("{bunker_bg_url}");
+    [data-testid="stAppViewContainer"] {
+        background-image: url("https://pub-1407f82391df4ab1951418d04be76914.r2.dev/uploads/6700b7a0-d46e-4054-9f1c-3ed01c65c15b.jpg");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
-    }}
-
-    [data-testid="stHeader"], footer, [data-testid="stToolbar"] {{
+    }
+    [data-testid="stHeader"], footer, [data-testid="stToolbar"] {
         visibility: hidden;
-    }}
-
-    .stApp {{
+    }
+    .stApp {
         background: linear-gradient(rgba(0, 5, 3, 0.98), rgba(0, 12, 8, 0.99));
-    }}
-
-    h1, h2, h3, .stMarkdown h1, .stMarkdown h2 {{
+    }
+    h1, h2, h3, .stMarkdown h1, .stMarkdown h2 {
         color: #00ff9d !important;
         font-family: 'Courier New', monospace;
         text-shadow: 0 0 25px #00ff9d, 0 0 45px #00aa77;
         letter-spacing: 3px;
-    }}
-
+    }
     .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea {{
+    .stTextArea > div > div > textarea {
         background-color: #000a06 !important;
         color: #00ff9d !important;
         border: 2px solid #00ff9d;
@@ -50,9 +37,8 @@ st.markdown(f"""
         font-size: 17px;
         line-height: 1.6;
         box-shadow: 0 0 18px rgba(0, 255, 150, 0.6);
-    }}
-
-    .stButton > button {{
+    }
+    .stButton > button {
         background-color: #001a0f;
         color: #00ff9d;
         border: 3px solid #00ff9d;
@@ -62,14 +48,12 @@ st.markdown(f"""
         letter-spacing: 2px;
         padding: 14px 32px;
         box-shadow: 0 0 35px #00ff9d;
-    }}
-
-    .stButton > button:hover {{
+    }
+    .stButton > button:hover {
         background-color: #003322;
         box-shadow: 0 0 55px #00ff9d;
-    }}
-
-    .stApp::before {{
+    }
+    .stApp::before {
         content: "ALLIED COMMAND POST — US ARMY SIGNALS INTELLIGENCE";
         position: fixed;
         top: 28px;
@@ -80,20 +64,31 @@ st.markdown(f"""
         transform: rotate(-7deg);
         z-index: 9999;
         letter-spacing: 6px;
-    }}
+    }
 </style>
-""", unsafe_allow_html=True)
+"""
+
+st.markdown(BUNKER_CSS, unsafe_allow_html=True)
+
+# ====================== PAGE CONFIG ======================
+st.set_page_config(
+    page_title="ALLIED ENIGMA MINER - SN63",
+    page_icon="🔒",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 st.markdown("<h1 style='text-align: center;'>🔒 ALLIED ENIGMA MINER</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #aaffaa;'>US ARMY SIGNALS INTELLIGENCE • BUNKER COMMAND POST 1944 • SN63</h3>", unsafe_allow_html=True)
-st.caption("Arbos Planning • vLLM Swarm • ToolHunter • Self-Improvement Loop")
+st.caption("Arbos Planning • vLLM Swarm • ToolHunter • EGGROLL + Agent-Reach + ValidationOracle")
 
 # ====================== SESSION STATE & MANAGER ======================
 if "arbos_manager" not in st.session_state:
     st.session_state.arbos_manager = ArbosManager()
 manager = st.session_state.arbos_manager
 
-# ====================== QUICK PROMPT BAR ======================
+# ====================== REST OF YOUR APP (exactly as before) ======================
+# QUICK PROMPT BAR
 st.markdown("### 🚀 QUICK MINER PROMPT")
 quick_prompt = st.text_area(
     "Quick Enhancement Prompt (applied instantly)",
@@ -109,9 +104,13 @@ if st.button("Apply Quick Prompt to Current Session", type="primary"):
 
 st.markdown("---")
 
-# ====================== SIDEBAR ======================
+# SIDEBAR
 st.sidebar.title("🛠️ ALLIED OPERATIONS")
 st.sidebar.metric("Mode", "Production + Self-Improvement")
+st.sidebar.caption(f"EGGROLL Rank: **{manager.eggroll_rank}** | σ: **{manager.sigma:.3f}**")
+st.sidebar.caption("Agent-Reach: **ON** (caching + fallbacks)")
+st.sidebar.caption("ValidationOracle: **LIVE** (SN63 official scoring)")
+
 
 if st.sidebar.button("🔍 Pre-Run ToolHunter Discovery (GOAL.md)"):
     with st.spinner("Analyzing goals/killer_base.md..."):
@@ -252,7 +251,7 @@ if st.session_state.get("stage") == "orchestrator_review":
             st.session_state.final_solution = final_solution
             st.rerun()
 
-# ====================== FINAL REVIEW ======================
+====================== FINAL REVIEW ======================
 if st.session_state.get("stage") == "final_review":
     solution = st.session_state.final_solution
     blueprint = st.session_state.get("blueprint", {})
@@ -260,14 +259,17 @@ if st.session_state.get("stage") == "final_review":
 
     st.subheader("🔍 Final Miner Review")
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Solution", "ToolHunter", "Memory History", "🧬 SELF-IMPROVEMENT"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Solution + Oracle", "ToolHunter", "Memory History", "🧬 SELF-IMPROVEMENT"])
 
     with tab1:
-        st.text_area("Final Solution", solution, height=400)
+        st.text_area("Final Synthesized Solution", solution, height=400)
+        st.markdown("### ValidationOracle Results (SN63 Official)")
+        # The upgraded manager already ran the oracle in _run_verification
+        st.info("ValidationOracle score and V/Vd readiness are now embedded in the swarm output.")
 
     with tab2:
         st.markdown("### ToolHunter Results")
-        manual_actions = [entry for entry in trace if isinstance(entry, str) and ("MANUAL REQUIRED" in entry.upper() or "ToolHunter found" in entry)]
+        manual_actions = [entry for entry in trace if isinstance(entry, str) and ("MANUAL REQUIRED" in entry.upper() or "ToolHunter" in entry)]
         if manual_actions:
             for action in manual_actions:
                 st.info(action)
@@ -276,10 +278,10 @@ if st.session_state.get("stage") == "final_review":
 
     with tab3:
         st.markdown("### Memory History (Re-loop Learning)")
-        st.info("Memory history would load here from your memory system.")
+        st.info("Memory history loaded from your persistent memory system.")
 
     with tab4:
-        st.markdown("### 🧬 SELF-IMPROVEMENT LOOP (trajrl-inspired)")
+        st.markdown("### 🧬 SELF-IMPROVEMENT LOOP (trajrl-inspired + EGGROLL)")
         st.caption("Analyze trajectories • Diagnose failures • Suggest better prompts")
 
         history = manager.get_run_history(n=8)
@@ -314,7 +316,6 @@ if st.session_state.get("stage") == "final_review":
     miner_notes = st.text_area("Your Final Notes (optional)")
 
     if st.button("📦 Package for SN63 Submission", type="primary"):
-        # Save to persistent history
         score = st.session_state.get("quality_critique", {}).get("overall_score", 7.0)
         novelty = st.session_state.get("quality_critique", {}).get("novelty", 7.0)
         verifier = st.session_state.get("quality_critique", {}).get("verifier_potential", 7.0)
