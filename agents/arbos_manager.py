@@ -1,7 +1,7 @@
 # agents/arbos_manager.py
 # FINAL UPGRADED VERSION - Hybrid ToolHunter + GOAL.md + Persistent History + Self-Improvement (trajrl-inspired)
 # + EGGROLL low-rank perturbations + Agent-Reach (caching + fallbacks) + ValidationOracle + TrajectoryVectorDB
-# + max_repair_attempts, early-stop logic, structured logging, full audit fixes
+# + max_repair_attempts, early-stop readiness, full audit fixes from original spec
 
 import os
 import subprocess
@@ -22,7 +22,7 @@ from agents.tools.compute import compute_energy
 from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 
-# === NEW UPGRADES ===
+# === UPGRADES ===
 from validation_oracle import ValidationOracle
 from trajectories.trajectory_vector_db import vector_db
 from tools.agent_reach_tool import AgentReachTool
@@ -43,6 +43,7 @@ def get_vllm_llm():
             import streamlit as st
             compute_source = st.session_state.get("compute_source", "chutes")
             is_local = compute_source == "local"
+            
             tp_size = min(torch.cuda.device_count(), 4) if is_local else 1
 
             _vllm_llm = LLM(
@@ -58,6 +59,8 @@ def get_vllm_llm():
             print(f"⚠️ vLLM failed: {e}")
             _vllm_llm = None
     return _vllm_llm
+
+
 def symbolic_module(subtask: str, hypothesis: str, current_solution: str) -> str:
     # (your original symbolic_module - 100% UNCHANGED)
     subtask_lower = subtask.lower()
@@ -81,6 +84,8 @@ def symbolic_module(subtask: str, hypothesis: str, current_solution: str) -> str
         return ""
     except Exception as e:
         return f"[Symbolic Module Error] {str(e)}. Falling back to LLM."
+
+
 class ArbosManager:
     def __init__(self, goal_file: str = "goals/killer_base.md"):
         self.goal_file = goal_file
@@ -97,9 +102,9 @@ class ArbosManager:
         self.custom_endpoint = None
         self.compute.set_compute_source(self.compute_source, self.custom_endpoint)
 
-        # === FULL UPGRADES ===
-        self.validator = ValidationOracle()           # official SN63 validator
-        self.reach_tool = AgentReachTool()            # Agent-Reach with caching + fallbacks
+        # === FULL UPGRADES FROM ALL DISCUSSIONS ===
+        self.validator = ValidationOracle()           # official SN63 validator (single source of truth)
+        self.reach_tool = AgentReachTool()            # clean URL grounding with caching + fallbacks
         self.eggroll_rank = 8
         self.sigma = 0.1
         self.alpha = 0.05
@@ -107,7 +112,7 @@ class ArbosManager:
         self.early_stop_threshold = 0.65              # from original audit spec
         self.current_mean_solution = None
 
-        logger.info("✅ ArbosManager v2.4 loaded with EGGROLL + Agent-Reach + Validation Oracle + VectorDB + robustness guards")
+        logger.info("✅ ArbosManager v2.4 fully loaded with EGGROLL + Agent-Reach + ValidationOracle + VectorDB + robustness guards")
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -157,7 +162,6 @@ class ArbosManager:
         except Exception:
             return ""
 
-    # === DISCOVER, PLAN, REFINE, PARSE (your original methods - unchanged) ===
     def discover_from_goal(self, goal_content: str) -> list:
         registry = load_registry()
         discovery_task = f"""You are ToolHunter in pre-run discovery mode.
@@ -197,7 +201,7 @@ Return a clean, actionable list."""
                 save_registry(registry)
                 return new_items
         except Exception as e:
-            print(f"Discovery parsing error: {e}")
+            logger.warning(f"Discovery parsing error: {e}")
 
         return []
 
@@ -263,7 +267,7 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
         perturbed["novelty_proxy"] = perturbed.get("novelty_proxy", 0.5) + perturbation["delta_novelty"]
         return perturbed, perturbation
 
-    # === ENHANCED TOOLHUNTER with Agent-Reach ===
+    # === ENHANCED TOOLHUNTER with Agent-Reach (caching + fallbacks) ===
     def _tool_hunter(self, gap: str, subtask: str) -> str:
         result = hunt_and_integrate(gap, subtask)
         if result.get("status") == "success" and result.get("links"):
@@ -290,7 +294,7 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
         ranked = sorted(candidates, key=lambda c: compute_energy(c, self.validator, rank=self.eggroll_rank), reverse=True)
         return ranked[0]["solution"]
 
-    # === SUB-ARBOS WORKER with max_repair_attempts ===
+    # === SUB-ARBOS WORKER with max_repair_attempts and early-stop readiness ===
     def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
                           shared_results: dict, subtask_id: int) -> dict:
         max_hours = self.config.get("max_compute_hours", 3.8)
@@ -309,6 +313,7 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
                 solution += f"\n{symbolic_result}"
                 trace.append("Used symbolic/deterministic tooling")
 
+            # EGGROLL boost
             solution = self._generate_candidates_eggroll(subtask, hypothesis, solution)
 
             for loop in range(3):
@@ -518,4 +523,3 @@ Analyze patterns and return clean JSON with:
         if addition and addition.strip():
             return current_prompt.strip() + "\n\n" + addition.strip()
         return current_prompt
-
