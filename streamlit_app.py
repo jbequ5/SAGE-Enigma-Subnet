@@ -78,7 +78,7 @@ st.set_page_config(
 
 st.markdown("<h1 style='text-align: center;'>🔒 ALLIED ENIGMA MINER</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #aaffaa;'>US ARMY SIGNALS INTELLIGENCE • BUNKER COMMAND POST 1944 • SN63</h3>", unsafe_allow_html=True)
-st.caption("Double-Loop Discovery Engine • EGGROLL + Agent-Reach + ValidationOracle + Three-Layer Memory + Runtime Tools")
+st.caption("Double-Loop Discovery Engine • EGGROLL + Agent-Reach + ValidationOracle + Three-Layer Memory + Runtime Tools + NO-BS ASSESSMENT UPGRADES")
 
 # ====================== SESSION STATE & MANAGER ======================
 if "arbos_manager" not in st.session_state:
@@ -222,7 +222,7 @@ if st.session_state.get("stage") == "post_orchestration_review":
     st.header("🚀 Phase 4: Post-Orchestration Review Dashboard")
     st.subheader("Blueprint & Swarm Dynamics")
     st.json(blueprint)
-    st.caption("**New:** Arbos now recommends per-subtask `validation_criteria` including self_check_prompts. Sub-Arbos will self-evaluate and dynamically improve their reflection prompts inside their repair loops.")
+    st.caption("**NO-BS ASSESSMENT:** Per-subtask validation_criteria + self-scoring + dynamic prompt improvement + correlation logging + trajectory export now active.")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -262,8 +262,8 @@ if st.session_state.get("stage") == "final_review":
         st.markdown("### ValidationOracle Results (Official SN63 Scoring)")
         st.success(f"Score: {manager.validator.last_score:.3f} | V/Vd Ready: {manager.validator.last_vvd_ready} | Notes: {manager.validator.last_notes}")
 
-        st.markdown("### Sub-Arbos Validation & Prompt Improvement")
-        st.info("Each sub-Arbos now performs self-evaluation using Arbos-recommended criteria and improves its own reflection prompt across repair attempts.")
+        st.markdown("### Sub-Arbos Performance (NO-BS ASSESSMENT)")
+        st.info("Per-subtask scores, correlation with final oracle, and prompt improvement logs are now tracked.")
 
     with tab2:
         st.markdown("### ToolHunter Results")
@@ -307,6 +307,11 @@ if st.session_state.get("stage") == "final_review":
 
         if st.button("🚀 Apply & Re-run with Self-Improvement", type="primary"):
             st.success("Enhanced prompt sent to swarm with self-improvement directives!")
+
+    # NEW: Trajectory export for offline optimization
+    if st.button("📤 Export Trajectories for Offline Optimization (agent-lightning / RL)"):
+        path = manager.export_trajectories_for_optimization(st.session_state.challenge)
+        st.success(f"Trajectories exported to {path}")
 
     miner_notes = st.text_area("Your Final Notes (optional)")
 
