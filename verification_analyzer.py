@@ -24,6 +24,7 @@ class VerificationAnalyzer:
             "verification_type": "standard"
         }
 
+        # SN63-specific detection
         if any(k in text for k in ["fingerprint", "synthetic circuit", "proof of compute", "statistical", "peaked circuit"]):
             strategy["domain"] = "quantum_sn63"
             strategy["enabled_modules"] = ["stim", "pytket", "quantum_rings", "sympy"]
@@ -47,7 +48,9 @@ class VerificationAnalyzer:
             strategy["domain"] = "crypto"
             strategy["enabled_modules"] = ["sympy"]
 
-        checks = re.findall(r'(?:self_check|verify|validate|assert|fingerprint|statistical).*?```python(.*?)```', verification_instructions + challenge, re.DOTALL | re.IGNORECASE)
+        # Extract executable self-checks
+        checks = re.findall(r'(?:self_check|verify|validate|assert|fingerprint|statistical).*?```python(.*?)```', 
+                           verification_instructions + challenge, re.DOTALL | re.IGNORECASE)
         strategy["self_check_commands"] = [c.strip() for c in checks if c.strip()]
 
         return strategy
