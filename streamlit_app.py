@@ -260,6 +260,7 @@ if st.session_state.get("stage") == "final_review":
     with tab1:
         st.text_area("Final Synthesized Solution", solution, height=400)
         st.markdown("### ValidationOracle Results (Official SN63 Scoring)")
+        st.markdown(f"**Detected Validation Strategy:** {manager._current_strategy.get('domain', 'general')} | Type: {manager._current_strategy.get('verification_type', 'standard')} | Tools: {manager._current_strategy.get('enabled_modules', [])}")
         st.success(f"Score: {manager.validator.last_score:.3f} | V/Vd Ready: {manager.validator.last_vvd_ready} | Notes: {manager.validator.last_notes}")
 
         st.markdown("### Sub-Arbos Performance (NO-BS ASSESSMENT)")
