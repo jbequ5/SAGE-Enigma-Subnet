@@ -251,7 +251,6 @@ Keep subtasks focused and validation_criteria actionable so each sub-Arbos stays
                 "validation_criteria": {}
             }
 
-    # EGGROLL LOW-RANK PERTURBATION HELPER
     def generate_low_rank_perturbation(self, base_solution: Dict, rank: int = None, seed: int = None) -> Tuple[Dict, Dict]:
         if rank is None:
             rank = self.eggroll_rank
@@ -267,7 +266,6 @@ Keep subtasks focused and validation_criteria actionable so each sub-Arbos stays
         perturbed["novelty_proxy"] = perturbed.get("novelty_proxy", 0.5) + perturbation["delta_novelty"]
         return perturbed, perturbation
 
-    # ENHANCED TOOLHUNTER with Agent-Reach
     def _tool_hunter(self, gap: str, subtask: str) -> str:
         result = hunt_and_integrate(gap, subtask)
         if result.get("status") == "success" and result.get("links"):
@@ -284,7 +282,6 @@ Keep subtasks focused and validation_criteria actionable so each sub-Arbos stays
             return f"ToolHunter + Agent-Reach ({result.get('source', 'unknown')}): {result.get('recommendation')}"
         return "ToolHunter + Agent-Reach found no strong match."
 
-    # ATLAS INNER-LOOP + EGGROLL
     def _generate_candidates_eggroll(self, subtask: str, hypothesis: str, current_solution: str) -> str:
         base = {"solution": current_solution, "novelty_proxy": 0.5, "est_compute": 1.0}
         candidates = [base]
@@ -294,15 +291,13 @@ Keep subtasks focused and validation_criteria actionable so each sub-Arbos stays
         ranked = sorted(candidates, key=lambda c: compute_energy(c, self.validator, rank=self.eggroll_rank), reverse=True)
         return ranked[0]["solution"]
 
-    # SUB-ARBOS WORKER with max_repair_attempts + VALIDATION CRITERIA + DYNAMIC PROMPT IMPROVEMENT
     def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
                           shared_results: dict, subtask_id: int) -> dict:
         max_hours = self.config.get("max_compute_hours", 3.8)
         monitor = ResourceMonitor(max_hours=max_hours / 3.0)
         repair_attempts = 0
 
-        # Get validation criteria for this subtask from blueprint (passed via shared context or future extension)
-        # For now we assume it will be injected in _run_swarm later; fallback to empty
+        # NEW: Access validation criteria passed from orchestrator
         validation_criteria = getattr(self, "_current_validation_criteria", {}).get(subtask, None)
 
         if self.config.get("resource_aware") and monitor.elapsed_hours() > max_hours * 0.75:
@@ -339,7 +334,7 @@ Give a score (0.0-1.0) and short explanation."""
                     trace.append(f"Self-eval: {local_eval[:150]}...")
 
                     # === NEW: Improve reflection prompt for NEXT iteration ===
-                    if loop < 2:  # Improve for next loops
+                    if loop < 2:
                         improve_prompt = f"""You are a sub-Arbos improving your own reasoning strategy.
 Previous self-evaluation: {local_eval}
 Subtask goal / criteria: {criteria.get('criteria', '')}
@@ -384,7 +379,6 @@ Stay tightly aligned with the validation criteria."""
                 if self.config.get("guardrails"):
                     solution = apply_guardrails(solution, monitor)
 
-                # Repair loop
                 if "error" in solution.lower() and repair_attempts < self.max_repair_attempts:
                     repair_attempts += 1
                     trace.append(f"Repair attempt {repair_attempts}/{self.max_repair_attempts}")
@@ -397,7 +391,6 @@ Stay tightly aligned with the validation criteria."""
         shared_results[subtask_id] = {"subtask": subtask, "solution": solution, "trace": trace}
         return shared_results[subtask_id]
 
-    # ORACLE-CENTRIC VERIFICATION
     def _run_verification(self, solution: str, verification_code: str) -> str:
         if any(x in verification_code.lower() for x in ["quantum_rings", "fidelity", "shots"]):
             return ("Direct Quantum Rings Verification:\n"
@@ -411,7 +404,6 @@ Stay tightly aligned with the validation criteria."""
         vector_db.add_eggroll({"solution": solution, "validation_score": oracle_result["validation_score"]})
         return f"ValidationOracle: score={oracle_result['validation_score']:.3f} | vvd_ready={oracle_result['vvd_ready']} | notes={oracle_result.get('notes','')}"
 
-    # SWARM with early-stop (Phase 10)
     def _run_swarm(self, blueprint: Dict[str, Any], challenge: str, 
                    verification_instructions: str = "", 
                    deterministic_tooling: str = "") -> str:
@@ -468,7 +460,6 @@ Final Synthesized Solution:"""
             verification_result = self._run_verification(final_solution, verification_instructions)
             final_solution += f"\n\n--- VERIFICATION RESULT ---\n{verification_result}"
 
-            # Early-stop logic (Phase 10)
             score = self.validator.last_score
             if score < self.early_stop_threshold and self.loop_count >= 2:
                 logger.info(f"Early-stop triggered. Validation score {score:.3f} below threshold after {self.loop_count} loops.")
@@ -502,10 +493,9 @@ Final Synthesized Solution:"""
         return final_solution, ["swarm"], False
 
     def run(self, challenge: str):
-        self.loop_count = 0  # reset on new run
+        self.loop_count = 0
         return self._smart_route(challenge)
 
-    # PERSISTENT HISTORY + SELF-IMPROVEMENT
     def save_run_to_history(self, challenge: str, enhancement_prompt: str, solution: str, 
                             score: float, novelty: float, verifier: float, main_issue: str = "None"):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -581,11 +571,10 @@ Analyze patterns and return clean JSON with:
             return current_prompt.strip() + "\n\n" + addition.strip()
         return current_prompt
 
-    # === NEW: Runtime Tool Creation (exactly as you sent) ===
     async def propose_and_create_tool(self, current_goal: str, failure_analysis: str, oracle):
         prompt = f"""Analyze failure: {failure_analysis}. Propose a new Python tool (single function `run(input)`) that could improve validation_score for {current_goal}.
         Return only the full Python code for the tool."""
-        code = await self.generate(prompt)   # your existing generate method
+        code = await self.generate(prompt)
         tool_name = f"custom_{hash(current_goal) % 10000}"
         creator = RuntimeToolCreator()
         success = creator.create_and_test_tool(code, tool_name, {"goal": current_goal}, self, oracle)
@@ -593,7 +582,6 @@ Analyze patterns and return clean JSON with:
             logger.info(f"New tool {tool_name} created and persisted")
         return success
 
-    # === NEW: Self-Diagnostics (exactly as you sent) ===
     async def run_self_diagnostics(self, swarm_status: dict, recent_trajectories):
         prompt = f"""Run self-diagnosis on swarm: {swarm_status}. Recent trajectories: {recent_trajectories[:3]}.
         Output JSON: {{"health": "good/poor", "issues": [...], "recommended_fix": "..."}}"""
