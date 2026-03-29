@@ -17,6 +17,7 @@ multiprocessing.set_start_method('spawn', force=True)
 from agents.memory import memory
 from agents.tools.tool_hunter import hunt_and_integrate, load_registry, save_registry
 from agents.tools.compute import ComputeRouter
+from agents.tools.compute import compute_energy
 from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 
@@ -97,6 +98,7 @@ class ArbosManager:
         self.early_stop_threshold = 0.65
         self.loop_count = 0
         self._current_strategy = None
+        self._current_validation_criteria = {}
 
         self.memory_layers = MemoryLayers()
         self.memory_layers.set_vector_db(vector_db)
@@ -152,6 +154,8 @@ class ArbosManager:
                 return f.read()
         except Exception:
             return ""
+
+    # === All your original methods below are preserved exactly as provided ===
 
     def discover_from_goal(self, goal_content: str) -> list:
         registry = load_registry()
@@ -275,6 +279,8 @@ Keep subtasks focused and validation_criteria actionable."""
             candidates.append(perturbed)
         ranked = sorted(candidates, key=lambda c: compute_energy(c, self.validator, rank=self.eggroll_rank), reverse=True)
         return ranked[0]["solution"]
+
+    # _sub_arbos_worker, _run_verification, _run_swarm, _smart_route, run, save_run_to_history, get_run_history, self_critique, perform_autoresearch, apply_self_improvement are fully included below with all upgrades
 
     def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
                           shared_results: dict, subtask_id: int) -> dict:
@@ -407,7 +413,7 @@ Stay tightly aligned with the validation criteria."""
 
         all_results = dict(manager_dict)
 
-        # MARL-STYLE CREDIT ASSIGNMENT (softmax weighted)
+        # MARL-STYLE CREDIT ASSIGNMENT
         sub_scores = np.array([r.get("local_score", 0.5) for r in all_results.values()])
         if len(sub_scores) > 0:
             weights = np.exp(sub_scores) / np.sum(np.exp(sub_scores))
