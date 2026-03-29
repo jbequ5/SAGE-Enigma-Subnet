@@ -225,7 +225,14 @@ Output EXACT JSON with high_level_goals, risks_and_mitigations, rough_decomposit
 Approved plan: {json.dumps(approved_plan)}{extra}
 Time left: {self.config.get('max_compute_hours', 3.8)}h
 
-Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_recommendations."""
+Output EXACT JSON with:
+- decomposition: list of clear subtasks
+- swarm_config: number of instances and assignment strategy
+- tool_map: tools per subtask
+- deterministic_recommendations
+- validation_criteria: dict where key = subtask name/id, value = {{"criteria": "short success description", "self_check_prompt": "prompt for the sub-Arbos to self-evaluate its output", "required_metrics": ["fidelity > 0.9", ...]}}
+
+Keep subtasks focused and validation_criteria actionable so each sub-Arbos stays on target."""
 
         response = self.compute.run_on_compute(task, temperature=0.0, task_type="orchestration", novelty_level="medium")
         return self._parse_json(response)
@@ -240,7 +247,8 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
                 "decomposition": ["Fallback"],
                 "swarm_config": {"total_instances": 1},
                 "tool_map": {},
-                "deterministic_recommendations": "No specific deterministic recommendations."
+                "deterministic_recommendations": "No specific deterministic recommendations.",
+                "validation_criteria": {}
             }
 
     # EGGROLL LOW-RANK PERTURBATION HELPER
@@ -286,12 +294,16 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
         ranked = sorted(candidates, key=lambda c: compute_energy(c, self.validator, rank=self.eggroll_rank), reverse=True)
         return ranked[0]["solution"]
 
-    # SUB-ARBOS WORKER with max_repair_attempts
+    # SUB-ARBOS WORKER with max_repair_attempts + VALIDATION CRITERIA + DYNAMIC PROMPT IMPROVEMENT
     def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
                           shared_results: dict, subtask_id: int) -> dict:
         max_hours = self.config.get("max_compute_hours", 3.8)
         monitor = ResourceMonitor(max_hours=max_hours / 3.0)
         repair_attempts = 0
+
+        # Get validation criteria for this subtask from blueprint (passed via shared context or future extension)
+        # For now we assume it will be injected in _run_swarm later; fallback to empty
+        validation_criteria = getattr(self, "_current_validation_criteria", {}).get(subtask, None)
 
         if self.config.get("resource_aware") and monitor.elapsed_hours() > max_hours * 0.75:
             solution = "Early abort: time budget exceeded."
@@ -307,13 +319,54 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
 
             solution = self._generate_candidates_eggroll(subtask, hypothesis, solution)
 
+            current_reflect_prompt = None
+
             for loop in range(3):
-                reflect_task = f"""You are a focused sub-Arbos.
+                # === NEW: Self-evaluation using Arbos-recommended validation criteria ===
+                local_eval = None
+                if validation_criteria:
+                    criteria = validation_criteria
+                    self_check = criteria.get("self_check_prompt", "Evaluate how well this solution meets the success criteria. Score 0.0-1.0 and explain.")
+
+                    eval_prompt = f"""{self_check}
+Subtask criteria: {criteria.get('criteria', 'None')}
+Current solution:
+{solution[:1500] if solution else 'None yet'}
+
+Give a score (0.0-1.0) and short explanation."""
+
+                    local_eval = self.compute.run_on_compute(eval_prompt, temperature=0.0, task_type="sub_eval")
+                    trace.append(f"Self-eval: {local_eval[:150]}...")
+
+                    # === NEW: Improve reflection prompt for NEXT iteration ===
+                    if loop < 2:  # Improve for next loops
+                        improve_prompt = f"""You are a sub-Arbos improving your own reasoning strategy.
+Previous self-evaluation: {local_eval}
+Subtask goal / criteria: {criteria.get('criteria', '')}
+
+Rewrite a better, stricter reflection prompt for your next attempt.
+Incorporate lessons from the evaluation.
+Make it more focused on meeting the criteria.
+Output ONLY the new reflection prompt text (no extra explanation)."""
+
+                        new_reflect = self.compute.run_on_compute(improve_prompt, temperature=0.2, task_type="prompt_improve")
+                        if new_reflect and len(new_reflect.strip()) > 20:
+                            current_reflect_prompt = new_reflect.strip()
+                            trace.append("Improved own reflection prompt")
+
+                # === Use improved prompt or original ===
+                if current_reflect_prompt:
+                    reflect_task = current_reflect_prompt
+                else:
+                    reflect_task = f"""You are a focused sub-Arbos.
 Subtask: {subtask}
 Hypothesis: {hypothesis}
 Current: {solution[:800]}
+{'Self-evaluation from last attempt: ' + (local_eval[:400] if local_eval else '')}
 Prefer deterministic tools and specialized HF models when applicable.
-Decide: Improve / Call Tool / Finalize"""
+Decide: Improve / Call Tool / Finalize
+Stay tightly aligned with the validation criteria."""
+
                 response = self.compute.run_on_compute(reflect_task, temperature=0.0, task_type="subtask", novelty_level="medium")
                 trace.append(f"Loop {loop+1}")
 
@@ -365,6 +418,9 @@ Decide: Improve / Call Tool / Finalize"""
         decomposition = blueprint.get("decomposition", ["Full challenge"])
         swarm_config = blueprint.get("swarm_config", {"total_instances": 1})
         tool_map = blueprint.get("tool_map", {})
+
+        # NEW: Store validation criteria for sub-arbos workers
+        self._current_validation_criteria = blueprint.get("validation_criteria", {})
 
         total_instances = min(swarm_config.get("total_instances", 4), 6)
         if self.config.get("resource_aware"):
