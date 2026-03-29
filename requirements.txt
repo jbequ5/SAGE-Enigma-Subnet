@@ -8,6 +8,7 @@ numpy>=1.24.0
 torch
 pandas
 requests
+QuantumRingsLib[cpu]   # or QuantumRingsLib[cuda12x] / [cuda13x] for GPU
 
 # Optional but recommended for better performance
 openai>=1.40.0
