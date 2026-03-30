@@ -73,6 +73,12 @@ class ArbosManager:
         self.custom_endpoint = None
         self.compute.set_compute_source(self.compute_source, self.custom_endpoint)
 
+        # === INTELLIGENT COMPUTE ROUTING SETUP ===
+        self.compute.enable_quasar(True)                    # Enable Quasar by default
+        # Pre-warm Quasar on startup (downloads once if missing)
+        if self.compute.quasar_enabled:
+            self.compute.run_on_compute("Warm-up: Quasar model ready", task_type="planning")
+
         self.validator = ValidationOracle(goal_file)
         self.analyzer = VerificationAnalyzer(goal_file)
         self.reach_tool = AgentReachTool()
@@ -90,7 +96,7 @@ class ArbosManager:
 
         self.memory_layers = memory_layers
 
-        logger.info("✅ ArbosManager v3.0 — Hardened + Intelligent Compute Routing")
+        logger.info("✅ ArbosManager v3.0 — Hardened + Intelligent Compute Routing with Auto-Download")
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
