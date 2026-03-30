@@ -6,7 +6,7 @@ import json
 from typing import List, Dict, Any
 
 class LongTermMemory:
-    """Your original ChromaDB backend - fully preserved."""
+    """Your original ChromaDB backend - 100% preserved."""
     def __init__(self, db_path="memory_db"):
         self.client = chromadb.PersistentClient(path=db_path)
         self.embedding_fn = embedding_functions.DefaultEmbeddingFunction()
@@ -32,16 +32,12 @@ class LongTermMemory:
 
 
 class MemoryLayers:
-    """Three-layer memory with light threshold-triggered compression."""
+    """Three-layer memory system with light compression (integrated into memory.py)."""
     def __init__(self):
         self.long_term = LongTermMemory()           # Layer 3: Persistent vector DB
         self.short_term: List[Dict] = []            # Layer 1: Recent raw trajectories
         self.long_term_summaries: List[Dict] = []   # Layer 2: Compressed summaries
         self.tool_proposals: List[str] = []         # Tool suggestions only (no creation)
-
-    def set_vector_db(self, vector_db):
-        """Compatibility with existing code."""
-        pass
 
     def add(self, text: str, metadata: dict = None):
         """Add to short-term layer."""
@@ -60,7 +56,6 @@ class MemoryLayers:
     def add_proposals(self, proposals: List[str]):
         """Lightweight tool proposals (suggestions only)."""
         self.tool_proposals.extend(proposals)
-        # Also store in memory
         for p in proposals:
             self.add(f"TOOL PROPOSAL: {p}", {"type": "tool_proposal"})
 
@@ -68,7 +63,6 @@ class MemoryLayers:
         """Compress oldest short-term entries into summaries."""
         if not self.short_term:
             return
-        # Take oldest entries
         to_compress = self.short_term[:10]
         self.short_term = self.short_term[10:]
 
@@ -84,7 +78,7 @@ class MemoryLayers:
 
     def compress_low_value(self, current_score: float = 0.0):
         """Light threshold-triggered compression - called from re_adapt."""
-        # Remove very low-value short-term entries
+        # Remove very low-value entries
         self.short_term = [entry for entry in self.short_term if entry.get("metadata", {}).get("local_score", 0.5) > 0.4]
         
         if len(self.short_term) > 25:
@@ -119,5 +113,7 @@ class MemoryLayers:
         
         return context
 
-# Global instance
+
+# Global instances
 memory = LongTermMemory()
+memory_layers = MemoryLayers()   # This is what ArbosManager will use
