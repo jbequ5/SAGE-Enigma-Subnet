@@ -8,9 +8,10 @@ Solve the sponsor challenge with maximum novelty and verifier score while stayin
 Produce novel, verifier-strong, licensable solutions for SN63 challenges while staying strictly within compute limits and maximizing IP/value.
 
 Always prioritize:
-- High novelty + verifier potential on Quantum Rings
+- High novelty + verifier potential
 - Efficient use of compute
 - Clear, reproducible outputs
+- Verifier-code-first execution
 
 ## Toggles & Explanations
 
@@ -24,14 +25,30 @@ compute_source: chutes             # Options: local, chutes, already_running, cu
 max_compute_hours: 3.8             # Dynamic maximum compute time for the entire challenge
 resource_aware: true               # Actively enforces time budgets, early aborts slow branches, adjusts swarm size
 
+### Core Mechanisms (Hardened)
+quasar_attention: true             # Enables 5M+ stable context for Planning / Adaptation Arbos
+dynamic_swarm: true                # Swarm size automatically computed from available VRAM
+verifier_first: true               # Symbolic module runs challenge-provided verifier code first
+light_compression: true            # Automatic low-value context pruning when >150k tokens
+
 ### Safety & Quality
 guardrails: true                   # Applies output cleaning and sanity checks after each sub-Arbos and final synthesis
 
-### ToolHunter
+### Tool Handling
 toolhunter_escalation: true        # Enables ToolHunter to generate manual recommendations on failure
 manual_tool_installs_allowed: true # Shows manual installation instructions when needed
+runtime_tool_creation: false       # Disabled for launch (proposals only)
 
+### Self-Improvement
+grail_on_winning_runs: true        # Enables lightweight verifiable post-training only on >0.92 runs
+self_critique_enabled: true        # Runs Arbos self-critique on recent trajectories
 
 ### Swarm Efficiency (vLLM)
 tensor_parallel_size: 1            # Set to 2 or 4 if you have multiple GPUs. Keep 1 for single H100
-vllm_model: mistralai/Mistral-7B-Instruct-v0.2   # Change this to any model you want to use with vLLM
+vllm_model: mistralai/Mistral-7B-Instruct-v0.2   # Base fallback model
+
+## Notes for Miner
+- Quasar Attention is used automatically for planning, orchestration, and every re_adapt loop.
+- Swarm size is dynamically calculated based on real VRAM — no hard cap at 6.
+- Tool creation is disabled for safety. Only proposals are generated for next runs.
+- All self-improvement flows through Adaptation Arbos + light memory compression.
