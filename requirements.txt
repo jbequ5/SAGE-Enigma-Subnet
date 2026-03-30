@@ -9,7 +9,7 @@ torchvision==0.18.0+cpu
 torchaudio==2.3.0+cpu
 --index-url https://download.pytorch.org/whl/cpu
 pandas>=2.2.0
-requests>=2.32.0
+requests>=2.28.1
 huggingface_hub>=0.20.0
 
 # Vector Embeddings & Search
