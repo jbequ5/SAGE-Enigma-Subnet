@@ -40,10 +40,10 @@ flowchart TD
 
   
 - **Intelligent Planning Arbos** — Generates high-level strategy and explicitly recommends deterministic tools, libraries, and the best Hugging Face models.  
-- **Miner-Controlled Deterministic Tooling** — Review and override Arbos suggestions before swarm launch. Arbos respects your preferences throughout execution.  
+- **ReadyAI llms.txt Integration (SN33)** — Automatically pulls clean, structured semantic knowledge from thousands of domains and organizations during planning and execution. Greatly improves grounding on real-world, business, research, and technology challenges.
 - **Miner Enhancement Prompt** — Dedicated field to inject custom instructions (tool priorities, novelty focus, model preferences, synthesis style) respected across all phases.  
 - **Orchestrator Arbos** — Refines the plan into an executable blueprint with subtasks, swarm config, tool_map, and validation criteria.  
-- **Post-Orchestration Review Dashboard** — Full blueprint view with toggles for Arbos recommendations, custom context, and one-click swarm launch.  
+- **Post-Orchestration Review Dashboard** — Full blueprint view with toggles for Arbos recommendations, custom context, and one-click swarm launch. Review and override Arbos tool/model suggestions before swarm launch
 - **Dynamic Parallel Swarm** — Event-driven ThreadPool with per-subtask ToolHunter, verifier-code-first execution, and MARL-style credit assignment for superior synthesis. Swarm size automatically adjusts to your available VRAM.  
 - **Automatic Symbolic & Deterministic Reasoning** — Automatically runs your exact verification code snippets first, then invokes deterministic logic (SymPy, etc.) before falling back to LLM.  
 - **Intelligent Verification System** — Fully dynamic, verification-driven strategy with ValidationOracle as the single source of truth.  
