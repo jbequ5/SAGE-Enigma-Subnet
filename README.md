@@ -1,47 +1,31 @@
-**✅ Here is the updated README** with your **exact same format and sections** preserved. I incorporated all the latest upgrades (real Quantum Rings SDK, dynamic verification-driven strategy, recursive self-improvement, autoresearch, MARL-style weighting, etc.), cleaned up wordy sections, improved flow, and made the language more professional and impressive.
-
----
-
 # Enigma Machine Miner – Bittensor SN63
 
 **Arbos-centric primary solver with intelligent planning, dynamic LLM swarm, real-time ToolHunter, miner-controlled executable verification, and automatic deterministic/symbolic tooling.**
 
 Built from first principles to solve extremely hard, well-defined challenges across quantum computing and beyond — while staying strictly within your compute limits.
 
-**Recent Upgrades**  
-- Real Quantum Rings SDK with high-fidelity simulation and fingerprint support  
-- Fully dynamic verification-driven strategy across all phases  
-- MARL-style credit assignment and event-driven swarm  
-- Recursive autoresearch + EvoAgentX workflow evolution  
-- Trajectory-informed memory system  
-- Phase 4 Parallel Review Dashboard with toggles and one-click swarm launch  
-- Early-stop and robustness guards  
-- Full V/Vd-ready packaging with oracle results included
-  
 ### Core Architecture – The Intelligent Loop
 
 ```mermaid
 flowchart TD
-    A["SN63 Challenge Definition + GOAL.md"] 
-    --> B["🔬 Intelligent Planning Arbos<br/>High-level plan + suggested swarm size + deterministic recommendations"]
+    A["SN63 Challenge + killer_base.md"] 
+    --> B["🔬 Planning Arbos<br/>(Quasar long-context)<br/>High-level strategy + swarm size + smart tool/model recommendations"]
 
-    B --> C["Miner Approval<br/>(Streamlit UI)"]
-    C -->|"✅ Approve with Miner Enhancements"| D["🧠 Orchestrator Arbos<br/>Plan Refinement → Executable Blueprint"]
-    C -->|"🔄 Tweak"| B
-    C -->|"❌ Reject"| A
+    B -->|"✅ Approve + Enhancement Prompt"| D["🧠 Orchestrator Arbos<br/>Refines plan into executable blueprint for swarm"]
+    B -->|"❌ Reject and Rework"| A
 
-    D -->|"✅ Approve with Miner Enhancements"| E["🚀 Dynamic Event-Driven Swarm<br/>Parallel Sub-Arbos Instances<br/>(ThreadPool + MARL-style weighting)"]
+    D -->|"✅ Approve"| E["🚀 Dynamic Swarm<br/>Parallel Sub-Arbos<br/>(auto-sized to your VRAM)<br/>(ThreadPool + MARL weighting)"]
 
-    E --> F1["Sub-Arbos 1<br/>Subtask + Hypothesis<br/>→ Symbolic Module + ToolHunter"]
-    E --> F2["Sub-Arbos 2<br/>Subtask + Hypothesis<br/>→ Symbolic Module + ToolHunter"]
-    E --> FN["Sub-Arbos N<br/>Subtask + Hypothesis<br/>→ Symbolic Module + ToolHunter"]
+    E --> F1["Sub-Arbos 1<br/>Subtask + Hypothesis<br/>→ Dynamic Verifier Scoring RL + ToolHunter"]
+    E --> F2["Sub-Arbos 2<br/>Subtask + Hypothesis<br/>→ Dynamic Verifier Scoring RL + ToolHunter"]
+    E --> FN["Sub-Arbos N<br/>Subtask + Hypothesis<br/>→ Dynamic Verifier Scoring RL + ToolHunter"]
 
-    F1 & F2 & FN --> G["🔄 Reconvene with Main Arbos<br/>Synthesis of all sub-results"]
+    F1 & F2 & FN --> G["🔄 Synthesis Arbos<br/>Combines all results with MARL weighting"]
 
-    G --> H["📊 Intelligent Verification System<br/>Dynamic verification strategy + ValidationOracle + Real Quantum Rings integration"]
+    G --> H["📊 ValidationOracle<br/>Runs your exact verification code + scores"]
 
-    H -->|"✅ Pass"| I["Final Miner Review<br/>+ One-click SN63 Packaging"]
-    H -->|"❌ Fail"| J["Recursive Self-Improvement Loop<br/>Trajectory-Informed Memory + Autoresearch + Workflow Evolution"]
+    H -->|"✅ High Score"| I["Final Miner Review<br/>+ One-click SN63 Packaging"]
+    H -->|"❌ Needs Improvement"| J["Adaptation Arbos (re_adapt)<br/>Trajectory memory + self-improvement"]
 
     J --> E
 
@@ -50,24 +34,25 @@ flowchart TD
 
 ---
 
-### Key Intelligence Highlights
+### Key Intelligence Highlights (Updated)
 
 - **Full Miner Control** — Planning approval, deterministic tooling overrides, enhancement prompt, executable verification, final review, and one-click packaging.
 
   
-- **Intelligent Planning Arbos** — Generates high-level strategy and explicitly recommends deterministic tools and custom models.
-- **Miner-Controlled Deterministic Tooling** — Review and override Arbos suggestions before swarm launch. Arbos respects your preferences throughout execution.
-- **Miner Enhancement Prompt** — Dedicated field to inject custom instructions (tool priorities, novelty focus, model preferences, synthesis style) respected across all phases.
-- **Orchestrator Arbos** — Refines the plan into an executable blueprint with subtasks, swarm config, tool_map, and validation criteria.
-- **Post-Orchestration Review Dashboard** — Full blueprint view with toggles for Arbos recommendations, custom context, and one-click swarm launch.
-- **Dynamic Parallel Swarm** — Event-driven ThreadPool with per-subtask ToolHunter, real Quantum Rings execution, and MARL-style credit assignment for superior synthesis.
-- **Automatic Symbolic Reasoning** — Automatically invokes deterministic logic (Quantum Rings, Stim, PyTKET, SymPy) based on verification instructions before falling back to LLM.
-- **Intelligent Verification System** — Dynamic, verification-driven strategy with ValidationOracle as single source of truth and native Quantum Rings integration for real fidelity and fingerprint metrics.
-- **Recursive Self-Improvement** — Trajectory-informed memory, EvoAgentX-style workflow evolution, and autoresearch patches that propose improvements to Arbos itself.
-- **EGGROLL Low-Rank Perturbations** — Efficient novelty exploration with minimal compute overhead.
-- **Agent-Reach Grounding** — ToolHunter fetches clean web content with caching and fallbacks for higher-quality recommendations.
-- **Three-Layer Memory Refinement** — Short-term buffer + LLM-compressed summaries on top of Vector DB for sharper recommendations and long-term learning.
-- **Safe Runtime Tool Creation** — Arbos can propose, test, and persist new tools only when they meaningfully improve validation score.
+- **Intelligent Planning Arbos** — Generates high-level strategy and explicitly recommends deterministic tools, libraries, and the best Hugging Face models.  
+- **Miner-Controlled Deterministic Tooling** — Review and override Arbos suggestions before swarm launch. Arbos respects your preferences throughout execution.  
+- **Miner Enhancement Prompt** — Dedicated field to inject custom instructions (tool priorities, novelty focus, model preferences, synthesis style) respected across all phases.  
+- **Orchestrator Arbos** — Refines the plan into an executable blueprint with subtasks, swarm config, tool_map, and validation criteria.  
+- **Post-Orchestration Review Dashboard** — Full blueprint view with toggles for Arbos recommendations, custom context, and one-click swarm launch.  
+- **Dynamic Parallel Swarm** — Event-driven ThreadPool with per-subtask ToolHunter, verifier-code-first execution, and MARL-style credit assignment for superior synthesis. Swarm size automatically adjusts to your available VRAM.  
+- **Automatic Symbolic & Deterministic Reasoning** — Automatically runs your exact verification code snippets first, then invokes deterministic logic (SymPy, etc.) before falling back to LLM.  
+- **Intelligent Verification System** — Fully dynamic, verification-driven strategy with ValidationOracle as the single source of truth.  
+- **Quasar Auto-Download + Long-Context Intelligence** — High-value tasks automatically download and use Quasar-10B for massive stable context without losing information.  
+- **Recursive Self-Improvement** — Adaptation Arbos with per-loop re_adaptation, trajectory-informed memory, EvoAgentX-style workflow evolution, and autoresearch patches.  
+- **EGGROLL Low-Rank Perturbations** — Efficient novelty exploration with minimal compute overhead.  
+- **Agent-Reach Grounding** — ToolHunter fetches clean web content with caching and fallbacks for higher-quality recommendations.  
+- **Three-Layer Memory Refinement** — Short-term buffer + LLM-compressed summaries on top of Vector DB for sharper recommendations and long-term learning.  
+- **Safe ToolHunter Proposals** — Arbos proposes powerful new tools and models; ToolHunter can automatically download recommended Hugging Face models — but never executes unsafe code.
 
 ---
 
@@ -142,6 +127,22 @@ streamlit run streamlit_app.py
 
 (Optional: Add `GITHUB_TOKEN` to `.env` for richer ToolHunter searches.)
 
+**Recent Upgrades**  
+- Fully challenge-agnostic (works for any industry, not just quantum) 
+- Fully dynamic verification-driven strategy across all phases
+- Verifier-code-first execution (runs your exact verification code)  
+- MARL-style credit assignment and event-driven swarm  
+- Recursive autoresearch + EvoAgentX workflow evolution  
+- Trajectory-informed memory system  
+- Orachestration Review Dashboard with toggles and one-click swarm launch  
+- Quasar auto-download + long-context intelligence  
+- Full V/Vd-ready packaging with oracle results included
+- Dynamic swarm sizing based on real VRAM 
+- Intelligent compute routing (Quasar → local vLLM → frontier APIs → Chutes)  
+- ToolHunter now auto-downloads recommended Hugging Face models  
+- Adaptation Arbos with per-loop re-adaptation  
+- Light automatic memory compression
+- 
 ### Why This Wins on SN63
 
 - True intelligent decomposition with Arbos-driven recommendations  
