@@ -50,5 +50,9 @@ class ReadyAI_KnowledgeTool:
             return "\n\n".join([r.get("summary", r.get("content", "")) for r in result["results"]])
         return f"[No structured data available for {domain}]"
 
+    def get_structured_knowledge(self, query: str, limit: int = 4) -> Dict[str, Any]:
+        """Main public method used by ToolHunter and Arbos"""
+        return self.query(query, limit=limit)
+
 # Global instance
 readyai_tool = ReadyAI_KnowledgeTool()
