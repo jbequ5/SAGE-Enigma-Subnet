@@ -1,5 +1,5 @@
 # agents/tools/tool_hunter.py
-# Hybrid ToolHunter with automatic HF model download for high-confidence recommendations
+# Hybrid ToolHunter with automatic HF model download + ReadyAI llms.txt (SN33) grounding
 
 import json
 import os
@@ -11,6 +11,9 @@ from typing import Dict, Any, List
 from agents.memory import memory
 from agents.tools.compute import ComputeRouter
 from huggingface_hub import snapshot_download
+
+# New: ReadyAI integration
+from agents.tools.readyai_tool import readyai_tool
 
 REGISTRY_PATH = "agents/tools/registry.json"
 
@@ -35,11 +38,11 @@ class ToolHunter:
         self.github_token = os.getenv("GITHUB_TOKEN", "")
         self.models_dir = Path("models")
         self.models_dir.mkdir(exist_ok=True)
-        print("🔍 ToolHunter: Hybrid mode active (registry + live search + auto-download)")
+        print("🔍 ToolHunter: Hybrid mode active (registry + live search + HF auto-download + ReadyAI llms.txt)")
 
     def hunt_and_integrate(self, gap_description: str, subtask: str, challenge_context: str = "") -> Dict[str, Any]:
         registry = load_registry()
-        query = (gap_description + " " + subtask).lower()
+        query = (gap_description + " " + subtask + " " + challenge_context).lower()
 
         # Step 1: Fast registry lookup
         for tool in registry.get("tools", []):
@@ -52,18 +55,22 @@ class ToolHunter:
                     "source": "registry"
                 }
 
-        for model in registry.get("models", []):
-            keywords = [k.lower() for k in model.get("keywords", [])]
-            if any(k in query for k in keywords):
+        # Step 2: ReadyAI llms.txt grounding (great for domains, companies, topics)
+        if any(word in query for word in ["company", "domain", "technology", "research", "org", "site", "arxiv", "who", "gov"]):
+            readyai_result = readyai_tool.query(gap_description + " " + subtask, limit=4)
+            if readyai_result.get("success"):
+                memory.add(text=f"ReadyAI grounding: {readyai_result['summary']}", 
+                          metadata={"source": "readyai", "query": gap_description})
+                
                 return {
                     "status": "success",
-                    "model_name": model.get("name"),
-                    "compatibility": model.get("compatibility", ""),
-                    "recommendation": model.get("install_cmd", ""),
-                    "source": "registry"
+                    "source": "readyai_llms.txt",
+                    "results": readyai_result["results"],
+                    "summary": readyai_result["summary"],
+                    "recommendation": "Use structured domain knowledge from ReadyAI for grounding"
                 }
 
-        # Step 2: Full live hunt
+        # Step 3: Full live hunt (GitHub + HF)
         search_task = f"""Generate precise search queries for this SN63 gap:
 Gap: {gap_description}
 Subtask: {subtask}
@@ -106,7 +113,8 @@ JSON only."""
         })
         save_registry(registry)
 
-        memory.add(text=f"ToolHunter recommendation: {result['chosen_item']}", metadata={"subtask": subtask, "confidence": result["confidence"]})
+        memory.add(text=f"ToolHunter recommendation: {result['chosen_item']}", 
+                  metadata={"subtask": subtask, "confidence": result["confidence"]})
 
         return {
             "status": "success",
