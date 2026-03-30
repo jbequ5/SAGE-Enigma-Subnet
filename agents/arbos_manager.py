@@ -14,7 +14,7 @@ import logging
 
 multiprocessing.set_start_method('spawn', force=True)
 
-from agents.memory import memory, memory_layers   # Updated import
+from agents.memory import memory, memory_layers
 from agents.tools.tool_hunter import hunt_and_integrate, load_registry, save_registry
 from agents.tools.compute import ComputeRouter
 from agents.tools.resource_aware import ResourceMonitor
@@ -36,25 +36,6 @@ def compute_energy(candidate: Dict, validator, rank: int = 8) -> float:
     score = getattr(validator, "last_score", 0.85)
     energy = base + (novelty * 0.4) + (score * 0.6) - (rank * 0.01)
     return max(0.1, energy)
-
-# ====================== VLLM LOGIC ======================
-_vllm_llm = None
-def get_vllm_llm():
-    global _vllm_llm
-    if _vllm_llm is None:
-        try:
-            from vllm import LLM
-            import streamlit as st
-            compute_source = st.session_state.get("compute_source", "chutes")
-            is_local = compute_source == "local"
-            tp_size = min(torch.cuda.device_count(), 4) if is_local else 1
-            _vllm_llm = LLM(model="mistralai/Mistral-7B-Instruct-v0.2", tensor_parallel_size=tp_size,
-                            gpu_memory_utilization=0.85, dtype="float16", max_model_len=8192, enforce_eager=True)
-            print("✅ vLLM loaded")
-        except Exception as e:
-            print(f"⚠️ vLLM failed: {e}")
-            _vllm_llm = None
-    return _vllm_llm
 
 # ====================== SYMBOLIC MODULE — VERIFIER-CODE-FIRST ======================
 def symbolic_module(subtask: str, hypothesis: str, current_solution: str, strategy: Dict[str, Any]) -> str:
@@ -107,9 +88,9 @@ class ArbosManager:
         self._current_strategy = None
         self._current_validation_criteria = {}
 
-        self.memory_layers = memory_layers   # Use the new MemoryLayers instance
+        self.memory_layers = memory_layers
 
-        logger.info("✅ ArbosManager v3.0 — HARDENED LAUNCH VERSION (No Bloat)")
+        logger.info("✅ ArbosManager v3.0 — Hardened + Intelligent Compute Routing")
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -209,21 +190,18 @@ Prioritize deterministic/symbolic tools."""
         dynamic_size = min(self.max_swarm_size, max(3, int(available_vram // per_agent_gb)))
 
         phase2 = self.compute.run_on_compute(
-            f"Phase 1 output: {phase1}\nAvailable compute supports {dynamic_size} Sub-Arbos.\nPhase 2: Full executable blueprint with subtasks and hypotheses.",
+            f"Phase 1 output: {phase1}\nAvailable compute supports {dynamic_size} Sub-Arbos.\nPhase 2: Full executable blueprint.",
             task_type="orchestration"
         )
 
         adaptation = self.compute.run_on_compute(
-            f"Full context from Phase 1+2.\nAdapt scoring weights, enabled modules, repair thresholds, and EGGROLL params.",
+            f"Full context from Phase 1+2.\nAdapt scoring weights, enabled modules, thresholds.",
             task_type="adaptation", temperature=0.0
         )
         adapted = json.loads(adaptation) if isinstance(adaptation, str) else adaptation
 
         self._current_strategy = adapted.get("strategy", self.analyzer.analyze("", challenge))
         self.validator.adapt_scoring(self._current_strategy)
-        self.early_stop_threshold = adapted.get("early_stop_threshold", 0.65)
-        self.eggroll_rank = adapted.get("eggroll_rank", 8)
-        self.sigma = adapted.get("sigma", 0.1)
 
         return {
             "phase1": phase1,
@@ -239,15 +217,12 @@ Prioritize deterministic/symbolic tools."""
             self.memory_layers.compress_low_value(getattr(self.validator, 'last_score', 0.0))
 
         adaptation = self.compute.run_on_compute(
-            f"Adaptation Arbos — RE-RUN (loop {self.loop_count})\nLatest feedback: {latest_verifier_feedback}\nCurrent strategy: {json.dumps(self._current_strategy)}",
+            f"Adaptation Arbos — RE-RUN (loop {self.loop_count})\nLatest feedback: {latest_verifier_feedback}",
             task_type="re_adapt", temperature=0.0
         )
         adapted = json.loads(adaptation) if isinstance(adaptation, str) else adaptation
         self._current_strategy = adapted.get("strategy", self._current_strategy)
         self.validator.adapt_scoring(self._current_strategy)
-        self.early_stop_threshold = adapted.get("early_stop_threshold", self.early_stop_threshold)
-        self.eggroll_rank = adapted.get("eggroll_rank", self.eggroll_rank)
-        self.sigma = adapted.get("sigma", self.sigma)
 
     def _generate_tool_proposals(self, results: Dict) -> List[str]:
         proposal_prompt = f"Based on these results: {json.dumps(results)[:1200]}\nSuggest 2-3 deterministic tools or helpers that would improve verifier score on the NEXT run only."
@@ -277,8 +252,8 @@ Prioritize deterministic/symbolic tools."""
                     logger.error(f"Swarm worker error: {e}")
         return dict(manager_dict)
 
-    # ====================== YOUR ORIGINAL METHODS (FULLY PRESERVED) ======================
-    def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str], shared_results: dict, subtask_id: int) -> dict:
+    def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
+                          shared_results: dict, subtask_id: int) -> dict:
         max_hours = self.config.get("max_compute_hours", 3.8)
         monitor = ResourceMonitor(max_hours=max_hours / 3.0)
         repair_attempts = 0
@@ -490,8 +465,6 @@ Final Synthesized Solution (weight higher-scoring subtasks more):"""
         self.memory_layers.add_proposals(proposals)
         return score_dict
 
-    # All your other original methods are preserved below (export_trajectories_for_optimization, _smart_route, run, save_run_to_history, get_run_history, self_critique, perform_autoresearch, apply_self_improvement, _refine_plan, _parse_json, _tool_hunter)
-
     def export_trajectories_for_optimization(self, challenge: str):
         traj = vector_db.search(challenge, k=50)
         path = Path("trajectories") / f"export_{challenge[:30]}_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
@@ -499,19 +472,6 @@ Final Synthesized Solution (weight higher-scoring subtasks more):"""
         path.write_text(json.dumps(traj, indent=2))
         logger.info(f"Exported {len(traj)} trajectories to {path} for offline optimization")
         return str(path)
-
-    def _smart_route(self, challenge: str, verification_instructions: str = "") -> Tuple[str, List[str], bool]:
-        high_level_plan = self.plan_challenge(challenge)
-        blueprint = self._refine_plan(high_level_plan, challenge, "", "")
-        final_solution = self._run_swarm(blueprint, challenge, verification_instructions)
-        return final_solution, ["swarm"], False
-
-    def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
-        self.loop_count = 0
-        plan = self.plan_challenge(challenge, enhancement_prompt)
-        return self.execute_full_cycle(plan, challenge, verification_instructions)
-
-    # ... (the rest of your original methods like save_run_to_history, get_run_history, self_critique, perform_autoresearch, apply_self_improvement, _refine_plan, _parse_json, _tool_hunter are all preserved verbatim from your original file)
 
     def save_run_to_history(self, challenge: str, enhancement_prompt: str, solution: str, 
                             score: float, novelty: float, verifier: float, main_issue: str = "None"):
@@ -549,18 +509,18 @@ Final Synthesized Solution (weight higher-scoring subtasks more):"""
     def self_critique(self, challenge: str, n_runs: int = 5) -> Dict[str, Any]:
         history = self.get_run_history(n_runs)
         trajectories = vector_db.search(challenge, k=20)
-        critique_task = f"""You are Arbos Self-Improvement Analyst (Trajectory-Informed + EvoAgentX).
+        critique_task = f"""You are Arbos Self-Improvement Analyst.
 
 Challenge: {challenge}
 Recent run history:
 {json.dumps(history, indent=2)}
-High-signal trajectories from VectorDB:
+High-signal trajectories:
 {json.dumps(trajectories, indent=2)}
 
 Extract:
-- structured_memories: list of reusable JSON facts
-- workflow_evolution: list of suggested changes to decomposition / validation_criteria / tool_map
-- autoresearch_patches: list of optional Python code diffs to apply to Arbos itself
+- structured_memories
+- workflow_evolution
+- recommended_prompt_additions
 
 Return clean JSON."""
         response = self.compute.run_on_compute(critique_task, temperature=0.3, task_type="self_critique")
@@ -575,7 +535,7 @@ Return clean JSON."""
             return {
                 "structured_memories": [],
                 "workflow_evolution": [],
-                "autoresearch_patches": []
+                "recommended_prompt_additions": ""
             }
 
     def perform_autoresearch(self, critique: Dict) -> str:
@@ -625,14 +585,7 @@ Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_reco
             return f"ToolHunter + Agent-Reach ({result.get('source', 'unknown')}): {result.get('recommendation')}"
         return "ToolHunter + Agent-Reach found no strong match."
 
-    def execute_full_cycle(self, plan: Dict, challenge: str, verification_instructions: str = ""):
-        dynamic_size = plan.get("dynamic_swarm_size", 6)
-        results = self._execute_swarm(plan["phase2"], dynamic_size)
-        score_dict = self.validator.run(results, verification_instructions, challenge)
-        
-        if score_dict.get("validation_score", 0) > 0.92 and self.enable_grail:
-            self._run_grail_post_training(results)
-
-        proposals = self._generate_tool_proposals(results)
-        self.memory_layers.add_proposals(proposals)
-        return score_dict
+    def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
+        self.loop_count = 0
+        plan = self.plan_challenge(challenge, enhancement_prompt)
+        return self.execute_full_cycle(plan, challenge, verification_instructions)
