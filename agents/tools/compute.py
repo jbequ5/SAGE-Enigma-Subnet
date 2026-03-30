@@ -1,5 +1,5 @@
 # agents/tools/compute.py
-# Optimized Compute Router with OpenRouter support
+# Optimized Compute Router with Quasar + OpenRouter + Local + Direct APIs
 
 import os
 import requests
@@ -53,7 +53,7 @@ class ComputeRouter:
     def run_on_compute(self, task: str, temperature: float = 0.0, task_type: str = "subtask", 
                        novelty_level: str = "medium") -> str:
         
-        # 1. Quasar (high-value tasks)
+        # 1. Quasar (preferred for high-value tasks)
         if self.quasar_enabled and task_type in ["planning", "orchestration", "adaptation", "re_adapt"]:
             if self._ensure_quasar_downloaded():
                 try:
@@ -67,7 +67,7 @@ class ComputeRouter:
                 except Exception as e:
                     logger.warning(f"Quasar failed: {e}")
 
-        # 2. OpenRouter (strong unified fallback)
+        # 2. OpenRouter (strong unified fallback / miner preference)
         if os.getenv("OPENROUTER_API_KEY"):
             try:
                 from openai import OpenAI
@@ -92,7 +92,7 @@ class ComputeRouter:
             except Exception as e:
                 logger.warning(f"OpenRouter failed: {e}")
 
-        # 3. Local vLLM fallback
+        # 3. Local vLLM
         if self.use_local:
             try:
                 from agents.arbos_manager import get_vllm_llm
@@ -115,7 +115,7 @@ class ComputeRouter:
                     temperature=temperature,
                     messages=[{"role": "user", "content": task}]
                 )
-                logger.info(f"[Claude] Used for {task_type}")
+                logger.info(f"[Claude Direct] Used for {task_type}")
                 return resp.content[0].text
             except Exception:
                 pass
@@ -124,14 +124,14 @@ class ComputeRouter:
         if self.custom_endpoint:
             return self._call_external_endpoint(task, temperature)
 
-        return "[NO COMPUTE AVAILABLE — Check API keys or Chutes endpoint]"
+        return "[NO COMPUTE AVAILABLE — Check API keys]"
 
     def _ensure_quasar_downloaded(self):
         if self.quasar_cache_dir.exists() and any(self.quasar_cache_dir.iterdir()):
             return True
         try:
             from huggingface_hub import snapshot_download
-            logger.info(f"📥 Auto-downloading Quasar model...")
+            logger.info("📥 Auto-downloading Quasar model...")
             snapshot_download(repo_id=self.quasar_model_id, local_dir=str(self.quasar_cache_dir), local_dir_use_symlinks=False)
             logger.info("✅ Quasar downloaded")
             return True
