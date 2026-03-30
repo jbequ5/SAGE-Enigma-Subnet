@@ -43,9 +43,14 @@ runtime_tool_creation: false       # Disabled for launch (proposals only)
 grail_on_winning_runs: true        # Enables lightweight verifiable post-training only on >0.92 runs
 self_critique_enabled: true        # Runs Arbos self-critique on recent trajectories
 
-### Swarm Efficiency (vLLM)
-tensor_parallel_size: 1            # Set to 2 or 4 if you have multiple GPUs. Keep 1 for single H100
-vllm_model: mistralai/Mistral-7B-Instruct-v0.2   # Base fallback model
+# Swarm & Reflection
+max_swarm_size: 20
+default_reflection_iterations: 3
+max_iterations: 8
+
+## Local Compute Settings (vLLM)
+tensor_parallel_size: 1          # 1 for single H100, 2 or 4 for multi-GPU
+vllm_model: mistralai/Mistral-7B-Instruct-v0.2   # fallback model when Quasar
 
 ## Notes for Miner
 - Quasar Attention is used automatically for planning, orchestration, and every re_adapt loop.
