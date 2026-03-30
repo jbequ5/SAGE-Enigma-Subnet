@@ -38,12 +38,3 @@ def apply_guardrails(solution: str, monitor: ResourceMonitor = None) -> str:
 
     print(f"✅ All guardrails passed (elapsed: {elapsed:.2f}h / 4.0h)")
     return solution
-
-Assessment:
-This file is still used in our logic (called from _sub_arbos_worker and _run_swarm in arbos_manager.py). It provides useful lightweight safety without adding significant complexity, so we are keeping it.The update is minimal and focused:Cleaner comments
-Slightly stronger rejection messages
-Verifier-aware check added
-No bloat
-
-Next step: Send the next file you want updated.We’re continuing to build a clean, hardened codebase. Let me know what’s next.
-
