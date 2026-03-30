@@ -142,7 +142,7 @@ streamlit run streamlit_app.py
 - ToolHunter now auto-downloads recommended Hugging Face models  
 - Adaptation Arbos with per-loop re-adaptation  
 - Light automatic memory compression
-- 
+  
 ### Why This Wins on SN63
 
 - True intelligent decomposition with Arbos-driven recommendations  
