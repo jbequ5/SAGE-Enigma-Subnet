@@ -58,7 +58,7 @@ def symbolic_module(subtask: str, hypothesis: str, current_solution: str, strate
         return f"[Safe fallback] Error in symbolic module: {str(e)[:100]}"
 
 class ArbosManager:
- def __init__(self, goal_file: str = "goals/killer_base.md"):
+    def __init__(self, goal_file: str = "goals/killer_base.md"):
         self.goal_file = goal_file
         self.arbos_path = "agents/arbos"
         self.compute = ComputeRouter()
