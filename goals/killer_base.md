@@ -21,6 +21,8 @@ max_loops: 5                       # Maximum automatic loops when review is off
 miner_review_final: true           # Always require final miner review before submission
 
 ### Compute & Resource Management
+use_openrouter_first: false     # Set to true if you want OpenRouter as primary gateway
+openrouter_model_preference: "anthropic/claude-3.5-sonnet"   # or "openai/gpt-4o", etc.
 compute_source: chutes             # Options: local, chutes, already_running, custom
 max_compute_hours: 3.8             # Dynamic maximum compute time for the entire challenge
 resource_aware: true               # Actively enforces time budgets, early aborts slow branches, adjusts swarm size
