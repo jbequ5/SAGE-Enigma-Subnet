@@ -1,8 +1,0 @@
-# config/compute.yaml
-# Toggle which Bittensor subnets to use for compute
-
-chutes: true
-targon: false
-celium: true
-chutes_llm: mixtral     # Default LLM model on Chutes
-fallback: "local"
