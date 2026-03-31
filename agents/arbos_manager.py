@@ -57,11 +57,19 @@ def symbolic_module(subtask: str, hypothesis: str, current_solution: str, strate
     except Exception as e:
         return f"[Safe fallback] Error in symbolic module: {str(e)[:100]}"
 
+
 class ArbosManager:
     def __init__(self, goal_file: str = "goals/killer_base.md"):
         self.goal_file = goal_file
         self.arbos_path = "agents/arbos"
+        
         self.compute = ComputeRouter()
+        
+        # === INTELLIGENT COMPUTE ROUTING SETUP ===
+        self.compute.enable_quasar(True)
+        if self.compute.quasar_enabled:
+            self.compute.run_on_compute("Warm-up: Quasar model ready", task_type="planning")
+
         self.config = self._load_config()
         self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
@@ -72,11 +80,6 @@ class ArbosManager:
         self.compute_source = self.config.get("compute_source", "chutes")
         self.custom_endpoint = None
         self.compute.set_compute_source(self.compute_source, self.custom_endpoint)
-
-        # === INTELLIGENT COMPUTE ROUTING SETUP ===
-        self.compute.enable_quasar(True)
-        if self.compute.quasar_enabled:
-            self.compute.run_on_compute("Warm-up: Quasar model ready", task_type="planning")
 
         self.validator = ValidationOracle(goal_file)
         self.analyzer = VerificationAnalyzer(goal_file)
@@ -203,7 +206,17 @@ Prioritize deterministic/symbolic tools."""
             f"Full context from Phase 1+2.\nAdapt scoring weights, enabled modules, thresholds.",
             task_type="adaptation", temperature=0.0
         )
-        adapted = json.loads(adaptation) if isinstance(adaptation, str) else adaptation
+        
+        # Safer JSON parsing to prevent crashes
+        adapted = {}
+        try:
+            if isinstance(adaptation, str):
+                start = adaptation.find("{")
+                end = adaptation.rfind("}") + 1
+                if start != -1 and end > start:
+                    adapted = json.loads(adaptation[start:end])
+        except:
+            adapted = {}
 
         self._current_strategy = adapted.get("strategy", self.analyzer.analyze("", challenge))
         self.validator.adapt_scoring(self._current_strategy)
@@ -225,7 +238,17 @@ Prioritize deterministic/symbolic tools."""
             f"Adaptation Arbos — RE-RUN (loop {self.loop_count})\nLatest feedback: {latest_verifier_feedback}",
             task_type="re_adapt", temperature=0.0
         )
-        adapted = json.loads(adaptation) if isinstance(adaptation, str) else adaptation
+        
+        adapted = {}
+        try:
+            if isinstance(adaptation, str):
+                start = adaptation.find("{")
+                end = adaptation.rfind("}") + 1
+                if start != -1 and end > start:
+                    adapted = json.loads(adaptation[start:end])
+        except:
+            adapted = {}
+
         self._current_strategy = adapted.get("strategy", self._current_strategy)
         self.validator.adapt_scoring(self._current_strategy)
 
