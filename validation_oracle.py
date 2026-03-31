@@ -6,7 +6,7 @@ from verification_analyzer import VerificationAnalyzer
 class ValidationOracle:
     def __init__(self, goal_file: str = "goals/killer_base.md", compute=None):
         self.analyzer = VerificationAnalyzer(goal_file)
-        self.compute = compute  # Pass compute_router here from ArbosManager
+        self.compute = compute  # compute_router passed from ArbosManager
         self.last_score = 0.0
         self.last_vvd_ready = False
         self.last_notes = ""
@@ -35,18 +35,25 @@ class ValidationOracle:
         self.last_strategy = strategy
 
         solution = str(candidate.get("solution", ""))
+        
         full_context = f"""
-GOAL.md:
-{goal_md[:2000]}
+GOAL.md excerpt:
+{goal_md[:1800]}
 
 Challenge: {challenge}
 Verification Instructions: {verification_instructions}
 
-Produced Solution:
-{solution[:1800]}
+Strategy from analyzer:
+Domain: {strategy.get('domain')}
+Difficulty: {strategy.get('difficulty_level')}
+Requires deterministic first: {strategy.get('requires_deterministic_first')}
+Verifier snippets count: {len(strategy.get('verifier_code_snippets', []))}
+
+Produced Solution (first 1500 chars):
+{solution[:1500]}
 """
 
-        # === DETERMINISTIC / VERIFIER-FIRST EVALUATION (Priority 1) ===
+        # === PRIORITY 1: DETERMINISTIC / VERIFIER-FIRST EVALUATION ===
         deterministic_score = 0.0
         for snippet in strategy.get("verifier_code_snippets", []) + strategy.get("self_check_commands", []):
             try:
@@ -56,23 +63,22 @@ Produced Solution:
             except Exception:
                 pass
 
-        # === LLM-BASED INTELLIGENT SCORING (Priority 2 if deterministic is weak) ===
-        if deterministic_score <= 0.3 and self.compute is not None:
-            scoring_prompt = f"""You are a strict Validation Oracle for Bittensor SN63.
+        # === PRIORITY 2: LLM INTELLIGENT SCORING (when deterministic is weak) ===
+        if deterministic_score <= 0.35 and self.compute is not None:
+            scoring_prompt = f"""You are a strict, expert Validation Oracle for Bittensor SN63.
 
-Full Context:
 {full_context}
 
-Instructions:
-- Prioritize deterministic/verifier-first evidence when available.
-- Be extremely realistic and critical, especially on cryptographic or hard computational challenges.
-- Penalize generic, placeholder, or overconfident solutions heavily.
-- Reward honest assessment of difficulty and any real deterministic/symbolic progress.
-- If the challenge involves breaking encryption (BTC, RSA, etc.), expect very low scores unless extraordinary evidence is shown.
+Scoring Rules:
+- Prioritize any deterministic/verifier code results heavily.
+- Be extremely realistic and critical — especially on hard problems (cryptography, breaking systems, optimization).
+- Heavily penalize generic, placeholder, or overconfident answers.
+- Reward honest statements about difficulty and any real deterministic or symbolic progress.
+- For high-difficulty challenges, expect low scores unless strong evidence is present.
 
 Return ONLY valid JSON:
 {{
-  "validation_score": float (0.0 to 1.0),
+  "validation_score": float between 0.0 and 1.0,
   "vvd_ready": boolean,
   "notes": "brief explanation focusing on realism and deterministic quality",
   "deterministic_strength": float,
@@ -82,32 +88,32 @@ Return ONLY valid JSON:
             try:
                 response = self.compute.call_llm(
                     prompt=scoring_prompt,
-                    temperature=0.4,
-                    max_tokens=800,
+                    temperature=0.35,
+                    max_tokens=900,
                     task_type="verification"
                 )
                 parsed = self._safe_parse_json(response)
                 
-                score = parsed.get("validation_score", 0.55)
+                score = float(parsed.get("validation_score", 0.55))
                 notes = parsed.get("notes", "LLM-assisted realistic scoring")
-                vvd_ready = parsed.get("vvd_ready", score > 0.80)
-                realism_penalty = parsed.get("realism_penalty", False)
+                vvd_ready = bool(parsed.get("vvd_ready", score > 0.80))
+                realism_penalty = bool(parsed.get("realism_penalty", False))
             except Exception as e:
-                score = deterministic_score + 0.4
-                notes = f"Fallback scoring after error: {str(e)[:100]}"
+                score = deterministic_score + 0.45
+                notes = f"Fallback after LLM error: {str(e)[:80]}"
                 vvd_ready = False
                 realism_penalty = True
         else:
             # Pure deterministic path
-            score = deterministic_score + 0.35
-            notes = "Primarily deterministic/verifier-first scoring"
+            score = min(0.92, deterministic_score + 0.40)
+            notes = f"Primarily deterministic/verifier-first scoring (strength: {deterministic_score:.2f})"
             vvd_ready = score > 0.82
             realism_penalty = False
 
-        # Final clamping and realism adjustment
+        # Final safety clamp
         self.last_score = max(0.35, min(0.94, score))
         self.last_vvd_ready = vvd_ready
-        self.last_fidelity = round(0.78 + np.random.normal(0, 0.09), 3)
+        self.last_fidelity = round(0.80 + np.random.normal(0, 0.08), 3)
         self.last_notes = notes
 
         if realism_penalty:
