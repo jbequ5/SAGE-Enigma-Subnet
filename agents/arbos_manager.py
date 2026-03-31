@@ -81,7 +81,7 @@ class ArbosManager:
         self.compute_source = "local_gpu"  # Default to working local
         self.custom_endpoint = None
 
-        self.validator = ValidationOracle(goal_file)
+        self.validator = ValidationOracle(goal_file, compute=self.compute)
         self.analyzer = VerificationAnalyzer(goal_file)
         self.reach_tool = AgentReachTool()
         
@@ -557,7 +557,8 @@ Synthesize final high-quality realistic assessment (weight higher-scoring subtas
         """Updated to match Streamlit call pattern."""
         dynamic_size = blueprint.get("dynamic_swarm_size", blueprint.get("swarm_config", {}).get("total_instances", 5))
         results = self._execute_swarm(blueprint, dynamic_size)
-        score_dict = self.validator.run(results, verification_instructions, challenge)
+        score_dict = self.validator.run(
+        candidate=results,verification_instructions=verification_instructions,challenge=challenge,goal_md=goal_md)
         
         if score_dict.get("validation_score", 0) > 0.92 and self.enable_grail:
             self._run_grail_post_training(results)
