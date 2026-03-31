@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class TrajectoryVectorDB:
     def __init__(self, dim: int = 384, max_entries: int = 500):
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         self.index = faiss.IndexFlatL2(dim)
         self.trajectories = []
         self.path = Path("trajectories")
