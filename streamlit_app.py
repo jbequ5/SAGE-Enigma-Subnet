@@ -133,76 +133,57 @@ if st.button("💾 Save GOAL.md Changes"):
     st.success("✅ GOAL.md saved!")
     st.rerun()
 
-# ====================== SIDEBAR - All checkboxes now functional ======================
+# ====================== SIDEBAR ======================
 with st.sidebar:
     st.header("🛠️ Configuration")
 
     st.subheader("Core Intelligence")
     enable_quasar = st.checkbox("Enable Quasar Long-Context Attention", 
                                 value=True, key="quasar_attention")
-    
-    enable_grail = st.checkbox("Enable Grail verifiable post-training on >0.92 runs", 
-                               value=False, key="grail_post_training")
-    
-    enable_three_layer = st.checkbox("Enable Three-Layer Memory Compression", 
-                                     value=True, key="three_layer_memory")
-    
-    enable_light_compression = st.checkbox("Enable Light Context Compression after loops", 
-                                           value=True, key="light_compression")
-
-    st.subheader("Tools & Swarm")
-    enable_toolhunter = st.checkbox("Enable ToolHunter + ReadyAI", 
-                                    value=True, key="toolhunter_enabled")
-    enable_dynamic_swarm = st.checkbox("Enable Dynamic VRAM-aware Swarm", 
-                                       value=True, key="dynamic_swarm")
 
     st.subheader("Safety & Limits")
     max_hours = st.slider("Max Compute Hours", 1.0, 4.0, 3.8, key="max_hours_slider")
 
-    st.subheader("Advanced")
-    enable_self_critique = st.checkbox("Enable Self-Critique + Autoresearch", 
-                                       value=True, key="self_critique")
-
-    # Apply toggles live
+    # Apply Quasar toggle
     if "quasar_enabled" not in st.session_state or st.session_state.quasar_enabled != enable_quasar:
         st.session_state.quasar_enabled = enable_quasar
         try:
             manager.compute.enable_quasar(enable_quasar)
-        except:
-            pass
+            if enable_quasar:
+                st.sidebar.success("Quasar Enabled")
+            else:
+                st.sidebar.info("Quasar Disabled → Local GPU")
+        except Exception as e:
+            st.sidebar.error(f"Quasar toggle failed: {e}")
 
-    # Store other toggles in session_state so ArbosManager can read them later
-    st.session_state.enable_grail = enable_grail
-    st.session_state.enable_three_layer = enable_three_layer
-    st.session_state.enable_light_compression = enable_light_compression
-    st.session_state.enable_toolhunter = enable_toolhunter
-    st.session_state.enable_dynamic_swarm = enable_dynamic_swarm
-    st.session_state.enable_self_critique = enable_self_critique
-
-# ====================== COMPUTE SETUP ======================
+# ====================== COMPUTE SETUP (Works for anyone) ======================
 if "compute_source" not in st.session_state:
     st.subheader("🔌 Compute Setup")
     compute_option = st.radio(
         "Choose compute source:",
         options=[
-            "Local GPU (RTX 3060)",
+            "Local GPU (auto-detects your GPU)",
             "Chutes (decentralized GPUs)",
-            "Already running",
+            "Already running (use existing endpoint)",
             "Custom / Hosted"
         ],
         index=0
     )
     endpoint = st.text_input("Endpoint URL (if needed)", placeholder="https://...")
+    
     if st.button("Continue with this compute source", type="primary"):
         source_map = {
-            "Local GPU (RTX 3060)": "local",
+            "Local GPU (auto-detects your GPU)": "local",
             "Chutes (decentralized GPUs)": "chutes",
-            "Already running": "already_running",
+            "Already running (use existing endpoint)": "already_running",
             "Custom / Hosted": "custom"
         }
         st.session_state.compute_source = source_map[compute_option]
         st.session_state.custom_endpoint = endpoint if endpoint and endpoint.strip() else None
+        
+        # This line makes "Local GPU" work for anyone
         manager.compute.set_compute_source(st.session_state.compute_source, st.session_state.custom_endpoint)
+        
         st.session_state.stage = "planning_approval"
         st.rerun()
     st.stop()
@@ -262,19 +243,7 @@ if st.session_state.get("stage") == "post_orchestration_review":
     st.subheader("Blueprint & Swarm Dynamics")
     st.json(blueprint)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        apply_arbo = st.checkbox("Apply Arbos Recommended patterns", value=True, key="apply_arbo")
-    with col2:
-        add_context = st.checkbox("Add My Custom Context / Tools", value=False)
-        user_context = st.text_area("Your custom input", "", key="user_context")
-
     if st.button("🚀 Launch Swarm Now", type="primary", use_container_width=True):
-        if apply_arbo:
-            st.success("Arbos patterns applied")
-        if add_context and user_context:
-            st.success("Custom context added")
-
         with st.spinner("Running dynamic swarm..."):
             verification_instructions = st.session_state.get("verification", "")
             final_solution = manager.execute_full_cycle(
