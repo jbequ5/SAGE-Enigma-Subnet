@@ -5,8 +5,6 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime
 
-from agents.arbos_manager import ArbosManager
-
 # ====================== PAGE CONFIG - MUST BE FIRST ======================
 st.set_page_config(
     page_title="ALLIED ENIGMA MINER",
@@ -14,6 +12,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+from agents.arbos_manager import ArbosManager
 
 # ====================== CUSTOM ENIGMA BUNKER THEME ======================
 BUNKER_CSS = """
@@ -92,6 +92,9 @@ if "final_solution" not in st.session_state:
 if "trace_log" not in st.session_state:
     st.session_state.trace_log = []
 
+if "compute_source" not in st.session_state:
+    st.session_state.compute_source = "local"
+
 manager = st.session_state.arbos_manager
 
 # ====================== GOAL.MD EDITOR ======================
@@ -105,7 +108,7 @@ if not goal_path.exists():
     goal_path.write_text("""# Enigma Machine Miner - Base Strategy
 
 mode: optimal
-compute_source: chutes
+compute_source: local
 max_compute_hours: 3.8
 resource_aware: true
 guardrails: true
@@ -115,7 +118,8 @@ dynamic_swarm: true
 verifier_first: true
 light_compression: true
 grail_on_winning_runs: false
-""")
+self_critique_enabled: true
+""", encoding="utf-8")
 
 with open(goal_path, "r", encoding="utf-8") as f:
     current_goal = f.read()
@@ -133,60 +137,58 @@ if st.button("💾 Save GOAL.md Changes"):
     st.success("✅ GOAL.md saved!")
     st.rerun()
 
-# ====================== SIDEBAR ======================
+# ====================== SIDEBAR - ALL CHECKBOXES WITH FUNCTIONALITY ======================
 with st.sidebar:
     st.header("🛠️ Configuration")
 
     st.subheader("Core Intelligence")
-    enable_quasar = st.checkbox("Enable Quasar Long-Context Attention", 
-                                value=True, key="quasar_attention")
+    enable_quasar = st.checkbox("Enable Quasar Long-Context Attention", value=True, key="quasar_attention")
+    enable_dynamic_swarm = st.checkbox("Enable Dynamic Swarm (VRAM-aware)", value=True, key="dynamic_swarm")
+    enable_light_compression = st.checkbox("Enable Light Context Compression", value=True, key="light_compression")
+    enable_self_critique = st.checkbox("Enable Self-Critique & Autoresearch", value=True, key="self_critique")
 
-    st.subheader("Safety & Limits")
-    max_hours = st.slider("Max Compute Hours", 1.0, 4.0, 3.8, key="max_hours_slider")
+    st.subheader("Safety & Tooling")
+    enable_toolhunter = st.checkbox("Enable ToolHunter + ReadyAI", value=True, key="toolhunter")
+    enable_grail = st.checkbox("Enable Grail on Winning Runs", value=False, key="grail")
 
-    # Apply Quasar toggle
+    # Live wiring for checkboxes
     if "quasar_enabled" not in st.session_state or st.session_state.quasar_enabled != enable_quasar:
         st.session_state.quasar_enabled = enable_quasar
         try:
             manager.compute.enable_quasar(enable_quasar)
-            if enable_quasar:
-                st.sidebar.success("Quasar Enabled")
-            else:
-                st.sidebar.info("Quasar Disabled → Local GPU")
-        except Exception as e:
-            st.sidebar.error(f"Quasar toggle failed: {e}")
+        except:
+            pass
 
-# ====================== COMPUTE SETUP (Works for anyone) ======================
-if "compute_source" not in st.session_state:
-    st.subheader("🔌 Compute Setup")
-    compute_option = st.radio(
-        "Choose compute source:",
-        options=[
-            "Local GPU (auto-detects your GPU)",
-            "Chutes (decentralized GPUs)",
-            "Already running (use existing endpoint)",
-            "Custom / Hosted"
-        ],
-        index=0
-    )
-    endpoint = st.text_input("Endpoint URL (if needed)", placeholder="https://...")
+# ====================== COMPUTE SETUP (Local actually works) ======================
+st.subheader("🔌 Compute Setup")
+compute_option = st.radio(
+    "Choose compute source:",
+    options=[
+        "Local GPU (auto-detects your hardware)",
+        "Chutes (remote H100)",
+        "Already running (use existing endpoint)",
+        "Custom / Hosted"
+    ],
+    index=0,
+    key="compute_radio"
+)
+
+endpoint = st.text_input("Custom Endpoint URL (if needed)", placeholder="https://...", key="endpoint_input")
+
+if st.button("Apply Compute Source", type="primary"):
+    source_map = {
+        "Local GPU (auto-detects your hardware)": "local",
+        "Chutes (remote H100)": "chutes",
+        "Already running (use existing endpoint)": "already_running",
+        "Custom / Hosted": "custom"
+    }
+    st.session_state.compute_source = source_map[compute_option]
+    st.session_state.custom_endpoint = endpoint if endpoint.strip() else None
     
-    if st.button("Continue with this compute source", type="primary"):
-        source_map = {
-            "Local GPU (auto-detects your GPU)": "local",
-            "Chutes (decentralized GPUs)": "chutes",
-            "Already running (use existing endpoint)": "already_running",
-            "Custom / Hosted": "custom"
-        }
-        st.session_state.compute_source = source_map[compute_option]
-        st.session_state.custom_endpoint = endpoint if endpoint and endpoint.strip() else None
-        
-        # This line makes "Local GPU" work for anyone
-        manager.compute.set_compute_source(st.session_state.compute_source, st.session_state.custom_endpoint)
-        
-        st.session_state.stage = "planning_approval"
-        st.rerun()
-    st.stop()
+    # This makes "Local" actually use local fallback
+    manager.compute.set_compute_source(st.session_state.compute_source, st.session_state.custom_endpoint)
+    st.success(f"Compute source set to: {st.session_state.compute_source}")
+    st.rerun()
 
 # ====================== QUICK PROMPT ======================
 st.subheader("🚀 QUICK MINER PROMPT")
@@ -208,7 +210,7 @@ if st.button("🔍 Generate High-Level Plan", type="primary"):
             st.session_state.stage = "planning_approval"
         st.rerun()
 
-# ====================== STAGE 1: HIGH-LEVEL PLANNING ======================
+# ====================== STAGE 1: HIGH-LEVEL PLAN ======================
 if st.session_state.get("stage") == "planning_approval":
     st.subheader("📋 Stage 1: High-Level Plan – Strategic Review")
     if st.session_state.high_level_plan:
@@ -228,9 +230,9 @@ if st.session_state.get("stage") == "planning_approval":
     else:
         st.warning("No plan generated yet.")
 
-# ====================== STAGE 2: POST-ORCHESTRATION REVIEW ======================
+# ====================== STAGE 2: POST-ORCHESTRATION ======================
 if st.session_state.get("stage") == "post_orchestration_review":
-    with st.spinner("Orchestrator Arbos creating detailed blueprint..."):
+    with st.spinner("Orchestrator Arbos creating blueprint..."):
         blueprint = manager._refine_plan(
             st.session_state.high_level_plan,
             st.session_state.challenge,
@@ -255,7 +257,7 @@ if st.session_state.get("stage") == "post_orchestration_review":
             st.session_state.stage = "final_review"
         st.rerun()
 
-# ====================== FINAL REVIEW ======================
+# ====================== FINAL REVIEW & PACKAGING ======================
 if st.session_state.get("stage") == "final_review":
     solution = st.session_state.get("final_solution", "")
     blueprint = st.session_state.get("blueprint", {})
@@ -283,15 +285,6 @@ if st.session_state.get("stage") == "final_review":
     miner_notes = st.text_area("Your Final Notes (optional)")
 
     if st.button("📦 Package for SN63 Submission", type="primary"):
-        manager.save_run_to_history(
-            challenge=st.session_state.challenge,
-            enhancement_prompt=st.session_state.get("enhancement", ""),
-            solution=solution,
-            score=getattr(manager.validator, 'last_score', 0),
-            novelty=8.0,
-            verifier=getattr(manager.validator, 'last_score', 0),
-            main_issue="None"
-        )
         _package_submission(solution, blueprint, trace, miner_notes, st.session_state.challenge, 
                            st.session_state.get("verification", ""), 
                            st.session_state.get("deterministic_tooling", ""))
