@@ -1,7 +1,6 @@
 import streamlit as st
 import json
 import zipfile
-import pandas as pd
 from pathlib import Path
 from datetime import datetime
 
@@ -144,7 +143,7 @@ with st.sidebar:
     st.header("🛠️ Configuration")
 
     st.subheader("Core Intelligence")
-    enable_quasar = st.checkbox("Enable Quasar Long-Context Attention", value=True, key="quasar_attention")
+    enable_quasar = st.checkbox("Enable Quasar Long-Context Attention", value=False, key="quasar_attention")  # Default False for fast startup
     enable_dynamic_swarm = st.checkbox("Enable Dynamic Swarm (VRAM-aware)", value=True, key="dynamic_swarm")
     enable_light_compression = st.checkbox("Enable Light Context Compression", value=True, key="light_compression")
     enable_self_critique = st.checkbox("Enable Self-Critique & Autoresearch", value=True, key="self_critique")
@@ -215,10 +214,11 @@ if st.button("🔍 Generate High-Level Plan", type="primary"):
         st.error("Please enter a challenge description.")
     else:
         with st.spinner("Arbos planning on Local GPU (Ollama)..."):
+            # Fixed call to match ArbosManager.plan_challenge signature
             plan = manager.plan_challenge(
                 goal_md=edited_goal, 
                 challenge=challenge, 
-                enhancement=enhancement,
+                enhancement_prompt=enhancement,   # renamed from 'enhancement'
                 compute_mode=st.session_state.compute_source
             )
             st.session_state.high_level_plan = plan
