@@ -8,7 +8,7 @@ class VerificationAnalyzer:
 
     def _load_goal(self, path: str) -> str:
         try:
-            return Path(path).read_text()
+            return Path(path).read_text(encoding="utf-8")
         except:
             return ""
 
@@ -19,23 +19,71 @@ class VerificationAnalyzer:
         strategy = {
             "domain": "adaptive",
             "enabled_modules": ["sympy"],
-            "scoring_weights": {"symbolic": 0.4, "deterministic": 0.3, "novelty": 0.2, "speed": 0.1},
+            "scoring_weights": {
+                "symbolic": 0.40,
+                "deterministic": 0.35,
+                "novelty": 0.15,
+                "realism": 0.10,      # Added realism weight
+                "speed": 0.0
+            },
             "self_check_commands": [],
             "recommended_tools": [],
             "verification_type": "custom",
-            "verifier_code_snippets": []
+            "verifier_code_snippets": [],
+            "difficulty_level": "medium",   # New: auto-detected
+            "requires_deterministic_first": True
         }
 
-        # Extract verifier code blocks
-        code_blocks = re.findall(r'```(?:python|code)?\s*(.*?)```', full_text, re.DOTALL | re.IGNORECASE)
-        strategy["verifier_code_snippets"] = [b.strip() for b in code_blocks if b.strip()]
+        # 1. Extract verifier code blocks (highest priority)
+        code_blocks = re.findall(r'```(?:python|py|code)?\s*(.*?)```', full_text, re.DOTALL | re.IGNORECASE)
+        strategy["verifier_code_snippets"] = [b.strip() for b in code_blocks if b.strip() and len(b.strip()) > 10]
 
-        # Extract self-check / verify blocks
-        checks = re.findall(r'(?:self_check|verify|validate|assert|score|metric).*?```(?:python)?\s*(.*?)```', 
-                           verification_instructions + challenge, re.DOTALL | re.IGNORECASE)
-        strategy["self_check_commands"] = [c.strip() for c in checks if c.strip()]
+        # 2. Extract self-check / validation commands
+        check_patterns = [
+            r'(?:self[-_]?check|verify|validate|assert|score|metric|test).*?```(?:python|py)?\s*(.*?)```',
+            r'(?:check|verify|validate).*?(?:```|\n\s*def\s+\w+|\n\s*assert)',
+        ]
+        for pattern in check_patterns:
+            checks = re.findall(pattern, full_text, re.DOTALL | re.IGNORECASE)
+            strategy["self_check_commands"].extend([c.strip() for c in checks if c.strip()])
 
-        # Extract recommended tools from miner text
-        strategy["recommended_tools"] = re.findall(r'(?:use|install|require|pip)\s+([a-z0-9\-_]+)', text_lower)
+        # 3. Extract recommended tools / libraries (deterministic first)
+        tool_patterns = [
+            r'(?:use|install|require|pip install|from|import)\s+([a-z0-9\-_]+)',
+            r'(?:library|package|module|tool):\s*([a-z0-9\-_]+)'
+        ]
+        for pattern in tool_patterns:
+            tools = re.findall(pattern, text_lower)
+            strategy["recommended_tools"].extend(tools)
+
+        strategy["recommended_tools"] = list(dict.fromkeys(strategy["recommended_tools"]))  # dedup
+
+        # 4. Auto-detect difficulty level (smart, no hardcoding specific challenges)
+        difficulty_keywords = {
+            "high": ["break", "crack", "decrypt", "bitcoin", "btc", "rsa", "private key", "collision", "preimage", "invert", "solve for"],
+            "medium": ["optimize", "quantum", "circuit", "simulation", "large scale", "complex"],
+            "low": ["simple", "basic", "hello", "example", "demo"]
+        }
+
+        difficulty_score = 0
+        for level, keywords in difficulty_keywords.items():
+            if any(kw in text_lower for kw in keywords):
+                if level == "high":
+                    difficulty_score += 2
+                elif level == "medium":
+                    difficulty_score += 1
+
+        if difficulty_score >= 2:
+            strategy["difficulty_level"] = "high"
+        elif difficulty_score == 1:
+            strategy["difficulty_level"] = "medium"
+        else:
+            strategy["difficulty_level"] = "low"
+
+        # 5. Flag if deterministic tooling should be prioritized
+        if strategy["verifier_code_snippets"] or any(t in text_lower for t in ["sympy", "deterministic", "verifier", "assert"]):
+            strategy["requires_deterministic_first"] = True
+        else:
+            strategy["requires_deterministic_first"] = False
 
         return strategy
