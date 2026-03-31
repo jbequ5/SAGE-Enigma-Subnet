@@ -1,38 +1,36 @@
-# Core Dependencies - Hardened Launch Version
-streamlit>=1.38.0
-pyyaml>=6.0.1
-psutil>=5.9.0
-chromadb>=0.5.0
-numpy>=1.26.4
-torch==2.3.0+cpu
-torchvision==0.18.0+cpu
-torchaudio==2.3.0+cpu
+# Core dependencies - pinned for stability
+streamlit==1.38.0
+pandas==2.2.2
+numpy==1.26.4
+psutil==5.9.0
+PyYAML==6.0.1
+requests==2.32.0
+python-dotenv==1.0.1
+
+# Vector DB & Embeddings (critical for trajectory_vector_db and memory)
+chromadb==0.5.0
+sentence-transformers==3.0.0
+
+# FAISS - CPU only (works on Windows without CUDA)
+faiss-cpu==1.10.0
+
+# ML / Torch base (CPU-friendly, no CUDA required for this project)
+torch==2.3.1+cpu
+torchvision==0.18.1+cpu
+torchaudio==2.3.1+cpu
 --index-url https://download.pytorch.org/whl/cpu
-pandas>=2.2.0
-requests>=2.31
-huggingface_hub>=0.20.0
 
-# Vector Embeddings & Search
-sentence-transformers>=3.0.0
-transformers>=4.41.0
-faiss-cpu>=1.8.0          # Use faiss-gpu if you have CUDA
-chromadb>=0.5.0
+# Other project dependencies
+beautifulsoup4==4.12.3
+huggingface-hub==0.23.4
+transformers==4.41.2
+tqdm==4.66.4
 
-# vLLM for local inference (Quasar + fallback models)
-vllm>=0.6.0
+# Optional but recommended for ToolHunter / external calls
+openai==1.40.0
+anthropic==0.34.0
+google-generativeai==0.8.0
 
-# Optional: Better performance / debugging
-black
-isort
-
-# Optional frontier models - enable if you have API keys
-openai>=1.40.0
-anthropic>=0.34.0
-google-generativeai>=0.8.0
-
-# =============================================
-# COMMENTED OUT - NOT USED IN CURRENT VERSION
-# =============================================
-# bittensor>=8.0.0          # Removed - running off-chain for now
-# QuantumRingsLib[cpu]      # Removed - no longer quantum-specific
-
+# Development / formatting (optional)
+black==24.4.2
+isort==5.13.2
