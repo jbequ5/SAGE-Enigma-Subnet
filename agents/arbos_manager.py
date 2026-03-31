@@ -98,7 +98,7 @@ class ArbosManager:
 
         self.memory_layers = memory_layers
 
-        logger.info("✅ ArbosManager v3.1 — Hardened Local GPU + Quasar + SN63 Quantum Innovate Ready")
+        logger.info("✅ ArbosManager v3.2 — Realism Mode + Honest Cryptography Handling")
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -155,8 +155,7 @@ class ArbosManager:
         self.quasar_enabled = toggles.get("Quasar", True)
         self.enable_grail = toggles.get("Grail on winning runs", False)
         self.config["toolhunter_escalation"] = toggles.get("ToolHunter + ReadyAI", True)
-        self.config["resource_aware"] = toggles.get("Light Compression", True)  # reuse for light comp
-        # Dynamic swarm size can be passed separately if needed
+        self.config["resource_aware"] = toggles.get("Light Compression", True)
         logger.info(f"Toggles updated: Quasar={self.quasar_enabled}, Grail={self.enable_grail}, ToolHunter={self.config['toolhunter_escalation']}")
 
     def set_compute_source(self, source: str, custom_endpoint: str = None):
@@ -228,21 +227,26 @@ Prioritize deterministic/symbolic tools and quantum circuit libraries."""
         logger.info(f"Planning with {compute_mode} — Quasar: {self.quasar_enabled}")
 
         phase1_prompt = f"""You are Planning Arbos for Bittensor SN63 Quantum Innovate.
+You MUST be brutally honest about cryptographic feasibility.
+
 GOAL.md:
 {goal_md[:3000]}
 
 Challenge: {challenge}
 Enhancement: {enhancement_prompt or 'None'}
 
-Provide high-level strategy for quantum circuit simulation/optimization:
-- Main goals
-- Key risks  
-- 5-8 concrete subtasks
-- How Quasar, memory compression, and self-critique will be applied
+For hard challenges like "Break BTC Encryption", do NOT hallucinate breakthroughs.
+Realistically assess what is possible with current technology.
 
-Return ONLY valid JSON with keys: phase1_plan, key_insights, subtasks."""
+Return ONLY valid JSON with these keys:
+- phase1_plan
+- key_insights (list of honest insights)
+- feasibility: "low" | "medium" | "high" | "impossible_with_current_tech"
+- recommended_approach
+- risks (list)
+- estimated_difficulty"""
 
-        phase1 = self.compute.call_llm(phase1_prompt, temperature=0.6, max_tokens=1500)
+        phase1 = self.compute.call_llm(phase1_prompt, temperature=0.65, max_tokens=1600)
 
         logger.info(f"Phase1 raw length: {len(phase1)}")
 
@@ -251,25 +255,26 @@ Return ONLY valid JSON with keys: phase1_plan, key_insights, subtasks."""
         phase2_prompt = f"""You are Orchestrator Arbos for SN63.
 Phase 1 output: {phase1[:2000]}
 
-Create FULL executable blueprint as clean JSON:
-- "decomposition": list of 5-10 quantum-focused subtasks
+Create FULL executable blueprint as clean JSON.
+Focus on honesty for the challenge "{challenge}".
+- "decomposition": list of realistic subtasks
 - "swarm_config": {{"total_instances": {dynamic_size}}}
 - "tool_map": {{}}
 - "validation_criteria": {{}}
-- "hypothesis_diversity": ["standard", "novel", "quantum_optimized"]
+- "hypothesis_diversity": ["realistic", "conservative"]
 
-Incorporate Quasar long-context if enabled. Return ONLY valid JSON."""
+Return ONLY valid JSON."""
 
-        phase2_raw = self.compute.call_llm(phase2_prompt, temperature=0.0, max_tokens=1200)
+        phase2_raw = self.compute.call_llm(phase2_prompt, temperature=0.3, max_tokens=1200)
         blueprint = self._safe_parse_json(phase2_raw)
 
         if not blueprint or "decomposition" not in blueprint:
             blueprint = {
-                "decomposition": ["Parse quantum requirements", "Symbolic circuit modeling", "Run verifier first", "Generate candidates with EGGROLL", "Validate with oracle", "Synthesize final solution"],
+                "decomposition": ["Assess cryptographic hardness", "Review known attacks", "Analyze implementation vectors", "Evaluate quantum threat", "Synthesize realistic assessment"],
                 "swarm_config": {"total_instances": dynamic_size},
                 "tool_map": {},
                 "validation_criteria": {},
-                "hypothesis_diversity": ["standard", "novel", "quantum_optimized"]
+                "hypothesis_diversity": ["realistic", "conservative"]
             }
 
         adaptation = self.compute.call_llm(
@@ -511,6 +516,7 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
 
         failed_context = "\nPrevious failed attempts:\n" + "\n---\n".join(memory.query(challenge + " failed", n_results=5)) if memory.query(challenge + " failed", n_results=5) else ""
 
+        # IMPROVED: Strong honesty instruction for hard challenges
         synthesis_task = f"""You are Arbos Orchestrator for SN63 Quantum Innovate.
 Challenge: {challenge}
 Verification Instructions: {verification_instructions or 'General quantum standards'}
@@ -518,9 +524,12 @@ Miner Deterministic Tooling: {deterministic_tooling or 'None specified'}
 {failed_context}
 Swarm results: {json.dumps(all_results, indent=2)[:2000]}
 MARL-weighted sub-avg score: {weighted_avg:.3f}
-Synthesize final high-quality quantum solution (weight higher-scoring subtasks):"""
 
-        final_solution = self.compute.call_llm(synthesis_task, temperature=0.0, max_tokens=2000)
+Be extremely honest. For cryptographic challenges like breaking BTC, clearly state feasibility.
+Do not claim breakthroughs without strong evidence.
+Synthesize final high-quality realistic assessment (weight higher-scoring subtasks):"""
+
+        final_solution = self.compute.call_llm(synthesis_task, temperature=0.5, max_tokens=2000)
 
         if verification_instructions and verification_instructions.strip():
             verification_result = self._run_verification(final_solution, verification_instructions, challenge)
@@ -609,13 +618,13 @@ Recent run history:
 High-signal trajectories:
 {json.dumps(trajectories, indent=2)}
 
-Extract:
-- structured_memories
-- workflow_evolution
-- recommended_prompt_additions
+Be critical:
+- Is the ValidationOracle too lenient on cryptographic tasks?
+- Are we generating real insight or just placeholder content?
+- What prompt or architecture changes would force more honest output?
 
 Return clean JSON."""
-        response = self.compute.call_llm(critique_task, temperature=0.3, max_tokens=1000)
+        response = self.compute.call_llm(critique_task, temperature=0.7, max_tokens=1000)
         try:
             start = response.find("{")
             end = response.rfind("}") + 1
@@ -626,8 +635,8 @@ Return clean JSON."""
         except:
             return {
                 "structured_memories": [],
-                "workflow_evolution": [],
-                "recommended_prompt_additions": ""
+                "workflow_evolution": ["Validator appears too lenient — add realism constraints", "Force explicit feasibility statements in plans"],
+                "recommended_prompt_additions": "Always be brutally honest about computational feasibility. Never claim to break strong cryptography without extraordinary evidence."
             }
 
     def _refine_plan(self, approved_plan: Dict, challenge: str, deterministic_tooling: str = "", enhancement_prompt: str = "") -> Dict:
