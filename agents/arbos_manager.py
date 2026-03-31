@@ -198,9 +198,9 @@ Prioritize deterministic/symbolic tools."""
             pass
         return {}
 
-           def plan_challenge(self, challenge: str, enhancement_prompt: str = "") -> Dict[str, Any]:
-        if not challenge or len(challenge.strip()) < 10:
-            return {"error": "Challenge too short", "phase1": "", "phase2": {}, "dynamic_swarm_size": 4}
+                def plan_challenge(self, challenge: str, enhancement_prompt: str = "") -> Dict[str, Any]:
+                    if not challenge or len(challenge.strip()) < 10:
+                return {"error": "Challenge too short", "phase1": "", "phase2": {}, "dynamic_swarm_size": 4}
 
         # Force local compute for RTX 3060
         logger.info(f"Using Local GPU (RTX 3060) for planning - VRAM: checking...")
