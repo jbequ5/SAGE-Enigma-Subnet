@@ -28,6 +28,14 @@ from verification_analyzer import VerificationAnalyzer
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 
+# MUST BE THE FIRST STREAMLIT COMMAND - NO EXCEPTIONS
+st.set_page_config(
+    page_title="ALLIED ENIGMA MINER",
+    page_icon="🔒",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 # ====================== WORKING COMPUTE ENERGY ======================
 def compute_energy(candidate: Dict, validator, rank: int = 8) -> float:
     """Fully working energy function for EGGROLL low-rank perturbations."""
