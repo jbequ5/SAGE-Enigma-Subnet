@@ -32,7 +32,7 @@ BUNKER_CSS = """
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.85);   /* Increased to 0.85 as requested */
+        background: rgba(0, 0, 0, 0.75);   /* Increased to 0.85 as requested */
         z-index: -1;
     }
 
@@ -99,7 +99,7 @@ st.markdown("""
 <style>
     /* Strong overlay for the main title area */
     .stApp header, .stApp .block-container {
-        background: rgba(0, 0, 0, 0.85) !important;
+        background: rgba(0, 0, 0, 0.75) !important;
         padding: 1rem 2rem;
         border-radius: 8px;
     }
