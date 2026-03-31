@@ -135,7 +135,46 @@ if st.button("Apply Quick Prompt to Current Session", type="primary"):
         st.success("Quick prompt applied!")
 
 st.markdown("---")
+# ====================== GOAL.MD EDITOR (Make it obvious) ======================
+st.subheader("🎯 GOAL.md / Strategy File")
+st.caption("This is your single source of truth for miner preferences, toggles, and base strategy. Edit it here — changes are saved automatically.")
 
+goal_path = Path("goals/killer_base.md")
+
+if not goal_path.exists():
+    goal_path.parent.mkdir(parents=True, exist_ok=True)
+    goal_path.write_text("""# Enigma Machine Miner - Base Strategy
+
+mode: optimal
+compute_source: chutes
+max_compute_hours: 3.8
+resource_aware: true
+guardrails: true
+toolhunter_escalation: true
+quasar_attention: true
+dynamic_swarm: true
+verifier_first: true
+light_compression: true
+grail_on_winning_runs: false
+""")
+
+with open(goal_path, "r", encoding="utf-8") as f:
+    current_goal = f.read()
+
+edited_goal = st.text_area(
+    label="Edit GOAL.md content",
+    value=current_goal,
+    height=400,
+    key="goal_editor"
+)
+
+if st.button("💾 Save GOAL.md Changes"):
+    with open(goal_path, "w", encoding="utf-8") as f:
+        f.write(edited_goal)
+    st.success("✅ GOAL.md saved! Restart the run to apply changes.")
+    st.rerun()
+
+st.info("💡 Tip: This file controls all toggles (Quasar, Grail, compression, etc.). The sidebar checkboxes are for quick overrides only.")
 # ====================== SIDEBAR ======================
 st.sidebar.title("🛠️ ALLIED OPERATIONS")
 with st.sidebar:
