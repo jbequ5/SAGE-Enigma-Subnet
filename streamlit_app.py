@@ -201,11 +201,44 @@ if st.button("Apply Compute Source", type="primary"):
 
 st.info(f"Current Compute: **{st.session_state.compute_source}** | Ollama local path active when selected")
 
-# ====================== QUICK PROMPT ======================
+# ====================== QUICK MINER PROMPT ======================
 st.subheader("🚀 QUICK MINER PROMPT")
 challenge = st.text_area("SN63 Challenge Description (Quantum Innovate task)", height=150, key="challenge_input")
 verification = st.text_area("Verification Instructions (optional)", height=100, key="verification_input")
-enhancement = st.text_input("Enhancement Prompt (optional)", key="enhancement_input")
+
+# v4: Auto-populate from Planning Arbos generated challenge-specific enhancement
+default_enhancement = ""
+if st.session_state.get("high_level_plan") and isinstance(st.session_state.high_level_plan, dict):
+    default_enhancement = st.session_state.high_level_plan.get("generated_post_planning_enhancement", "")
+
+enhancement = st.text_area(
+    "Enhancement Prompt (Post-Planning — Auto-generated & editable)",
+    value=default_enhancement,
+    height=150,
+    key="enhancement_input"
+)
+
+# v4: Compounding Evolution Button
+col_a, col_b = st.columns([3, 1])
+with col_a:
+    st.caption("Edit above if needed. Edits are passed to Orchestrator Arbos and can be saved for future compounding.")
+with col_b:
+    if st.button("💾 Save Edited Enhancement as Grail Pattern", type="secondary"):
+        if enhancement and enhancement.strip():
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+            grail_section = f"\n\n## GRAIL_ENHANCEMENT_{timestamp} (Miner-Edited)\n{enhancement}\n"
+            with open(goal_path, "a", encoding="utf-8") as f:
+                f.write(grail_section)
+            # Also save to memdir for immediate recall in Adaptation Arbos
+            manager.save_to_memdir(f"grail_enhancement_{timestamp}", {
+                "content": enhancement,
+                "challenge": st.session_state.get("challenge", "unknown"),
+                "timestamp": timestamp
+            })
+            st.success(f"✅ Saved as Grail pattern. It will now compound into future base context + memdir recall.")
+            st.rerun()
+        else:
+            st.warning("Enhancement is empty — nothing to save.")
 
 # ====================== Generate High-Level Plan ======================
 if st.button("🔍 Generate High-Level Plan", type="primary"):
@@ -216,7 +249,7 @@ if st.button("🔍 Generate High-Level Plan", type="primary"):
             plan = manager.plan_challenge(
                 goal_md=edited_goal, 
                 challenge=challenge, 
-                enhancement_prompt=enhancement,
+                enhancement_prompt=enhancement,   # Use the (possibly edited) value
                 compute_mode=st.session_state.compute_source
             )
             st.session_state.high_level_plan = plan
@@ -254,14 +287,21 @@ if st.session_state.get("stage") == "post_orchestration_review":
             st.session_state.high_level_plan,
             st.session_state.challenge,
             st.session_state.get("deterministic_tooling", ""),
-            st.session_state.get("enhancement", "")
+            st.session_state.get("enhancement", "")   # Use miner-edited version
         )
         st.session_state.blueprint = blueprint
         st.session_state.validation_criteria = blueprint.get("validation_criteria", {})
 
+        # v4: Show the specialized pre-launch context
+        pre_launch_context = blueprint.get("generated_pre_launch_context", "No specialized pre-launch context generated yet.")
+        st.session_state.pre_launch_context = pre_launch_context
+
     st.header("🚀 Post-Orchestration Review Dashboard")
     st.subheader("Blueprint & Swarm Dynamics")
     st.json(blueprint)
+
+    st.subheader("📜 Auto-Generated Pre-Launch Context (Challenge-Specific)")
+    st.info(pre_launch_context[:800] + "..." if len(pre_launch_context) > 800 else pre_launch_context)
 
     if st.button("🚀 Launch Swarm Now", type="primary", use_container_width=True):
         with st.spinner("Launching dynamic swarm (VRAM-aware, Quasar + Self-Critique)..."):
@@ -302,7 +342,6 @@ if st.session_state.get("stage") == "final_review":
             critique = manager.self_critique(st.session_state.challenge)
             st.json(critique)
 
-    # NEW TAB: Validation Criteria
     with tab5:
         st.subheader("📋 Decided Validation Criteria for Sub-Arbos Swarm Agents")
         if validation_criteria:
