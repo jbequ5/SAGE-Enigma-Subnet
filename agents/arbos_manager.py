@@ -97,12 +97,16 @@ class ArbosManager:
         self._current_strategy = None
         self._current_validation_criteria = {}
 
+        # v4.4: Store evolving prompt layers for re_adapt
+        self._current_enhancement = ""
+        self._current_pre_launch = ""
+
         self.memory_layers = memory_layers
 
         # === v4 MEMDIR GRAIL (Claude-style persistent + auto-sync) ===
         self._init_memdir()
 
-        logger.info("✅ ArbosManager v4 — English-First + Memdir Grail + Tool Sub-Swarm + Amdahl Coordination")
+        logger.info("✅ ArbosManager v4.4 — English-First + Score-Weighted Re-Adapt + Memdir Grail + Tool Sub-Swarm + Amdahl Coordination")
 
     def _init_memdir(self):
         self.memdir_path = "memdir/grail"
@@ -274,6 +278,9 @@ Return ONLY valid JSON with these keys:
 
         logger.info(f"Phase1 raw length: {len(phase1)}")
 
+        # Store the generated enhancement for re_adapt
+        self._current_enhancement = phase1.get("generated_post_planning_enhancement", "")
+
         dynamic_size = 5 if self.quasar_enabled else 4
 
         phase2_prompt = f"""You are Orchestrator Arbos for SN63.
@@ -321,22 +328,74 @@ Return ONLY valid JSON."""
     def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
         self.loop_count += 1
         
-        # v4: Load latest Grail from memdir before adaptation
+        # === v4.4 Enhanced: Use ALL built-up intelligence, weighted by score ===
+        
+        # 1. Load latest Grail / Memdir context
         grail_context = self.load_from_memdir("latest_grail")
-        if grail_context:
-            latest_verifier_feedback = f"Memdir Grail context: {json.dumps(grail_context)[:500]}\n{latest_verifier_feedback}"
+        
+        # 2. Pull recent trajectories and weight them heavily by score
+        recent_trajectories = vector_db.search(
+            getattr(self, '_current_strategy', {}).get("challenge", ""), 
+            k=20
+        )
+        weighted_context = ""
+        if recent_trajectories:
+            scored_traj = []
+            for traj in recent_trajectories:
+                score = traj.get("validation_score", traj.get("local_score", 0.5))
+                weight = max(0.1, score ** 2)  # quadratic boost for high scores
+                scored_traj.append((weight, traj.get("solution", "")[:700]))
+            
+            # Sort by weight and take top weighted excerpts
+            scored_traj.sort(key=lambda x: x[0], reverse=True)
+            weighted_context = "\n".join([f"[High-score pattern {i+1} | weight {w:.2f}]: {text}" 
+                                        for i, (w, text) in enumerate(scored_traj[:10])])
 
-        if hasattr(self.memory_layers, 'get_total_context_tokens') and self.memory_layers.get_total_context_tokens() > 150000:
-            self.memory_layers.compress_low_value(getattr(self.validator, 'last_score', 0.0))
+        # 3. Build rich adaptation prompt with every layer of intelligence
+        adaptation_prompt = f"""You are Adaptation Arbos for SN63 Quantum Innovate.
+
+CURRENT LOOP: {self.loop_count}
+Latest verifier feedback: {latest_verifier_feedback}
+
+BUILT-UP INTELLIGENCE (use heavily — prioritize high-score patterns):
+- Grail / Memdir context: {json.dumps(grail_context, indent=2)[:900] if grail_context else 'None yet'}
+- Score-weighted prior trajectories (higher score = much stronger influence):
+{weighted_context or 'None yet'}
+
+CURRENT PROMPT LAYERS (respect and build upon):
+Base strategy from killer_base.md: {self._load_extra_context()[:1200]}
+Current challenge-specific enhancement: {getattr(self, '_current_enhancement', 'None')[:900]}
+Pre-launch context: {getattr(self, '_current_pre_launch', 'None')[:700]}
+
+STRICT RULES (never violate):
+{self.config.get('marl_credit_rule', 'Strictly weight by ValidationOracle fidelity ≥0.88 and determinism ≥0.85')}
+
+Task: Generate a targeted, high-signal adaptation for the next swarm iteration.
+Prioritize patterns from high-scoring previous loops. 
+Avoid repeating low-fidelity or low-determinism paths.
+Focus on improving symbolic invariants, ToolHunter usage, and alignment with verifier expectations.
+
+Return concise, actionable adaptation guidance that will measurably improve ValidationOracle score."""
 
         adaptation = self.compute.call_llm(
-            f"Adaptation Arbos — RE-RUN (loop {self.loop_count})\nLatest feedback: {latest_verifier_feedback}\nQuasar: {self.quasar_enabled}",
-            temperature=0.0, max_tokens=1000
+            adaptation_prompt,
+            temperature=0.15,   # low temperature for focused, reliable output
+            max_tokens=1400
         )
         
         adapted = self._safe_parse_json(adaptation)
         self._current_strategy = adapted.get("strategy", self._current_strategy)
         self.validator.adapt_scoring(self._current_strategy)
+
+        # Save this adaptation back to memdir so future loops and runs benefit
+        self.save_to_memdir("latest_grail", {
+            "loop": self.loop_count,
+            "feedback": latest_verifier_feedback[:600],
+            "adaptation": adaptation[:1200],
+            "timestamp": datetime.now().isoformat()
+        })
+
+        logger.info(f"✅ Adaptation Arbos completed loop {self.loop_count} using score-weighted intelligence from all prior loops")
 
     def _generate_tool_proposals(self, results: Dict) -> List[str]:
         proposal_prompt = f"Based on these swarm results: {json.dumps(results)[:1500]}\nSuggest 2-3 deterministic or quantum-related tools that would improve verifier score on the NEXT run."
@@ -712,6 +771,9 @@ Output EXACT JSON with:
         response = self.compute.call_llm(task, temperature=0.0, max_tokens=2000)
         blueprint = self._parse_json(response)
         
+        # Store pre-launch context for re_adapt
+        self._current_pre_launch = blueprint.get("generated_pre_launch_context", "")
+
         # Auto-save reflection to memdir for next Grail run
         if "module_reflection" in blueprint or "generated_pre_launch_context" in blueprint:
             self.save_to_memdir(f"reflection_{int(time.time())}", blueprint)
