@@ -11,6 +11,7 @@ Solve ANY sponsor challenge with maximum novelty + ValidationOracle score while 
 - Reward only trajectories that measurably improve ValidationOracle score via exact 0-1 deterministic checks.
 - Every Adaptation Arbos step must first search trajectory_vector_db + memdir for proven high-score symbolic patterns.
 - Maximize symbolic coverage per compute unit while preserving reproducibility.
+- Run a reflection LLM call on every prompt evolution step. Make sure your evolution is staying on task.
 
 ## Toggles & Explanations (parsed automatically)
 ### Core Behavior
@@ -18,7 +19,7 @@ miner_review_after_loop: false
 max_loops: 8
 miner_review_final: true
 
-### Compute & Resource Management (3060 + Ollama optimized)
+### Compute & Resource Management
 compute_source: local_gpu
 max_compute_hours: 4.0
 resource_aware: true
@@ -43,10 +44,54 @@ marl_credit_rule: "Strictly weight Sub-Arbos and ToolHunter sub-swarms ONLY by V
 ### Smart Oracle Generation Rules
 oracle_gen_rule: "Prioritize deterministic symbolic tools (SymPy, invariant extraction, formal verification snippets) on every subtask. ToolHunter sub-swarm MUST hunt in parallel. If no verifier_code_snippets in memdir/trajectory_vector_db, generate Python snippets EXCLUSIVELY focusing on: (1) extracting/proving symbolic invariants, (2) exhaustive edge-case 0-1 scoring, (3) algebraic closures before any approximation. Always run deterministic symbolic checks FIRST."
 
-## Local Model Routing (Ollama)
-planning_model: deepseek-r1:14b-q4_K_M
-synthesis_model: qwen2.5-coder:14b-q4_K_M
-sub_arbos_model: qwen2.5-coder:7b-q5_K_M
+## LOCAL_MODEL_ROUTING (Customize for your set-up)
+
+# High-level Arbos roles: Planning, Orchestrator, Adaptation Arbos, re_adapt
+# These need strong reasoning + structured output
+planning_model: deepseek-r1:14b-q4_K_M          # Keep — excellent for complex strategy & critique
+orchestrator_model: deepseek-r1:14b-q4_K_M      # Or share with planning if you want to consolidate
+adaptation_model: deepseek-r1:14b-q4_K_M        # Or qwen2.5-coder:14b-q4_K_M if more code/symbolic heavy
+
+# Synthesis & code generation (Grail extraction, verifier snippets, symbolic invariants)
+synthesis_model: qwen2.5-coder:14b-q4_K_M       # Strong — keep
+
+# Lightweight for compression & sub-tasks (the new COMPRESSION_PROMPT lives here)
+sub_arbos_model: qwen2.5-coder:7b-q5_K_M        # Perfect — fast & efficient for delta summarization
+compression_model: qwen2.5-coder:7b-q5_K_M      # Explicit alias for compress_intelligence_delta
+
+# Optional upgrade path (test these if you want a reasoning boost without 27B pain)
+# qwen3:14b-q4_K_M or qwen3.5:14b (if available in Ollama) — often edges out older Qwen2.5 on general reasoning
+# deepseek-r1:14b-q3_K_M (if you need lower VRAM headroom for longer context)
+
+## COMPRESSION_PROMPT v1.0 (Intelligence Delta Summarizer)
+# This is the canonical prompt used by ArbosManager to compress trajectories, messages, Grail artifacts, and diagnostic cards BEFORE feeding re_adapt / Adaptation Arbos / memory_policy_weights.
+# Output MUST be <400 tokens and follow the exact JSON schema below. Never output raw JSON blobs or full trajectories.
+
+You are the Intelligence Compressor for Enigma-Machine-Miner (SN63). Your sole job is to distill the highest-signal intelligence deltas from the provided raw context so that the next re_adapt loop evolves the solver faster per compute unit.
+
+INPUT CONTEXT (raw trajectories, recent_messages, memdir/grail artifacts, diagnostic_card):
+{RAW_CONTEXT_HERE}
+
+COMPRESSION RULES (never violate):
+1. Only keep patterns that moved ValidationOracle score upward.
+2. Weight every insight by reinforcement_score = validation_score × fidelity^1.5 × symbolic_coverage.
+3. Extract explicit deltas: "Pattern X increased score by +0.18 because Y".
+4. Include meta-lessons: "On high-difficulty symbolic challenges, force Z before LLM".
+5. Identify policy updates for memory_policy_weights and killer_base.md.
+6. Flag failure modes to add to known_failure_modes.
+7. End with a single "Next-Loop Recommendation" that Adaptation Arbos can act on immediately.
+
+OUTPUT EXACT SCHEMA (JSON only, no extra text):
+{
+  "deltas": ["list of 3-6 highest-reinforcement deltas with exact score/fidelity impact"],
+  "meta_lessons": ["2-3 generalizable rules for future challenges"],
+  "policy_updates": ["specific prompt / routing / tool changes to append to killer_base.md or memory_policy_weights"],
+  "failure_modes": ["new failure modes to avoid"],
+  "next_loop_recommendation": "one concrete action for re_adapt",
+  "compression_score": 0.0-1.0  // self-assessed signal density (1.0 = perfect)
+}
+
+Return ONLY the JSON. No explanations.
 
 ## English Evolution Modules (Planning & Orchestrator will auto-specialize these per challenge)
 
