@@ -1,159 +1,92 @@
-# Enigma Machine Miner – Bittensor SN63
+# THE ENIGMA MACHINE – Bittensor SN63 Arbos-Led Intelligent Solver
 
-**Arbos-centric primary solver with intelligent planning, dynamic LLM swarm, real-time ToolHunter, miner-controlled executable verification, and automatic deterministic/symbolic tooling.**
+**English-first • Verifier-first • Self-evolving • Challenge-agnostic mining swarm**
 
-Built from first principles to solve extremely hard, well-defined challenges across quantum computing and beyond — while staying strictly within your compute limits.
+Built from first principles to solve extremely hard sponsor challenges — quantum, cryptographic, mathematical, symbolic, or any well-defined problem — while maximizing novelty, ValidationOracle score, and reproducible IP.
 
-### Core Architecture – The Intelligent Loop
+### Miner Execution Flow
 
-```mermaid
-flowchart TD
-    A["SN63 Challenge + killer_base.md"] 
-    --> B["🔬 Planning Arbos<br/>(Quasar long-context)<br/>High-level strategy + swarm size + smart tool/model recommendations"]
+1. **Edit `killer_base.md`** — your single source of truth containing the agnostic base strategy, toggles, and English Evolution Modules.
+2. **Enter the challenge + verification instructions**.
+3. **Click “Generate High-Level Plan”** → Planning Arbos creates a detailed strategy and **auto-populates** a challenge-specific post-planning enhancement.
+4. **Review & edit** the auto-generated Enhancement Prompt to inject your own intelligence.
+5. **(Optional)** Save the edited enhancement as a Grail pattern — it appends to `killer_base.md` and stores in `memdir/grail` for future compounding.
+6. **Approve the Plan** → Orchestrator Arbos refines the blueprint and generates an even-more-specific Pre-Launch Context.
+7. **Post-Orchestration Review Dashboard** — Examine the full swarm strategy, ToolHunter sub-swarm recommendations, validation criteria, and pre-launch context. Override or approve before launch.
+8. **Launch the Swarm** → Dynamic Swarm + coordinated ToolHunter sub-swarm (ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter) with Amdahl-aware parallelism.
+9. **Sub-Arbos Execution** — Each worker performs dynamic verifier-first scoring, ToolHunter calls, and hypothesis exploration.
+10. **Synthesis Arbos** — Aggregates all Sub-Arbos outputs, applies MARL credit assignment weighted strictly by ValidationOracle fidelity and determinism, and produces one coherent final solution.
+11. **ValidationOracle** — The final gate. Executes your exact verifier code + symbolic 0-1 checks on the synthesized solution. Only high-fidelity paths advance.
+12. **Low Score?** → Adaptation Arbos (`re_adapt`) automatically loops back using trajectory_vector_db + Memdir Grail recall until the score improves or the compute limit is reached.
+13. **High Score?** → Grail auto-extraction + one-click SN63 packaging.
 
-    B -->|"✅ Approve + Enhancement Prompt"| D["🧠 Orchestrator Arbos<br/>Refines plan into executable blueprint for swarm"]
-    B -->|"❌ Reject and Rework"| A
+Your edits and saved Grail patterns **compound** — the miner becomes smarter and more precise with every strong run.
 
-    D -->|"✅ Approve"| E["🚀 Dynamic Swarm<br/>Parallel Sub-Arbos<br/>(auto-sized to your VRAM)<br/>(ThreadPool + MARL weighting)"]
+### Key Intelligence (in system flow order)
 
-    E --> F1["Sub-Arbos 1<br/>Subtask + Hypothesis<br/>→ Dynamic Verifier Scoring RL + ToolHunter"]
-    E --> F2["Sub-Arbos 2<br/>Subtask + Hypothesis<br/>→ Dynamic Verifier Scoring RL + ToolHunter"]
-    E --> FN["Sub-Arbos N<br/>Subtask + Hypothesis<br/>→ Dynamic Verifier Scoring RL + ToolHunter"]
+1. **Miner Control & GOAL.md** — Single source of truth. Full control over base strategy, toggles, and English Evolution Modules.
+2. **Planning Arbos** — Generates high-level strategy and automatically creates a challenge-specific post-planning enhancement (auto-populates the editable field).
+3. **Enhancement Prompt Layer** — Auto-generated and fully editable. Your custom instructions (tool priorities, model preferences, novelty focus, synthesis style) propagate through all phases.
+4. **Orchestrator Arbos** — Refines the plan into an executable blueprint with decomposition, swarm config, tool_map, validation criteria, and a specialized Pre-Launch Context.
+5. **Post-Orchestration Review Dashboard** — Critical visibility step. Review the complete swarm strategy, ToolHunter sub-swarm recommendations, validation criteria, and pre-launch context before committing compute.
+6. **Dynamic Swarm + ToolHunter Sub-Swarm** — Parallel execution with four coordinated hunters (ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter). Amdahl-aware routing prevents common multi-agent pitfalls.
+7. **Sub-Arbos Workers** — Each performs dynamic verifier-first scoring, ToolHunter integration, hypothesis diversity, and symbolic checks.
+8. **Synthesis Arbos** — Takes outputs from all Sub-Arbos workers, applies strict MARL credit assignment (weighted only by ValidationOracle fidelity and determinism), and produces one coherent final solution.
+9. **ValidationOracle** — The unbreakable gate. Executes your exact verifier code snippets + SymPy invariants + 0-1 edge-case checks on the synthesized solution.
+10. **Adaptation Arbos Loop** — When ValidationOracle score is low, `re_adapt` intelligently pulls from trajectory_vector_db + Memdir Grail and loops back to the swarm.
+11. **Memdir Grail & Compounding Evolution** — High-score runs auto-extract invariants, best models, verifier snippets, and reflections into persistent `memdir/grail`. Miner-saved enhancements become permanent intelligence for future runs.
 
-    F1 & F2 & FN --> G["🔄 Synthesis Arbos<br/>Combines all results with MARL weighting"]
+### Prompt Evolution Intelligence
+The system is powered by layered, compounding English prompts.  
+`killer_base.md` provides the challenge-agnostic foundation and English Evolution Modules.  
+Planning Arbos specializes it into a challenge-specific post-planning enhancement.  
+Orchestrator Arbos further refines it into a pre-launch context.  
+You can edit any generated prompt and save it as a **Grail pattern**, which is automatically appended to `killer_base.md` and stored in `memdir/grail`.  
 
-    G --> H["📊 ValidationOracle<br/>Runs your exact verification code + scores"]
+This intelligence compounds from loop to loop via Adaptation Arbos, and each new run begins with richer, proven context — allowing the miner to evolve its own intelligence across challenges without modifying any Python code.
 
-    H -->|"✅ High Score"| I["Final Miner Review<br/>+ One-click SN63 Packaging"]
-    H -->|"❌ Needs Improvement"| J["Adaptation Arbos (re_adapt)<br/>Trajectory memory + self-improvement"]
+### Strict Verification Intelligence at Every Level
+Verification is enforced at every stage, not added at the end:  
+- Sub-Arbos workers operate verifier-code-first with dynamic symbolic checks.  
+- Synthesis Arbos only credits paths meeting strict MARL thresholds (≥0.88 symbolic fidelity, ≥0.85 determinism).  
+- ValidationOracle executes your exact verifier code + SymPy invariants + 0-1 edge-case assertions on the final synthesized solution.  
+- Low-scoring paths are rejected and routed to Adaptation Arbos.  
 
-    J --> E
+No solution reaches final review or SN63 submission unless it survives this rigorous, deterministic gate. This is the single biggest differentiator from typical LLM swarms.
 
-    I --> K["Submit to SN63<br/>submission_package.zip"]
-```
+### Inner + Outer Improvement Loop Intelligence
 
----
+**Inner Loop (within a single run)**  
+When ValidationOracle returns a low score on the synthesized solution, **Adaptation Arbos (`re_adapt`)** is automatically triggered.  
 
-### Key Intelligence Highlights (Updated)
+It intelligently pulls:
+- The latest trajectory_vector_db entries
+- Score-weighted patterns from Memdir Grail (higher ValidationOracle scores receive stronger influence)
+- All built-up prompt layers (base strategy + challenge-specific enhancement + pre-launch context)
 
-- **Full Miner Control** — Planning approval, deterministic tooling overrides, enhancement prompt, executable verification, final review, and one-click packaging.
+This rich, evolving context enables `re_adapt` to generate **targeted, high-signal adaptations** instead of generic retries. Each iteration becomes noticeably smarter — suggesting precise fixes (e.g., “emphasize algebraic closures and symbolic invariants on this subtask” or “escalate ModelHunter for stronger symbolic reasoning models”), avoiding low-fidelity paths, and leveraging proven patterns from earlier loops in the same run.
 
-  
-- **Intelligent Planning Arbos** — Generates high-level strategy and explicitly recommends deterministic tools, libraries, and the best Hugging Face models.  
-- **ReadyAI llms.txt Integration (SN33)** — Automatically pulls clean, structured semantic knowledge from thousands of domains and organizations during planning and execution. Greatly improves grounding on real-world, business, research, and technology challenges.
-- **Miner Enhancement Prompt** — Dedicated field to inject custom instructions (tool priorities, novelty focus, model preferences, synthesis style) respected across all phases.  
-- **Orchestrator Arbos** — Refines the plan into an executable blueprint with subtasks, swarm config, tool_map, and validation criteria.  
-- **Post-Orchestration Review Dashboard** — Full blueprint view with toggles for Arbos recommendations, custom context, and one-click swarm launch. Review and override Arbos tool/model suggestions before swarm launch
-- **Dynamic Parallel Swarm** — Event-driven ThreadPool with per-subtask ToolHunter, verifier-code-first execution, and MARL-style credit assignment for superior synthesis. Swarm size automatically adjusts to your available VRAM.  
-- **Automatic Symbolic & Deterministic Reasoning** — Automatically runs your exact verification code snippets first, then invokes deterministic logic (SymPy, etc.) before falling back to LLM.  
-- **Intelligent Verification System** — Fully dynamic, verification-driven strategy with ValidationOracle as the single source of truth.  
-- **Quasar Auto-Download + Long-Context Intelligence** — High-value tasks automatically download and use Quasar-10B for massive stable context without losing information.  
-- **Recursive Self-Improvement** — Adaptation Arbos with per-loop re_adaptation, trajectory-informed memory, EvoAgentX-style workflow evolution, and autoresearch patches.  
-- **EGGROLL Low-Rank Perturbations** — Efficient novelty exploration with minimal compute overhead.  
-- **Agent-Reach Grounding** — ToolHunter fetches clean web content with caching and fallbacks for higher-quality recommendations.  
-- **Three-Layer Memory Refinement** — Short-term buffer + LLM-compressed summaries on top of Vector DB for sharper recommendations and long-term learning.  
-- **Safe ToolHunter Proposals** — Arbos proposes powerful new tools and models; ToolHunter can automatically download recommended Hugging Face models — but never executes unsafe code.
+**The more evolved the prompts, the more effective each inner-loop iteration becomes.**
 
----
+**Outer Loop (across multiple runs)**  
+High-scoring runs trigger automatic Grail extraction — symbolic invariants, best ToolHunter models, verifier snippets, and module-effectiveness reflections are saved to persistent `memdir/grail`. Miner-saved enhancements are also preserved.  
 
-### Accepting Miner Models & Smart Model Hunting
+Future challenges therefore begin with richer, battle-tested intelligence, creating true long-term self-improvement. The system doesn’t just solve one challenge better — it grows fundamentally smarter over time.
 
-**ToolHunter includes smart model hunting**:  
-When relevant, it suggests specialized Hugging Face models with compatibility notes (VRAM, quantization).  
-You see these in the final ToolHunter tab with actionable installation guidance.
-
-**How to request custom models**:  
-Simply specify the exact model name in the Enhancement Prompt, for example:  
-- "Use TheBloke/Llama-3-70B-Instruct for synthesis"  
-- "For stabilizer subtasks, prefer Qwen2-Math-7B-Instruct"  
-
-Arbos respects your request and falls back gracefully if needed.
-
----
-
-### Dynamic LLM Logic
-
-The system intelligently routes tasks:  
-- Planning, orchestration, and synthesis use higher-capability models.  
-- Routine sub-tasks and verification use faster models.  
-You can override any routing by naming a specific model in the Enhancement Prompt. External endpoints receive the preferred model when possible.
-
----
-
-### GOAL.md / killer_base.md Configuration
-
-```markdown
-# Enigma Machine Miner - Killer Base Strategy & Toggles
-# Bittensor SN63 - Arbos-centric Solver
-
-## GOAL
-Solve the sponsor challenge with maximum novelty and verifier score while staying under the *DESIRED COMPUTE LIMIT*.
-
-## Core Strategy (Miner Customizes)
-Produce novel, verifier-strong, licensable solutions for SN63 challenges while staying strictly within compute limits and maximizing IP/value.
-
-Always prioritize:
-- High novelty + verifier potential on Quantum Rings
-- Efficient use of compute
-- Clear, reproducible outputs
-
-## Toggles & Explanations
-
-### Core Behavior
-miner_review_after_loop: false     # true = pause after every major loop for miner input
-max_loops: 5                       # Maximum automatic loops when review is off
-miner_review_final: true           # Always require final miner review before submission
-
-### Compute & Resource Management
-compute_source: chutes             # Options: local, chutes, already_running, custom
-max_compute_hours: 3.8             # Dynamic maximum compute time for the entire challenge
-resource_aware: true               # Actively enforces time budgets and adjusts swarm size
-
-### Safety & Quality
-guardrails: true                   # Applies output cleaning and sanity checks
-
-### ToolHunter
-toolhunter_escalation: true
-manual_tool_installs_allowed: true
-```
+### Compute Flexibility
+Local GPU (Ollama) is the default for zero extra cost, but the system is **not** designed around it. Switch anytime to Chutes (remote H100), already-running endpoints, or custom hosted setups via the UI. Resource-aware logic and dynamic swarm sizing adapt to whatever compute you choose.
 
 ### Quick Start
-
 ```bash
 pip install -r requirements.txt
-pip install stim QuantumRingsLib[cpu]   # or [cuda12x] for GPU
 streamlit run streamlit_app.py
 ```
 
-(Optional: Add `GITHUB_TOKEN` to `.env` for richer ToolHunter searches.)
+Replace the three v4 files (`killer_base.md`, `agents/arbos_manager.py`, `streamlit_app.py`) for the full layered evolution experience.
 
-**Recent Upgrades**  
-- Fully challenge-agnostic (works for any industry, not just quantum) 
-- Fully dynamic verification-driven strategy across all phases
-- Verifier-code-first execution (runs your exact verification code)  
-- MARL-style credit assignment and event-driven swarm  
-- Recursive autoresearch + EvoAgentX workflow evolution  
-- Trajectory-informed memory system  
-- Orachestration Review Dashboard with toggles and one-click swarm launch  
-- Quasar auto-download + long-context intelligence  
-- Full V/Vd-ready packaging with oracle results included
-- Dynamic swarm sizing based on real VRAM 
-- Intelligent compute routing (Quasar → local vLLM → frontier APIs → Chutes)  
-- ToolHunter now auto-downloads recommended Hugging Face models  
-- Adaptation Arbos with per-loop re-adaptation  
-- Light automatic memory compression
-  
-### Why This Wins on SN63
+**The bunker is open.**
 
-- True intelligent decomposition with Arbos-driven recommendations  
-- Dynamic verification strategy with native Quantum Rings integration  
-- Parallel swarm with MARL-style weighting and recursive self-improvement  
-- Full miner control combined with powerful autonomous intelligence  
-- Strong resource awareness and adaptive long-term memory  
+Questions or feature requests? Ping @dTAO_Dad on X.
 
-**Phase 2 ready.**
-
----
-
-Made with focus on first-principles agentic design for Bittensor SN63.  
-Questions or feature requests? Open an issue or ping @dTAO_Dad on X.
+Made with focus on first-principles agentic design for Bittensor SN63.
+```
