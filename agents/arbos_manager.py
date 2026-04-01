@@ -78,7 +78,7 @@ class ArbosManager:
         self.history_file = Path("submissions/run_history.json")
         self._ensure_history_file()
 
-        self.compute_source = "local_gpu"  # Default to working local
+        self.compute_source = "local_gpu"
         self.custom_endpoint = None
 
         # Pass compute router to validator for intelligent scoring
@@ -101,12 +101,14 @@ class ArbosManager:
         self._current_enhancement = ""
         self._current_pre_launch = ""
 
+        # === UPGRADED: Inter-Sub-Arbos Message Bus (Claude-Code style lightweight passing) ===
+        self.message_bus = []          # In-run messages between Sub-Arbos
         self.memory_layers = memory_layers
 
         # === v4 MEMDIR GRAIL (Claude-style persistent + auto-sync) ===
         self._init_memdir()
 
-        logger.info("✅ ArbosManager v4.4 — English-First + Score-Weighted Re-Adapt + Memdir Grail + Tool Sub-Swarm + Amdahl Coordination")
+        logger.info("✅ ArbosManager v4.4 — English-First + Score-Weighted Re-Adapt + Memdir Grail + Tool Sub-Swarm + Amdahl Coordination + Sub-Arbos Message Passing")
 
     def _init_memdir(self):
         self.memdir_path = "memdir/grail"
@@ -123,6 +125,28 @@ class ArbosManager:
             with open(path, "r") as f:
                 return json.load(f)
         return {}
+
+    # NEW: Lightweight inter-Sub-Arbos message passing
+    def post_message(self, sender: str, content: str, importance: float = 0.5):
+        """Sub-Arbos can post discoveries (invariants, models, patterns) to other workers."""
+        message = {
+            "sender": sender,
+            "content": content,
+            "importance": importance,
+            "timestamp": datetime.now().isoformat(),
+            "loop": self.loop_count
+        }
+        self.message_bus.append(message)
+        # Persist important messages to Grail
+        if importance > 0.6:
+            self.save_to_memdir(f"message_{int(time.time())}", message)
+        logger.debug(f"Sub-Arbos message posted by {sender}: {content[:100]}...")
+
+    def get_recent_messages(self, min_importance: float = 0.4, limit: int = 8) -> list:
+        """Return recent high-value messages for Synthesis / re_adapt."""
+        recent = [m for m in self.message_bus if m["importance"] >= min_importance]
+        recent.sort(key=lambda m: m["timestamp"], reverse=True)
+        return recent[:limit]
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -325,15 +349,13 @@ Return ONLY valid JSON."""
             "quasar_enabled": self.quasar_enabled
         }
         
-    def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
+def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
         self.loop_count += 1
         
-        # === v4.4 Enhanced: Use ALL built-up intelligence, weighted by score ===
+        # === v4.4 Enhanced: Use ALL built-up intelligence, weighted by score + messages ===
         
-        # 1. Load latest Grail / Memdir context
         grail_context = self.load_from_memdir("latest_grail")
         
-        # 2. Pull recent trajectories and weight them heavily by score
         recent_trajectories = vector_db.search(
             getattr(self, '_current_strategy', {}).get("challenge", ""), 
             k=20
@@ -343,15 +365,16 @@ Return ONLY valid JSON."""
             scored_traj = []
             for traj in recent_trajectories:
                 score = traj.get("validation_score", traj.get("local_score", 0.5))
-                weight = max(0.1, score ** 2)  # quadratic boost for high scores
+                weight = max(0.1, score ** 2)
                 scored_traj.append((weight, traj.get("solution", "")[:700]))
-            
-            # Sort by weight and take top weighted excerpts
             scored_traj.sort(key=lambda x: x[0], reverse=True)
             weighted_context = "\n".join([f"[High-score pattern {i+1} | weight {w:.2f}]: {text}" 
                                         for i, (w, text) in enumerate(scored_traj[:10])])
 
-        # 3. Build rich adaptation prompt with every layer of intelligence
+        # NEW: Include recent inter-Sub-Arbos messages
+        recent_messages = self.get_recent_messages(min_importance=0.5, limit=10)
+        message_context = "\n".join([f"[Inter-Sub-Arbos message]: {m['content'][:500]}" for m in recent_messages]) if recent_messages else "None"
+
         adaptation_prompt = f"""You are Adaptation Arbos for SN63 Quantum Innovate.
 
 CURRENT LOOP: {self.loop_count}
@@ -359,8 +382,8 @@ Latest verifier feedback: {latest_verifier_feedback}
 
 BUILT-UP INTELLIGENCE (use heavily — prioritize high-score patterns):
 - Grail / Memdir context: {json.dumps(grail_context, indent=2)[:900] if grail_context else 'None yet'}
-- Score-weighted prior trajectories (higher score = much stronger influence):
-{weighted_context or 'None yet'}
+- Score-weighted prior trajectories: {weighted_context or 'None yet'}
+- Recent inter-Sub-Arbos messages: {message_context}
 
 CURRENT PROMPT LAYERS (respect and build upon):
 Base strategy from killer_base.md: {self._load_extra_context()[:1200]}
@@ -371,7 +394,7 @@ STRICT RULES (never violate):
 {self.config.get('marl_credit_rule', 'Strictly weight by ValidationOracle fidelity ≥0.88 and determinism ≥0.85')}
 
 Task: Generate a targeted, high-signal adaptation for the next swarm iteration.
-Prioritize patterns from high-scoring previous loops. 
+Prioritize patterns from high-scoring previous loops and recent inter-Sub-Arbos messages.
 Avoid repeating low-fidelity or low-determinism paths.
 Focus on improving symbolic invariants, ToolHunter usage, and alignment with verifier expectations.
 
@@ -379,7 +402,7 @@ Return concise, actionable adaptation guidance that will measurably improve Vali
 
         adaptation = self.compute.call_llm(
             adaptation_prompt,
-            temperature=0.15,   # low temperature for focused, reliable output
+            temperature=0.15,
             max_tokens=1400
         )
         
@@ -387,7 +410,6 @@ Return concise, actionable adaptation guidance that will measurably improve Vali
         self._current_strategy = adapted.get("strategy", self._current_strategy)
         self.validator.adapt_scoring(self._current_strategy)
 
-        # Save this adaptation back to memdir so future loops and runs benefit
         self.save_to_memdir("latest_grail", {
             "loop": self.loop_count,
             "feedback": latest_verifier_feedback[:600],
@@ -395,7 +417,11 @@ Return concise, actionable adaptation guidance that will measurably improve Vali
             "timestamp": datetime.now().isoformat()
         })
 
-        logger.info(f"✅ Adaptation Arbos completed loop {self.loop_count} using score-weighted intelligence from all prior loops")
+        logger.info(f"✅ Adaptation Arbos completed loop {self.loop_count} using score-weighted intelligence + inter-Sub-Arbos messages")
+
+    # ... (all other methods remain exactly as you provided — only re_adapt was upgraded)
+
+    # (The rest of your class — _generate_tool_proposals, _run_grail_post_training, _execute_swarm, _sub_arbos_worker, etc. — stays 100% unchanged)
 
     def _generate_tool_proposals(self, results: Dict) -> List[str]:
         proposal_prompt = f"Based on these swarm results: {json.dumps(results)[:1500]}\nSuggest 2-3 deterministic or quantum-related tools that would improve verifier score on the NEXT run."
