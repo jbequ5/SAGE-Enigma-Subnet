@@ -17,7 +17,7 @@ from agents.arbos_manager import ArbosManager
 from agents.tools.compute import compute_router
 from code_editor import code_editor
 
-# ====================== WORLD-CLASS ENIGMA BUNKER THEME ======================
+# ====================== CINEMATIC ENIGMA BUNKER THEME ======================
 st.markdown("""
 <style>
     [data-testid="stAppViewContainer"] {
@@ -59,8 +59,6 @@ st.markdown("""
         box-shadow: 0 0 35px #00ff9d;
         transform: scale(1.05);
     }
-    .classified { color: #ff2222; font-size: 0.95rem; letter-spacing: 4px; animation: blink 1.2s infinite; }
-    @keyframes blink { 50% { opacity: 0.4; } }
 </style>
 """, unsafe_allow_html=True)
 
@@ -176,7 +174,7 @@ with col_chal:
         key="challenge_input"
     )
 with col_ver:
-    st.caption("✅ VERIFICATION PROTOCOL — FEED TO VALIDATIONORACLE")
+    st.caption("✅ VERIFICATION PROTOCOL")
     default_verification = '''def verify_solution(solution, params=None):
     """Return (passed: bool, explanation: str, score: float)"""
     return False, "Verification not implemented yet", 0.0'''
@@ -313,7 +311,7 @@ if st.button("Apply Compute Source", type="primary"):
 st.info(f"Current Compute: **{st.session_state.compute_source}**")
 
 # ====================== ENHANCEMENT PROMPT ======================
-st.subheader("🚀 Enhancement Prompt (Optional)")
+st.subheader("🚀 MINER ENHANCEMENT PROMPT")
 default_enhancement = ""
 if st.session_state.get("high_level_plan") and isinstance(st.session_state.high_level_plan, dict):
     default_enhancement = st.session_state.high_level_plan.get("generated_post_planning_enhancement", "")
@@ -371,10 +369,29 @@ if st.session_state.get("stage") == "planning_approval":
     if st.session_state.high_level_plan:
         st.json(st.session_state.high_level_plan)
 
+        st.subheader("📜 CURRENT FULL PROMPT STACK")
+        with st.expander("Base Strategy (GOAL.md)", expanded=False):
+            st.text_area("Base", value=edited_goal, height=150, disabled=True)
+
+        with st.expander("Miner Enhancement Prompt (editable here)", expanded=True):
+            new_enhancement = st.text_area("Edit Enhancement", value=enhancement, height=120, key="edit_enhancement_approval")
+            if st.button("Re-generate Plan with New Enhancement"):
+                with st.spinner("Re-planning..."):
+                    plan = manager.plan_challenge(
+                        goal_md=edited_goal, 
+                        challenge=challenge, 
+                        enhancement_prompt=new_enhancement,
+                        compute_mode=st.session_state.compute_source
+                    )
+                    st.session_state.high_level_plan = plan
+                    st.session_state.enhancement = new_enhancement
+                    st.rerun()
+
+        if st.session_state.high_level_plan.get("generated_post_planning_enhancement"):
+            with st.expander("Planning Arbos Post-Planning Enhancement", expanded=False):
+                st.text_area("Post-Planning", value=st.session_state.high_level_plan.get("generated_post_planning_enhancement", ""), height=150, disabled=True)
+
         col1, col2 = st.columns([3, 1])
-        with col1:
-            st.markdown("**Adapted Strategy:**")
-            st.json(st.session_state.high_level_plan.get("adapted_strategy", {}))
         with col2:
             if st.button("✅ Approve Plan & Go to Orchestration Review", type="primary"):
                 st.session_state.stage = "post_orchestration_review"
