@@ -8,16 +8,16 @@ Built from first principles to solve extremely hard sponsor challenges — quant
 
 1. **Edit `killer_base.md`** — your single source of truth containing the agnostic base strategy, toggles, and English Evolution Modules.
 2. **Enter the challenge + verification instructions**.
-3. **Click “Generate High-Level Plan”** → Planning Arbos creates a detailed strategy and **auto-populates** a challenge-specific post-planning enhancement prompt.
+3. **Click “Generate High-Level Plan”** → Planning Arbos creates a detailed strategy and **auto-populates** a challenge-specific post-planning enhancement.
 4. **Review & edit** the auto-generated Enhancement Prompt to inject your own intelligence.
 5. **(Optional)** Save the edited enhancement as a Grail pattern — it appends to `killer_base.md` and stores in `memdir/grail` for future compounding.
-6. **Approve the Plan** → Orchestrator Arbos refines the blueprint and generates an even-more-specific Pre-Launch Context Prompt.
-7. **Post-Orchestration Review Dashboard** — Examine the full swarm strategy, ToolHunter sub-swarm recommendations, validation criteria, and pre-launch context prompt. Override or approve before launch.
+6. **Approve the Plan** → Orchestrator Arbos refines the blueprint and generates an even-more-specific Pre-Launch Context.
+7. **Post-Orchestration Review Dashboard** — Examine the full swarm strategy, ToolHunter sub-swarm recommendations, validation criteria, and pre-launch context. Override or approve before launch.
 8. **Launch the Swarm** → Dynamic Swarm + coordinated ToolHunter sub-swarm (ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter) with Amdahl-aware parallelism.
 9. **Sub-Arbos Execution** — Each worker performs dynamic verifier-first scoring, ToolHunter calls, hypothesis exploration, and can post high-value discoveries to other workers via the lightweight inter-Sub-Arbos message bus.
 10. **Synthesis Arbos** — Aggregates all Sub-Arbos outputs (including inter-Sub-Arbos messages), applies MARL credit assignment weighted strictly by ValidationOracle fidelity and determinism, and produces one coherent final solution.
 11. **ValidationOracle** — The final gate. Executes your exact verifier code + symbolic 0-1 checks on the synthesized solution. Only high-fidelity paths advance.
-12. **Low Score?** → Adaptation Arbos (`re_adapt`) automatically loops back using trajectory_vector_db + Memdir Grail recall + recent inter-Sub-Arbos messages until the score improves or the compute limit is reached.
+12. **Low Score?** → Adaptation Arbos (`re_adapt`) automatically loops back using trajectory_vector_db + Memdir Grail recall + recent inter-Sub-Arbos messages + score+fidelity-weighted intelligence until the score improves or the compute limit is reached.
 13. **High Score?** → Grail auto-extraction + one-click SN63 packaging.
 
 Your edits and saved Grail patterns **compound** — the miner becomes smarter and more precise with every strong run.
@@ -59,7 +59,7 @@ flowchart TD
 7. **Sub-Arbos Workers** — Each performs dynamic verifier-first scoring, ToolHunter integration, hypothesis diversity, symbolic checks, and can post high-value discoveries to other workers via the lightweight inter-Sub-Arbos message bus.
 8. **Synthesis Arbos** — Takes outputs from all Sub-Arbos workers (including inter-Sub-Arbos messages), applies strict MARL credit assignment (weighted only by ValidationOracle fidelity and determinism), and produces one coherent final solution.
 9. **ValidationOracle** — The unbreakable gate. Executes your exact verifier code snippets + SymPy invariants + 0-1 edge-case checks on the synthesized solution.
-10. **Adaptation Arbos Loop** — When ValidationOracle score is low, `re_adapt` intelligently pulls from trajectory_vector_db + Memdir Grail + recent inter-Sub-Arbos messages and loops back to the swarm.
+10. **Adaptation Arbos Loop** — When ValidationOracle score is low, `re_adapt` intelligently pulls from trajectory_vector_db + Memdir Grail + recent inter-Sub-Arbos messages + score+fidelity-weighted intelligence and loops back to the swarm.
 11. **Memdir Grail & Compounding Evolution** — High-score runs auto-extract invariants, best models, verifier snippets, reflections, and inter-Sub-Arbos messages into persistent `memdir/grail`. Miner-saved enhancements become permanent intelligence for future runs.
 
 ### Prompt Evolution Intelligence
@@ -87,7 +87,7 @@ When ValidationOracle returns a low score on the synthesized solution, **Adaptat
 
 It intelligently pulls:
 - The latest trajectory_vector_db entries
-- Score-weighted patterns from Memdir Grail (higher ValidationOracle scores receive stronger influence)
+- Score+fidelity-weighted patterns from Memdir Grail (higher ValidationOracle scores and fidelity receive stronger influence)
 - All built-up prompt layers (base strategy + challenge-specific enhancement + pre-launch context)
 - Recent inter-Sub-Arbos messages posted by other workers
 
@@ -116,4 +116,3 @@ Replace the three v4 files (`killer_base.md`, `agents/arbos_manager.py`, `stream
 Questions or feature requests? Ping @dTAO_Dad on X.
 
 Made with focus on first-principles agentic design for Bittensor SN63.
-```
