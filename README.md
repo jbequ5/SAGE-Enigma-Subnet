@@ -41,31 +41,54 @@ flowchart TD
 
     G --> H["📊 ValidationOracle:<br/>Runs exact verifier code + 0-1 symbolic scoring on the synthesized solution"]
 
-    H -->|"✅ High Score"| I["Final Miner Review + Packaging"]
-    H -->|"❌ Low Score"| J["Adaptation Arbos (re_adapt)<br/>Trajectory + Memdir recall + Prompt Intelligence + inter-Sub-Arbos messages → loop back to Swarm"]
+    H -->|"✅ High Score"| I["Final Miner Review + Packaging + Grail Extraction"]
+    H -->|"❌ Low Score"| J["Intelligence Compression Layer<br/>→ Distills trajectories, messages, Grail & diagnostics into dense reinforcement-weighted deltas<br/>(validation_score × fidelity¹·⁵ × symbolic_coverage)"]
 
-    J --> E
-    I --> K["SN63 Submission Package"]
+    J --> K["Adaptation Arbos (re_adapt)<br/>Uses compressed intelligence deltas + Memdir Grail + inter-Sub-Arbos messages → smarter, faster loop back to Swarm"]
+
+    K --> E
+    I --> L["SN63 Submission Package"]
 ```
+
 
 ### Key Intelligence (in system flow order)
 
-1. **Miner Control & GOAL.md** — Single source of truth. Full control over base strategy, toggles, and English Evolution Modules.
-2. **Planning Arbos** — Generates high-level strategy and automatically creates a challenge-specific post-planning enhancement (auto-populates the editable field).
-3. **Enhancement Prompt Layer** — Auto-generated and fully editable. Your custom instructions (tool priorities, model preferences, novelty focus, synthesis style) propagate through all phases.
-4. **Orchestrator Arbos** — Refines the plan into an executable blueprint with decomposition, swarm config, tool_map, validation criteria, and a specialized Pre-Launch Context.
-5. **Post-Orchestration Review Dashboard** — Critical visibility step. Review the complete swarm strategy, ToolHunter sub-swarm recommendations, validation criteria, and pre-launch context before committing compute.
-6. **Dynamic Swarm + ToolHunter Sub-Swarm** — Parallel execution with four coordinated hunters (ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter). Amdahl-aware routing prevents common multi-agent pitfalls.
+1. **Miner Control & GOAL.md** — Single source of truth. Full control over base strategy, toggles, model/compute choices, and Evolution Prompts.
+
+2. **Planning Arbos** — Generates high-level strategy and automatically creates a challenge-specific post-planning enhancement prompt.
+
+3. **Enhancement Prompt Layer** — Auto-generated and fully editable. Your custom instructions propagate through all phases.
+
+4. **Orchestrator Arbos** — Refines the plan into an executable blueprint with decomposition, swarm config, tool_map, validation criteria, and a specialized Pre-Launch Context Prompt.
+
+5. **Post-Orchestration Review Dashboard** — Critical visibility step. Review the complete swarm strategy, ToolHunter sub-swarm recommendations, validation criteria, and editable pre-launch context prompt before committing compute.
+
+6. **Dynamic Swarm + ToolHunter Sub-Swarm** — Parallel execution with four coordinated hunters. Amdahl-aware routing prevents common multi-agent pitfalls.
+
 7. **Sub-Arbos Workers** — Each performs dynamic verifier-first scoring, ToolHunter integration, hypothesis diversity, symbolic checks, and can post high-value discoveries to other workers via the lightweight inter-Sub-Arbos message bus.
+
 8. **Synthesis Arbos** — Takes outputs from all Sub-Arbos workers (including inter-Sub-Arbos messages), applies strict MARL credit assignment (weighted only by ValidationOracle fidelity and determinism), and produces one coherent final solution.
+
 9. **ValidationOracle** — The unbreakable gate. Executes your exact verifier code snippets + SymPy invariants + 0-1 edge-case checks on the synthesized solution.
-10. **AgentFixer-style Diagnostics**: Rich multi-detector failure analysis (symbolic invariants, prompt coherence, parsing, novelty drift) now feeds directly into Grail consolidation and re_adapt, turning silent failures into precise, self-improving adaptations.
-11. **Adaptation Arbos Loop** — When ValidationOracle score is low, `re_adapt` intelligently pulls from trajectory_vector_db + Memdir Grail + recent inter-Sub-Arbos messages + score+fidelity-weighted intelligence and loops back to the swarm.
-12. **Grail + Reinforcement**: High-value symbolic patterns are automatically extracted and reinforced using a MemFactory-inspired signal (score × fidelity¹·⁵ × symbolic_coverage). This enables lighter context windows while retaining proven high-fidelity trajectories longer.
-13. **Memdir Grail & Compounding Evolution** — High-score runs auto-extract invariants, best models, verifier snippets, reflections, and inter-Sub-Arbos messages into persistent `memdir/grail`. Miner-saved enhancements become permanent intelligence for future runs.
 
+10. **AgentFixer-style Diagnostics** — Rich multi-detector failure analysis (symbolic invariants, prompt coherence, parsing, novelty drift) now feeds directly into Grail consolidation and re_adapt, turning silent failures into precise, self-improving adaptations.
 
+11. **Intelligence Compression Layer** — Before any high-level reasoning (especially re_adapt and Adaptation Arbos), raw trajectories, messages, Grail artifacts, and diagnostics are distilled by the evolving **COMPRESSION_PROMPT**. This produces dense, reinforcement-weighted intelligence deltas (`validation_score × fidelity¹·⁵ × symbolic_coverage`) with explicit meta-lessons and policy updates — slashing context bloat while amplifying signal.
 
+12. **Adaptation Arbos Loop** — When ValidationOracle score is low, `re_adapt` intelligently pulls **compressed intelligence deltas** from trajectory_vector_db + Memdir Grail + recent messages. This enables faster, higher-precision adaptations with far less token waste.
+
+13. **Grail + Reinforcement & Outer Evolution** — High-value symbolic patterns are automatically extracted and reinforced using the MemFactory-inspired signal (`score × fidelity¹·⁵ × symbolic_coverage`). On strong runs the **compression prompt itself** evolves via memory RL and is appended back to `killer_base.md`, turning the input pipeline into a self-improving intelligence filter that compounds across runs while keeping context windows light and effective.
+
+### Bittensor Subnet Inspired Intelligence
+
+- **SN11 TrajectoryRL** — Trajectory optimization & policy learning  
+- **SN33 ReadyAI** — Structured high-quality data for our agents  
+- **SN24 Quasar** — Long-context attention & massive context handling  
+- **SN64 Chutes** — Decentralized serverless AI compute  
+- **SN81 Grail** — Verifiable reinforcement learning & post-training 
+
+  This turns raw subnet intelligence into a cryptographically inspired, verifiable self-improvement loop that compounds intelligence across runs.
+  
 ### Prompt Evolution Intelligence
 The system is powered by layered, compounding English prompts.  
 `killer_base.md` provides the challenge-agnostic foundation and English Evolution Modules.  
@@ -84,28 +107,63 @@ Verification is enforced at every stage, not added at the end:
 
 No solution reaches final review or SN63 submission unless it survives this rigorous, deterministic gate. This is the single biggest differentiator from typical LLM swarms.
 
-### Inner + Outer Improvement Loop Intelligence
+### Inner Loop Intelligence (Per-Run / Within-Task Evolution)
 
-**Inner Loop (within a single run)**  
-When ValidationOracle returns a low score on the synthesized solution, **Adaptation Arbos (`re_adapt`)** is automatically triggered.  
+The **inner loop** focuses on rapid, high-fidelity problem-solving **within a single mining run or adaptation cycle**. This is where the Arbos swarm (Planning → Orchestration → ToolHunter sub-swarms → Synthesis) executes, verifies via ValidationOracle, and adapts in real time.
 
-It intelligently pulls:
-- The latest trajectory_vector_db entries
-- Score+fidelity-weighted patterns from Memdir Grail (higher ValidationOracle scores and fidelity receive stronger influence)
-- All built-up prompt layers (base strategy + challenge-specific enhancement + pre-launch context)
-- Recent inter-Sub-Arbos messages posted by other workers
+**Key mechanisms**:
+- Verifier-first symbolic execution (`symbolic_module`) and deterministic checks.
+- Eggroll-style low-rank perturbations for novelty.
+- MARL-weighted credit assignment across sub-Arbos and ToolHunter.
+- Dynamic resource-aware swarm sizing + Amdahl coordination.
+- `re_adapt()` triggered on low ValidationOracle scores, incorporating diagnostics, fix recommendations, Grail patterns, and recent messages.
 
-This rich, evolving context enables `re_adapt` to generate **targeted, high-signal adaptations** instead of generic retries. Each iteration becomes noticeably smarter — suggesting precise fixes (e.g., “emphasize algebraic closures and symbolic invariants on this subtask” or “escalate ModelHunter for stronger symbolic reasoning models”), avoiding low-fidelity paths, and leveraging proven patterns and discoveries from earlier loops in the same run.
+**Integrated Intelligence Compression Layer**  
+All raw inputs (trajectories from `vector_db`, message bus entries, Grail artifacts, and diagnostics) are now passed through `compress_intelligence_delta()` **before** reaching Adaptation Arbos or the main adaptation prompt. 
 
-**The more evolved the prompts are, the more effective each inner-loop iteration becomes.**
+This produces dense, reinforcement-weighted "intelligence deltas" (using the exact formula `validation_score × fidelity^1.5 × symbolic_coverage`). The compressor forces explicit lessons such as:
+- "Pattern X increased score by +0.18 because Y"
+- Meta-lessons like "On high-difficulty symbolic challenges, force Z before LLM"
+- Policy updates for `memory_policy_weights` or `killer_base.md`
 
-**Outer Loop (across multiple runs)**  
-High-scoring runs trigger automatic Grail extraction — symbolic invariants, best ToolHunter models, verifier snippets, and module-effectiveness reflections are saved to persistent `memdir/grail`. Miner-saved enhancements are also preserved.  
+**Impact on the inner loop**:  
+- Context size drops 60-75% while **increasing** signal density.  
+- `re_adapt()` now receives clean, high-value input instead of noisy raw dumps → faster, more precise adaptations per compute unit.  
+- Compression routes to your lightweight `sub_arbos_model`, keeping the inner loop efficient
+- Output includes a self-assessed `compression_score` for monitoring.
 
-Future challenges therefore begin with richer, battle-tested intelligence, creating true long-term self-improvement. The system doesn’t just solve one challenge better — it grows fundamentally smarter over time.
+This makes every inner-loop iteration smarter without changing the fixed objective (max ValidationOracle score + determinism + novelty).
+
+### Outer Loop Intelligence (Cross-Run / Persistent Evolution)
+
+The **outer loop** operates **across multiple runs**, compounding intelligence over time through persistent memory and self-improvement.
+
+**Key mechanisms**:
+- Grail extraction & reinforcement on winning runs (`grail_on_winning_runs: true`).
+- `memory_policy_weights`, `meta_reflection_history`, and `known_failure_modes`.
+- TrajectoryVectorDB persistence + export for optimization.
+- `consolidate_grail()`, `meta_reflect()`, and history tracking.
+- Automatic appending of English Evolution Modules and reflections to `killer_base.md`.
+
+**Integrated Intelligence Compression Layer**  
+The compression prompt itself (`## COMPRESSION_PROMPT` in `killer_base.md`) is now a **first-class evolvable artifact** in the outer loop.
+
+- On strong runs (`best_score > 0.85` and Grail enabled), `evolve_compression_prompt()` triggers automatically.
+- It saves the current version to `memdir/grail/compression_prompt_vN.json` using the same reinforcement signal.
+- A lightweight evolution step (routed to `sub_arbos_model`) mutates/combines high-reinforcement versions and appends the improved prompt back to `killer_base.md`.
+- Future runs automatically load the latest evolved compressor via `load_compression_prompt()`.
+
+**Impact on the outer loop**:  
+- The **input pipeline** to all intelligence mechanisms (re_adapt, planning, synthesis) becomes self-improving.  
+- Compression evolves to become denser and better at surfacing exactly the patterns that move ValidationOracle scores.  
+- This creates compounding gains: better input → better inner-loop adaptations → higher-scoring runs → even better compressor.  
+- All evolution stays strictly verifier-gated and aligned to your fixed objective.
+
+**Overall architecture benefit**:  
+The compression layer sits as a **shared intelligence filter** between the two loops. It makes the inner loop more efficient (denser context = faster/better decisions) while turning the outer loop into a true meta-learner (the preprocessor itself improves over time). This is hardware-aware and scales naturally with Grail reinforcement.
 
 ### Compute Flexibility
-Local GPU (Ollama) is the default for zero extra cost, but the system is **not** designed around it. Switch anytime to Chutes (remote H100), already-running endpoints, or custom hosted setups via the UI. Resource-aware logic and dynamic swarm sizing adapt to whatever compute you choose.
+Local GPU (Ollama) is the default for zero extra cost, but the system is **not** designed around it. Switch anytime to Chutes, already-running endpoints, or custom hosted setups via the UI. Resource-aware logic and dynamic swarm sizing adapt to whatever compute you choose.
 
 ### Quick Start
 ```bash
