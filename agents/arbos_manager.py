@@ -97,13 +97,13 @@ class ArbosManager:
         self._current_enhancement = ""
         self._current_pre_launch = ""
 
-        # Message bus for verifiable inter-Sub-Arbos communication
+        # Mature Message Bus with typed channels and fidelity-aware conflict resolution
         self.message_bus = []
         self.memory_layers = memory_layers
 
         self._init_memdir()
 
-        logger.info("✅ ArbosManager v4.5 — Strong Verifiable Evolution Loop + Score+Fidelity Weighted Intelligence")
+        logger.info("✅ ArbosManager v4.5 — Mature Message Bus + Score+Fidelity Weighted Verifiable Evolution")
 
     def _init_memdir(self):
         self.memdir_path = "memdir/grail"
@@ -121,26 +121,37 @@ class ArbosManager:
                 return json.load(f)
         return {}
 
-    # UPGRADED: Messages now carry score & fidelity for evolution
-    def post_message(self, sender: str, content: str, importance: float = 0.5, 
-                     validation_score: float = None, fidelity: float = None):
+    # UPGRADED: Typed message bus with conflict resolution and fidelity weighting
+    def post_message(self, sender: str, content: str, msg_type: str = "general", 
+                     importance: float = 0.5, validation_score: float = None, fidelity: float = None):
         message = {
             "sender": sender,
             "content": content,
+            "type": msg_type,                    # e.g. "symbolic_invariant", "tool_recommendation", "verifier_snippet"
             "importance": importance,
             "validation_score": validation_score or 0.0,
             "fidelity": fidelity or 0.0,
             "timestamp": datetime.now().isoformat(),
             "loop": self.loop_count
         }
+        
+        # Simple conflict resolution: keep only the best message per type per loop
+        self.message_bus = [m for m in self.message_bus 
+                           if not (m.get("type") == msg_type and m.get("loop") == self.loop_count)]
+        
         self.message_bus.append(message)
+        
+        # Persist high-value or high-fidelity messages
         if importance > 0.6 or (validation_score and validation_score > 0.85):
-            self.save_to_memdir(f"message_{int(time.time())}", message)
-        logger.debug(f"Sub-Arbos message posted by {sender} | score={validation_score:.2f} | fidelity={fidelity:.2f}")
+            self.save_to_memdir(f"message_{msg_type}_{int(time.time())}", message)
+        
+        logger.debug(f"Sub-Arbos message posted by {sender} | type={msg_type} | score={validation_score:.2f} | fidelity={fidelity:.2f}")
 
-    def get_recent_messages(self, min_importance: float = 0.4, limit: int = 8) -> list:
+    def get_recent_messages(self, min_importance: float = 0.4, limit: int = 12, msg_type: str = None) -> list:
         recent = [m for m in self.message_bus if m["importance"] >= min_importance]
-        recent.sort(key=lambda m: m["validation_score"], reverse=True)  # score-first sort
+        if msg_type:
+            recent = [m for m in recent if m.get("type") == msg_type]
+        recent.sort(key=lambda m: (m.get("validation_score", 0), m.get("fidelity", 0)), reverse=True)
         return recent[:limit]
 
     def _ensure_history_file(self):
@@ -355,14 +366,14 @@ Return ONLY valid JSON."""
             for traj in recent_trajectories:
                 score = traj.get("validation_score", traj.get("local_score", 0.5))
                 fidelity = traj.get("fidelity", 0.5)
-                weight = max(0.1, (score ** 2) * (fidelity ** 1.5))  # heavy emphasis on both score AND fidelity
+                weight = max(0.1, (score ** 2) * (fidelity ** 1.5))
                 scored_traj.append((weight, traj.get("solution", "")[:700]))
             scored_traj.sort(key=lambda x: x[0], reverse=True)
             weighted_context = "\n".join([f"[High-score+fidelity pattern {i+1} | weight {w:.2f}]: {text}" 
                                         for i, (w, text) in enumerate(scored_traj[:10])])
 
-        recent_messages = self.get_recent_messages(min_importance=0.5, limit=10)
-        message_context = "\n".join([f"[Inter-Sub-Arbos message | score {m['validation_score']:.2f} | fidelity {m['fidelity']:.2f}]: {m['content'][:500]}" 
+        recent_messages = self.get_recent_messages(min_importance=0.5, limit=12)
+        message_context = "\n".join([f"[Inter-Sub-Arbos {m.get('type', 'general')}] score {m['validation_score']:.2f} | fidelity {m['fidelity']:.2f}: {m['content'][:500]}" 
                                   for m in recent_messages]) if recent_messages else "None"
 
         adaptation_prompt = f"""You are Adaptation Arbos for SN63 Quantum Innovate.
