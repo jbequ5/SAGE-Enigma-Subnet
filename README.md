@@ -22,6 +22,33 @@ Built from first principles to solve extremely hard sponsor challenges — quant
 
 Your edits and saved Grail patterns **compound** — the miner becomes smarter and more precise with every strong run.
 
+### System Architecture
+
+```mermaid
+flowchart TD
+    A["Miner Inputs<br/>• Edit killer_base.md<br/>• Challenge & Verification Code"] 
+    --> B["🔬 Planning Arbos:<br/>High-level strategy + editable challenge-specific prompt enhancement"]
+
+    B -->|"Approve + Edit"| C["🧠 Orchestrator Arbos:<br/>Refines blueprint + generates Pre-Launch Context<br/>(Amdahl coordination)"]
+
+    C --> D["📋 Post-Orchestration Review Dashboard:<br/>View swarm strategy, ToolHunter sub-swarm, validation criteria, pre-launch context prompt"]
+
+    D -->|"Approve"| E["🚀 Dynamic Swarm:<br/>+ ToolHunter Sub-Swarm (4 parallel hunters)<br/>Dynamic sizing + MARL weighting"]
+
+    E --> F["Sub-Arbos Workers:<br/>Dynamic verifier-first scoring + ToolHunter + symbolic checks"]
+
+    F --> G["Synthesis Arbos:<br/>Takes all Sub-Arbos outputs → MARL-weighted synthesis → one coherent final solution"]
+
+    G --> H["📊 ValidationOracle:<br/>Runs exact verifier code + 0-1 symbolic scoring on the synthesized solution"]
+
+    H -->|"✅ High Score"| I["Final Miner Review + Packaging"]
+    H -->|"❌ Low Score"| J["Adaptation Arbos (re_adapt)<br/>Trajectory + Memdir recall + Prompt Intelligence → loop back to Swarm"]
+
+    J --> E
+    I --> K["SN63 Submission Package"]
+```
+
+
 ### Key Intelligence (in system flow order)
 
 1. **Miner Control & GOAL.md** — Single source of truth. Full control over base strategy, toggles, and English Evolution Modules.
@@ -66,7 +93,7 @@ It intelligently pulls:
 
 This rich, evolving context enables `re_adapt` to generate **targeted, high-signal adaptations** instead of generic retries. Each iteration becomes noticeably smarter — suggesting precise fixes (e.g., “emphasize algebraic closures and symbolic invariants on this subtask” or “escalate ModelHunter for stronger symbolic reasoning models”), avoiding low-fidelity paths, and leveraging proven patterns from earlier loops in the same run.
 
-**The more evolved the prompts, the more effective each inner-loop iteration becomes.**
+**The more evolved the prompts are, the more effective each inner-loop iteration becomes.**
 
 **Outer Loop (across multiple runs)**  
 High-scoring runs trigger automatic Grail extraction — symbolic invariants, best ToolHunter models, verifier snippets, and module-effectiveness reflections are saved to persistent `memdir/grail`. Miner-saved enhancements are also preserved.  
@@ -89,4 +116,3 @@ Replace the three v4 files (`killer_base.md`, `agents/arbos_manager.py`, `stream
 Questions or feature requests? Ping @dTAO_Dad on X.
 
 Made with focus on first-principles agentic design for Bittensor SN63.
-```
