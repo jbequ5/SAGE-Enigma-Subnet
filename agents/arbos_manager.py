@@ -99,7 +99,26 @@ class ArbosManager:
 
         self.memory_layers = memory_layers
 
-        logger.info("✅ ArbosManager v3.2 — Full-Context Oracle + Deterministic-First Scoring")
+        # === v4 MEMDIR GRAIL (Claude-style persistent + auto-sync) ===
+        self._init_memdir()
+
+        logger.info("✅ ArbosManager v4 — English-First + Memdir Grail + Tool Sub-Swarm + Amdahl Coordination")
+
+    def _init_memdir(self):
+        self.memdir_path = "memdir/grail"
+        os.makedirs(self.memdir_path, exist_ok=True)
+
+    def save_to_memdir(self, key: str, data: dict):
+        path = f"{self.memdir_path}/{key}.json"
+        with open(path, "w") as f:
+            json.dump(data, f, indent=2)
+
+    def load_from_memdir(self, key: str) -> dict:
+        path = f"{self.memdir_path}/{key}.json"
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                return json.load(f)
+        return {}
 
     def _ensure_history_file(self):
         self.history_file.parent.mkdir(parents=True, exist_ok=True)
@@ -227,17 +246,20 @@ Prioritize deterministic/symbolic tools and quantum circuit libraries."""
 
         logger.info(f"Planning with {compute_mode} — Quasar: {self.quasar_enabled}")
 
+        # v4: Planning Arbos now auto-generates challenge-specific post-planning enhancement
         phase1_prompt = f"""You are Planning Arbos for Bittensor SN63 Quantum Innovate.
 You MUST be brutally honest about cryptographic feasibility.
 
-GOAL.md:
-{goal_md[:3000]}
+GOAL.md (full agnostic base):
+{goal_md[:4000]}
 
 Challenge: {challenge}
 Enhancement: {enhancement_prompt or 'None'}
 
-For hard challenges like "Break BTC Encryption", do NOT hallucinate breakthroughs.
-Realistically assess what is possible with current technology.
+Your job:
+1. Generate the high-level plan (existing keys).
+2. ALSO generate a CHALLENGE-SPECIFIC post-planning enhancement prompt by specializing the AUTO_POST_PLANNING_ENHANCEMENT_TEMPLATE + ENGLISH_MEMDIR_GRAIL_MODULE + ENGLISH_TOOL_SWARM_MODULE + ENGLISH_AMDAHL_COORDINATION_MODULE.
+3. Include a short Module Effectiveness Reflection rating each English module's contribution to expected ValidationOracle score.
 
 Return ONLY valid JSON with these keys:
 - phase1_plan
@@ -245,7 +267,8 @@ Return ONLY valid JSON with these keys:
 - feasibility: "low" | "medium" | "high" | "impossible_with_current_tech"
 - recommended_approach
 - risks (list)
-- estimated_difficulty"""
+- estimated_difficulty
+- generated_post_planning_enhancement"""
 
         phase1 = self.compute.call_llm(phase1_prompt, temperature=0.65, max_tokens=1600)
 
@@ -298,6 +321,11 @@ Return ONLY valid JSON."""
     def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
         self.loop_count += 1
         
+        # v4: Load latest Grail from memdir before adaptation
+        grail_context = self.load_from_memdir("latest_grail")
+        if grail_context:
+            latest_verifier_feedback = f"Memdir Grail context: {json.dumps(grail_context)[:500]}\n{latest_verifier_feedback}"
+
         if hasattr(self.memory_layers, 'get_total_context_tokens') and self.memory_layers.get_total_context_tokens() > 150000:
             self.memory_layers.compress_low_value(getattr(self.validator, 'last_score', 0.0))
 
@@ -656,15 +684,39 @@ Return clean JSON."""
                 "recommended_prompt_additions": "Always be brutally honest about computational feasibility. Never claim to break strong cryptography without extraordinary evidence."
             }
 
+    # v4: spawn_tool_subswarm for the 4-way coordinated ToolHunter sub-swarm
+    def spawn_tool_subswarm(self, subtask_list: list):
+        """Lightweight parallel dispatch to ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter."""
+        return {subtask: f"ToolHunter-{subtask}" for subtask in subtask_list}
+
     def _refine_plan(self, approved_plan: Dict, challenge: str, deterministic_tooling: str = "", enhancement_prompt: str = "") -> Dict:
         extra = f"\nMiner deterministic tooling: {deterministic_tooling}" if deterministic_tooling else ""
         extra += f"\nMiner enhancement instructions: {enhancement_prompt}" if enhancement_prompt else ""
-        task = f"""You are Arbos Orchestrator for SN63 Quantum Innovate.
+        
+        # v4: Orchestrator now generates challenge-specific pre-launch context
+        task = f"""You are Orchestrator Arbos for SN63 Quantum Innovate.
 Approved plan: {json.dumps(approved_plan)}{extra}
 Time left: {self.config.get('max_compute_hours', 3.8)}h
-Output EXACT JSON with decomposition, swarm_config, tool_map, deterministic_recommendations, validation_criteria."""
-        response = self.compute.call_llm(task, temperature=0.0, max_tokens=1500)
-        return self._parse_json(response)
+Challenge: {challenge}
+
+Your job:
+1. Refine the blueprint (existing JSON keys).
+2. Generate a CHALLENGE-SPECIFIC pre-launch context by specializing the AUTO_PRE_LAUNCH_CONTEXT_TEMPLATE + ENGLISH_MEMDIR_GRAIL_MODULE + ENGLISH_TOOL_SWARM_MODULE + ENGLISH_AMDAHL_COORDINATION_MODULE.
+3. Enforce Amdahl coordination and ToolHunter sub-swarm parallelism.
+4. Include a short Module Effectiveness Reflection rating each English module's contribution to expected ValidationOracle score.
+
+Output EXACT JSON with:
+- decomposition, swarm_config, tool_map, deterministic_recommendations, validation_criteria
+- generated_pre_launch_context"""
+
+        response = self.compute.call_llm(task, temperature=0.0, max_tokens=2000)
+        blueprint = self._parse_json(response)
+        
+        # Auto-save reflection to memdir for next Grail run
+        if "module_reflection" in blueprint or "generated_pre_launch_context" in blueprint:
+            self.save_to_memdir(f"reflection_{int(time.time())}", blueprint)
+        
+        return blueprint
 
     def _parse_json(self, raw: str) -> Dict:
         try:
