@@ -230,24 +230,51 @@ with col_th1:
             st.error("Please describe a gap or subtask.")
         else:
             with st.spinner("Scanning ToolHunter + ReadyAI + Agent-Reach across knowledge bases..."):
-                # Call dedicated swarm (falls back gracefully)
-                hunt_result = manager._tool_hunter(hunter_gap, "miner_requested_swarm")
+                # Use the new dedicated public method
+                hunt_result = manager.run_toolhunter_swarm(hunter_gap, max_proposals=6)
                 st.session_state.toolhunter_results = hunt_result
                 
                 st.success("✅ ToolHunter Swarm completed!")
                 st.subheader("🧪 ToolHunter Recommendations")
-                st.markdown(hunt_result)
 
-                if st.button("✅ Add Top Recommendations to GOAL.md as Grail Pattern"):
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-                    with open(goal_path, "a", encoding="utf-8") as f:
-                        f.write(f"\n\n## TOOLHUNTER_MINER_APPROVED_{timestamp}\n{hunt_result}\n")
-                    manager.save_to_memdir(f"toolhunter_{timestamp}", {"content": hunt_result, "gap": hunter_gap})
-                    st.success("Added to GOAL.md and Grail! Will compound into future runs.")
-                    st.rerun()
+                # Nice formatted display
+                if hunt_result.get("status") == "success":
+                    st.markdown("**Gap Analyzed:** " + hunt_result["gap"])
+                    
+                    if hunt_result.get("proposals"):
+                        st.subheader("Recommended Tools / Approaches")
+                        for i, prop in enumerate(hunt_result["proposals"], 1):
+                            st.markdown(f"{i}. {prop}")
+                    
+                    if hunt_result.get("install_commands"):
+                        st.subheader("Install Commands")
+                        for cmd in hunt_result["install_commands"]:
+                            st.code(cmd, language="bash")
+                    
+                    st.caption(f"Confidence: {hunt_result.get('confidence', 0.7):.2f} | Loop: {hunt_result.get('loop', 0)}")
+                else:
+                    st.error(hunt_result.get("message", "Unknown error"))
+
+                # Miner approval button
+                if hunt_result.get("status") == "success" and hunt_result.get("proposals"):
+                    if st.button("✅ Add Top Recommendations to GOAL.md as Grail Pattern", type="primary"):
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+                        content = "\n".join(hunt_result["proposals"]) + "\n\nInstall commands:\n" + "\n".join(hunt_result["install_commands"])
+                        
+                        with open(goal_path, "a", encoding="utf-8") as f:
+                            f.write(f"\n\n## TOOLHUNTER_MINER_APPROVED_{timestamp}\n{content}\n")
+                        
+                        manager.save_to_memdir(f"toolhunter_{timestamp}", {
+                            "content": content,
+                            "gap": hunter_gap,
+                            "proposals": hunt_result["proposals"]
+                        })
+                        
+                        st.success("✅ Added to GOAL.md and Grail! Will now compound into future runs via message bus + re_adapt.")
+                        st.rerun()
 
 with col_th2:
-    st.info("Pro tip: Run this anytime — even mid-challenge — to discover new deterministic tools.")
+    st.info("Pro tip: Run this anytime — even mid-challenge — to discover new deterministic tools. Results are automatically logged to the mature message bus and Grail for compounding.")
 
 # ====================== QUICK MINER PROMPT ======================
 st.subheader("🚀 QUICK MINER PROMPT")
