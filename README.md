@@ -1,4 +1,4 @@
-# THE ENIGMA MACHINE – Bittensor SN63 Arbos-Led Intelligent Solver
+# THE ENIGMA MACHINE – Arbos-Led Intelligent Solver
 
 **English-first • Verifier-first • Self-evolving • Challenge-agnostic mining swarm**
 
