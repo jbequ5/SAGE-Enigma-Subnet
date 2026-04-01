@@ -348,7 +348,65 @@ Generate concise, high-signal adaptation to improve ValidationOracle score. Prio
         })
 
         logger.info(f"✅ re_adapt completed loop {self.loop_count}")
+        
+    def run_toolhunter_swarm(self, gap_description: str, max_proposals: int = 5) -> dict:
+        """
+        Dedicated public method for Streamlit/ToolHunter Swarm.
+        Returns clean, structured recommendations that the miner can review and approve.
+        """
+        if not gap_description or len(gap_description.strip()) < 5:
+            return {"status": "error", "message": "Gap description too short or empty."}
 
+        logger.info(f"ToolHunter Swarm launched for gap: {gap_description[:100]}...")
+
+        # Use existing ToolHunter + Agent-Reach
+        hunt_result = self._tool_hunter(gap_description, "miner_requested_swarm")
+
+        # Structure the output nicely for Streamlit
+        structured = {
+            "status": "success",
+            "gap": gap_description,
+            "raw_result": hunt_result,
+            "timestamp": datetime.now().isoformat(),
+            "loop": self.loop_count,
+            "proposals": [],
+            "install_commands": [],
+            "confidence": 0.7
+        }
+
+        # Try to extract useful proposals from the result
+        try:
+            lines = str(hunt_result).split("\n")
+            for line in lines:
+                line = line.strip()
+                if line and ("pip" in line.lower() or "install" in line.lower()):
+                    structured["install_commands"].append(line)
+                elif line and len(line) > 10 and not line.startswith("["):
+                    structured["proposals"].append(line)
+        except:
+            pass
+
+        # Limit proposals
+        structured["proposals"] = structured["proposals"][:max_proposals]
+
+        # Log to memory and message bus for compounding
+        self.post_message(
+            sender="ToolHunterSwarm",
+            content=f"Gap: {gap_description[:200]}... | Found {len(structured['proposals'])} proposals",
+            msg_type="tool_recommendation",
+            importance=0.75,
+            validation_score=0.0,
+            fidelity=0.65
+        )
+
+        memory.add(
+            text=f"ToolHunter Swarm Result: {gap_description}",
+            metadata={"type": "toolhunter_swarm", "proposals": structured["proposals"]}
+        )
+
+        logger.info(f"ToolHunter Swarm completed — {len(structured['proposals'])} proposals found")
+        return structured
+        
     def _generate_tool_proposals(self, results: Dict) -> List[str]:
         proposal_prompt = f"Based on these swarm results: {json.dumps(results)[:1500]}\nSuggest 2-3 deterministic or quantum-related tools that would improve verifier score on the NEXT run."
         response = self.compute.call_llm(proposal_prompt, temperature=0.3, max_tokens=600)
