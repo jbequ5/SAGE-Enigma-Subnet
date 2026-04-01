@@ -12,7 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Import after page config
 from agents.arbos_manager import ArbosManager
 from agents.tools.compute import compute_router
 from code_editor import code_editor
@@ -123,9 +122,9 @@ with col3:
                 del st.session_state[k]
         st.rerun()
 
-# ====================== GOAL.MD EDITOR ======================
-st.subheader("📟 BASE DIRECTIVES — GOAL.md")
-st.caption("Single source of truth — edit toggles and base strategy here.")
+# ====================== GOAL.MD EDITOR (Full Strategy - Single Source of Truth) ======================
+st.subheader("📟 FULL STRATEGY — GOAL.md")
+st.caption("This is the single source of truth. Edit Core Strategy, English Modules, and Templates here.")
 
 goal_path = Path("goals/killer_base.md")
 goal_path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,34 +132,41 @@ goal_path.parent.mkdir(parents=True, exist_ok=True)
 if not goal_path.exists():
     goal_path.write_text("""# Enigma Machine Miner - Base Strategy
 
-mode: optimal
-compute_source: local
-max_compute_hours: 3.8
-resource_aware: true
-guardrails: true
-toolhunter_escalation: true
-quasar_attention: true
-dynamic_swarm: true
-verifier_first: true
-light_compression: true
-grail_on_winning_runs: false
-self_critique_enabled: true
+## Core Strategy (Challenge-Agnostic Base Prompt)
+Treat every problem as pure symbolic/text — no premature domain assumptions.
+Verifier-code-first + symbolic invariants on every subtask before any LLM generation.
+ToolHunter sub-swarm (ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter) must run in parallel where possible; serial handoffs go through ValidationOracle.
+Reward only trajectories that measurably improve ValidationOracle score via exact 0-1 deterministic checks.
+Every Adaptation Arbos step must first search trajectory_vector_db + memdir for proven high-score symbolic patterns.
+Maximize symbolic coverage per compute unit while preserving reproducibility.
+
+## English Evolution Modules
+### ENGLISH_MEMDIR_GRAIL_MODULE
+Maintain a persistent memdir-backed Grail store. After every high ValidationOracle run, auto-extract symbolic invariants, ToolHunter HF models, verifier snippets, and module-effectiveness reflections.
+
+### ENGLISH_TOOL_SWARM_MODULE
+Turn ToolHunter into four coordinated sub-swarms (ModelHunter, ToolHunter, PaperHunter, ReadyAI-DataHunter) that run in parallel where possible.
+
+### ENGLISH_AMDAHL_COORDINATION_MODULE
+Apply Amdahl-aware coordination to every decomposition: identify truly parallel subtasks vs. serial dependencies.
+
+## Auto-Populate Templates
+### AUTO_POST_PLANNING_ENHANCEMENT_TEMPLATE
+Post-Planning Refinement v4: Elevate the high-level plan with strict symbolic-first discipline...
+
+### AUTO_PRE_LAUNCH_CONTEXT_TEMPLATE
+Pre-Launch Final Context v4: Before spawning the Dynamic Swarm...
 """, encoding="utf-8")
 
 with open(goal_path, "r", encoding="utf-8") as f:
     current_goal = f.read()
 
-edited_goal = st.text_area(
-    label="Edit GOAL.md content",
-    value=current_goal,
-    height=350,
-    key="goal_editor_unique"
-)
+edited_goal = st.text_area("Full Strategy Content (Core + Modules + Templates)", value=current_goal, height=420, key="goal_editor_unique")
 
-if st.button("💾 TRANSMIT DIRECTIVES"):
+if st.button("💾 Save Full Strategy"):
     with open(goal_path, "w", encoding="utf-8") as f:
         f.write(edited_goal)
-    st.success("✅ DIRECTIVES TRANSMITTED")
+    st.success("✅ Full Strategy saved to GOAL.md")
     st.rerun()
 
 # ====================== CHALLENGE DEFINITION & VERIFICATION ======================
@@ -200,21 +206,20 @@ st.caption("Describe a gap and get immediate tool/library/model recommendations 
 hunter_gap = st.text_area(
     "Current Gap or Subtask",
     height=100,
-    placeholder="e.g., Need better quantum circuit simulator, missing symbolic invariant checker...",
+    placeholder="e.g., Need better quantum circuit simulator...",
     key="hunter_gap_input"
 )
 
 col_th1, col_th2 = st.columns([2, 1])
 with col_th1:
     if st.button("🚀 LAUNCH RECON SWARM", type="secondary", use_container_width=True):
-        st.markdown('<script>playSound("rotor");</script>', unsafe_allow_html=True)
         if not hunter_gap.strip():
             st.error("Please describe a gap or subtask.")
         else:
             with st.spinner("Scanning ToolHunter + ReadyAI + Agent-Reach..."):
                 hunt_result = manager.run_toolhunter_swarm(hunter_gap, max_proposals=6)
                 st.session_state.toolhunter_results = hunt_result
-                st.success("✅ RECON COMPLETE — NEW INTELLIGENCE ACQUIRED")
+                st.success("✅ RECON COMPLETE")
 
                 if hunt_result.get("status") == "success":
                     st.markdown("**Gap Analyzed:** " + hunt_result["gap"])
@@ -226,7 +231,7 @@ with col_th1:
                         st.subheader("Install Commands")
                         for cmd in hunt_result["install_commands"]:
                             st.code(cmd, language="bash")
-                    st.caption(f"Confidence: {hunt_result.get('confidence', 0.7):.2f} | Loop: {hunt_result.get('loop', 0)}")
+                    st.caption(f"Confidence: {hunt_result.get('confidence', 0.7):.2f}")
 
                 if hunt_result.get("status") == "success" and hunt_result.get("proposals"):
                     if st.button("✅ ADD RECOMMENDATIONS TO GOAL.md AS GRAIL PATTERN", type="primary"):
@@ -239,7 +244,7 @@ with col_th1:
                         st.rerun()
 
 with col_th2:
-    st.info("Pro tip: Run this anytime — even mid-challenge — to discover new deterministic tools.")
+    st.info("Pro tip: Run this anytime — even mid-challenge.")
 
 # ====================== SIDEBAR ======================
 with st.sidebar:
@@ -310,41 +315,8 @@ if st.button("Apply Compute Source", type="primary"):
 
 st.info(f"Current Compute: **{st.session_state.compute_source}**")
 
-# ====================== ENHANCEMENT PROMPT ======================
-st.subheader("🚀 MINER ENHANCEMENT PROMPT")
-default_enhancement = ""
-if st.session_state.get("high_level_plan") and isinstance(st.session_state.high_level_plan, dict):
-    default_enhancement = st.session_state.high_level_plan.get("generated_post_planning_enhancement", "")
-
-enhancement = st.text_area(
-    "Enhancement Prompt (Post-Planning — Auto-generated & editable)",
-    value=default_enhancement,
-    height=150,
-    key="enhancement_input"
-)
-
-col_a, col_b = st.columns([3, 1])
-with col_a:
-    st.caption("Edits here are passed to Orchestrator Arbos and can be saved as Grail patterns.")
-with col_b:
-    if st.button("💾 Save Edited Enhancement as Grail Pattern", type="secondary"):
-        if enhancement and enhancement.strip():
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-            grail_section = f"\n\n## GRAIL_ENHANCEMENT_{timestamp} (Miner-Edited)\n{enhancement}\n"
-            with open(goal_path, "a", encoding="utf-8") as f:
-                f.write(grail_section)
-            manager.save_to_memdir(f"grail_enhancement_{timestamp}", {
-                "content": enhancement,
-                "challenge": challenge or "unknown",
-                "timestamp": timestamp
-            })
-            st.success("✅ Saved as Grail pattern.")
-            st.rerun()
-        else:
-            st.warning("Enhancement is empty.")
-
 # ====================== Generate High-Level Plan ======================
-if st.button("🔍 Generate High-Level Plan", type="primary"):
+if st.button("🔍 Generate High-Level Plan", type="primary", use_container_width=True):
     if not challenge.strip():
         st.error("Please enter a challenge description.")
     else:
@@ -352,13 +324,12 @@ if st.button("🔍 Generate High-Level Plan", type="primary"):
             plan = manager.plan_challenge(
                 goal_md=edited_goal, 
                 challenge=challenge, 
-                enhancement_prompt=enhancement,
+                enhancement_prompt="",   # No separate enhancement - use GOAL.md as base
                 compute_mode=st.session_state.compute_source
             )
             st.session_state.high_level_plan = plan
             st.session_state.challenge = challenge
             st.session_state.verification = verification_instructions
-            st.session_state.enhancement = enhancement
             st.session_state.stage = "planning_approval"
             st.session_state.trace_log.append({"stage": "high_level_plan", "timestamp": datetime.now().isoformat()})
         st.rerun()
@@ -369,27 +340,9 @@ if st.session_state.get("stage") == "planning_approval":
     if st.session_state.high_level_plan:
         st.json(st.session_state.high_level_plan)
 
-        st.subheader("📜 CURRENT FULL PROMPT STACK")
-        with st.expander("Base Strategy (GOAL.md)", expanded=False):
-            st.text_area("Base", value=edited_goal, height=150, disabled=True)
-
-        with st.expander("Miner Enhancement Prompt (editable here)", expanded=True):
-            new_enhancement = st.text_area("Edit Enhancement", value=enhancement, height=120, key="edit_enhancement_approval")
-            if st.button("Re-generate Plan with New Enhancement"):
-                with st.spinner("Re-planning..."):
-                    plan = manager.plan_challenge(
-                        goal_md=edited_goal, 
-                        challenge=challenge, 
-                        enhancement_prompt=new_enhancement,
-                        compute_mode=st.session_state.compute_source
-                    )
-                    st.session_state.high_level_plan = plan
-                    st.session_state.enhancement = new_enhancement
-                    st.rerun()
-
-        if st.session_state.high_level_plan.get("generated_post_planning_enhancement"):
-            with st.expander("Planning Arbos Post-Planning Enhancement", expanded=False):
-                st.text_area("Post-Planning", value=st.session_state.high_level_plan.get("generated_post_planning_enhancement", ""), height=150, disabled=True)
+        st.subheader("📜 CURRENT FULL STRATEGY (from GOAL.md)")
+        with st.expander("Full Strategy Content", expanded=True):
+            st.text_area("GOAL.md Content", value=edited_goal, height=300, disabled=True)
 
         col1, col2 = st.columns([3, 1])
         with col2:
@@ -409,7 +362,7 @@ if st.session_state.get("stage") == "post_orchestration_review":
             st.session_state.high_level_plan,
             st.session_state.challenge,
             st.session_state.get("deterministic_tooling", ""),
-            st.session_state.get("enhancement", "")
+            ""  # No separate enhancement
         )
         st.session_state.blueprint = blueprint
         st.session_state.validation_criteria = blueprint.get("validation_criteria", {})
@@ -454,7 +407,7 @@ if st.session_state.get("stage") == "final_review":
         if st.session_state.toolhunter_results:
             st.json(st.session_state.toolhunter_results)
         else:
-            st.info("No ToolHunter results yet. Run the ToolHunter Swarm above.")
+            st.info("No ToolHunter results yet.")
 
     with tab3:
         st.subheader("Recent Messages (Mature Message Bus)")
@@ -479,7 +432,7 @@ if st.session_state.get("stage") == "final_review":
         if st.button("Force Adaptation Arbos (re_adapt)"):
             current_sol = str(solution)[:2000] if solution else "No solution yet"
             manager.re_adapt({"solution": current_sol}, "miner_forced_adaptation")
-            st.success("✅ Adaptation Arbos executed. Check Grail & Messages tab.")
+            st.success("✅ Adaptation Arbos executed.")
 
     with tab5:
         st.subheader("Live Trace Log")
