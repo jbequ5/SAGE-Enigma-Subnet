@@ -213,7 +213,8 @@ Return ONLY the function named `run(input_dict)`."""
                     continue
 
                 # Save as real tool (in tools/runtime/)
-                tool_path = Path("tools/runtime") / f"{proposal['name']}.
+                # Save as real tool
+                tool_path = Path("tools/runtime") / f"{proposal['name']}.py"
     # ====================== CHALLENGE STATE ======================
     def save_challenge_state(self, challenge_id: str):
         state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
