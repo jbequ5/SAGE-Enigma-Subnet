@@ -135,27 +135,18 @@ if not goal_path.exists():
 ## Core Strategy (Challenge-Agnostic Base Prompt)
 Treat every problem as pure symbolic/text — no premature domain assumptions.
 Verifier-code-first + symbolic invariants on every subtask before any LLM generation.
-ToolHunter sub-swarm (ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter) must run in parallel where possible; serial handoffs go through ValidationOracle.
-Reward only trajectories that measurably improve ValidationOracle score via exact 0-1 deterministic checks.
-Every Adaptation Arbos step must first search trajectory_vector_db + memdir for proven high-score symbolic patterns.
-Maximize symbolic coverage per compute unit while preserving reproducibility.
+ToolHunter sub-swarm must run in parallel where possible.
+Reward only trajectories that measurably improve ValidationOracle score.
 
 ## English Evolution Modules
 ### ENGLISH_MEMDIR_GRAIL_MODULE
-Maintain a persistent memdir-backed Grail store. After every high ValidationOracle run, auto-extract symbolic invariants, ToolHunter HF models, verifier snippets, and module-effectiveness reflections.
+Maintain a persistent memdir-backed Grail store...
 
 ### ENGLISH_TOOL_SWARM_MODULE
-Turn ToolHunter into four coordinated sub-swarms (ModelHunter, ToolHunter, PaperHunter, ReadyAI-DataHunter) that run in parallel where possible.
+Turn ToolHunter into four coordinated sub-swarms...
 
 ### ENGLISH_AMDAHL_COORDINATION_MODULE
-Apply Amdahl-aware coordination to every decomposition: identify truly parallel subtasks vs. serial dependencies.
-
-## Auto-Populate Templates
-### AUTO_POST_PLANNING_ENHANCEMENT_TEMPLATE
-Post-Planning Refinement v4: Elevate the high-level plan with strict symbolic-first discipline...
-
-### AUTO_PRE_LAUNCH_CONTEXT_TEMPLATE
-Pre-Launch Final Context v4: Before spawning the Dynamic Swarm...
+Apply Amdahl-aware coordination...
 """, encoding="utf-8")
 
 with open(goal_path, "r", encoding="utf-8") as f:
@@ -198,39 +189,119 @@ with col_ver:
         verification_instructions = verification_response.get("text", default_verification)
     else:
         verification_instructions = str(verification_response) if verification_response else default_verification
+
+# ====================== SIDEBAR - MISSION CONTROLS ======================
+with st.sidebar:
+    st.header("⚙️ MISSION CONTROLS")
+    st.markdown("---")
+
+    # Core Toggles
+    manager.quasar_enabled = st.checkbox("Quasar Long-Context Attention", value=False)
+    manager.enable_grail = st.checkbox("Grail Reinforcement (on high scores)", value=True)
+    
+    st.markdown("---")
+
+    # Compute Source
+    st.subheader("🔌 Compute")
+    compute_option = st.radio(
+        "Compute Source",
+        options=["Local GPU (Ollama)", "Chutes (Remote)", "Custom Endpoint"],
+        index=0,
+        key="compute_sidebar"
+    )
+    if compute_option == "Custom Endpoint":
+        custom_endpoint = st.text_input("Custom Endpoint URL", placeholder="http://...", key="custom_endpoint")
+        if custom_endpoint:
+            manager.set_compute_source("custom", custom_endpoint)
+    else:
+        source_map = {"Local GPU (Ollama)": "local_gpu", "Chutes (Remote)": "chutes"}
+        manager.set_compute_source(source_map[compute_option])
+
+    st.markdown("---")
+
+    # Challenge State Management
+    st.subheader("💾 Challenge State")
+    col_save, col_load = st.columns(2)
+    with col_save:
+        if st.button("Save Current State", key="save_state_btn"):
+            challenge_id = st.text_input("Challenge ID", value="current", key="save_id")
+            if challenge_id:
+                manager.save_challenge_state(challenge_id)
+                st.success("State saved")
+    with col_load:
+        if st.button("Load State", key="load_state_btn"):
+            challenge_id = st.text_input("Challenge ID", value="current", key="load_id")
+            if challenge_id and manager.load_challenge_state(challenge_id):
+                st.success("State loaded")
+            else:
+                st.error("No saved state found")
+
+    st.markdown("---")
+
+    # Deep Replan
+    if st.button("🧠 Generate New Avenue Plan (Deep Replan)", type="secondary", key="deep_replan_btn"):
+        if "challenge" in st.session_state and st.session_state.challenge:
+            plan = manager._generate_new_avenue_plan(
+                challenge=st.session_state.challenge,
+                recent_feedback="User requested deep replan"
+            )
+            st.json(plan)
+        else:
+            st.warning("Run a challenge first before deep replan")
+
+    st.markdown("---")
+
+    # VectorDB Stats
+    if st.button("📊 Show VectorDB Stats", key="vector_stats_btn"):
+        stats = manager.get_vector_db_stats()
+        st.json(stats)
+
+    st.markdown("---")
+
+    # ====================== EXPERT INPUT MODE ======================
+    with st.expander("🧪 EXPERT INPUT MODE", expanded=False):
+        st.caption("For physicists, mathematicians, and domain experts")
         
-# In streamlit_app.py - new Expert Panel
+        tab_tool, tab_invariant, tab_strategy = st.tabs(["New Tool", "Symbolic Invariant", "Strategy Change"])
 
-with st.expander("🧪 Expert Input Mode (for physicists, mathematicians, etc.)", expanded=False):
-    st.caption("Add your domain expertise. The system will turn it into tools, prompts, or invariants.")
+        with tab_tool:
+            tool_name = st.text_input("Tool Name", placeholder="quantum_phase_estimator", key="expert_tool_name")
+            tool_desc = st.text_area("Description & Expected Impact", height=80, key="expert_tool_desc")
+            if st.button("Submit Tool Proposal", key="submit_tool"):
+                proposal = {
+                    "type": "tool",
+                    "name": tool_name,
+                    "description": tool_desc,
+                    "timestamp": datetime.now().isoformat(),
+                    "expert": "user"
+                }
+                manager.save_to_memdir(f"tool_proposal_{int(time.time())}", proposal)
+                st.success("Tool proposal saved — will be processed automatically")
 
-    tab1, tab2, tab3 = st.tabs(["📝 Propose New Tool", "📐 Add Symbolic Invariant", "💡 Suggest Strategy Change"])
+        with tab_invariant:
+            invariant = st.text_area("SymPy / Verifier Invariant", height=120, 
+                                   placeholder="assert all(is_prime(p) for p in factorize(solution))", key="expert_invariant")
+            if st.button("Submit Invariant", key="submit_invariant"):
+                manager.save_to_memdir(f"invariant_{int(time.time())}", {
+                    "type": "invariant",
+                    "rule": invariant,
+                    "timestamp": datetime.now().isoformat()
+                })
+                st.success("Invariant saved")
 
-    with tab1:  # Propose New Tool
-        st.subheader("Propose a New Tool / Function")
-        tool_name = st.text_input("Tool Name (e.g. quantum_circuit_optimizer)")
-        tool_description = st.text_area("What does this tool do? Be specific.", height=120)
-        tool_code = st.text_area("Python code for the tool (optional - system can generate it)", height=300)
-        
-        col_a, col_b = st.columns(2)
-        with col_a:
-            test_input = st.text_input("Test input example (JSON)", value='{"qubits": 8, "gates": ["H", "CNOT"]}')
-        with col_b:
-            expected_impact = st.selectbox("Expected impact on score", ["Small (+0.05)", "Medium (+0.15)", "Large (+0.3+)"])
+        with tab_strategy:
+            strategy = st.text_area("Strategy / Prompt Suggestion", height=120, key="expert_strategy")
+            if st.button("Submit Strategy Change", key="submit_strategy"):
+                manager.save_to_memdir(f"strategy_{int(time.time())}", {
+                    "type": "strategy",
+                    "content": strategy,
+                    "timestamp": datetime.now().isoformat()
+                })
+                st.success("Strategy suggestion saved")
 
-        if st.button("🚀 Submit Tool Proposal", type="primary"):
-            # System auto-generates / validates / stores proposal
-            proposal = {
-                "name": tool_name,
-                "description": tool_description,
-                "code": tool_code or "AUTO-GENERATE",
-                "expert": "user-provided",
-                "timestamp": datetime.now().isoformat(),
-                "expected_impact": expected_impact
-            }
-            # Save to proposal queue
-            manager.save_to_memdir(f"tool_proposal_{int(time.time())}", proposal)
-            st.success("✅ Tool proposal saved. System will test it in next run.")
+    st.markdown("---")
+    st.caption("© 1944–2026 ALLIED ENIGMA MINER")
+
 # ====================== TOOLHUNTER SWARM ======================
 st.subheader("🛰️ RECON SWARM — TOOLHUNTER")
 st.caption("Describe a gap and get immediate tool/library/model recommendations + install commands")
@@ -284,14 +355,14 @@ col_a, col_b = st.columns(2)
 
 with col_a:
     if st.button("💾 Save Current Challenge State"):
-        challenge_id = st.text_input("Challenge ID", value="current", key="save_id")
+        challenge_id = st.text_input("Challenge ID", value="current", key="save_id_main")
         if challenge_id:
             manager.save_challenge_state(challenge_id)
             st.success(f"State saved: {challenge_id}")
 
 with col_b:
     if st.button("📂 Load Challenge State"):
-        challenge_id = st.text_input("Challenge ID", value="current", key="load_id")
+        challenge_id = st.text_input("Challenge ID", value="current", key="load_id_main")
         if challenge_id:
             if manager.load_challenge_state(challenge_id):
                 st.success(f"Loaded: {challenge_id}")
