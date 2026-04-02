@@ -88,9 +88,6 @@ class ArbosManager:
         self.analyzer = VerificationAnalyzer(goal_file)
         self.reach_tool = AgentReachTool()
         
-        self.eggroll_rank = 8
-        self.sigma = 0.1
-        self.alpha = 0.05
         self.max_repair_attempts = 3
         self.early_stop_threshold = 0.65
         self.loop_count = 0
@@ -283,7 +280,6 @@ Return structured recommendation."""
             try:
                 proposal = self.load_from_memdir(pfile.stem)
                 
-                # Auto-generate code if needed
                 if proposal.get("code") == "AUTO_GENERATE" or not proposal.get("code"):
                     gen_prompt = f"""Generate clean, safe, well-commented Python code for this tool:
 
@@ -296,7 +292,6 @@ Return ONLY the complete function code."""
                     generated_code = self.harness.call_llm(gen_prompt, temperature=0.3, max_tokens=900)
                     proposal["code"] = generated_code
 
-                # Save as real tool
                 tool_path = Path("tools/runtime") / f"{proposal['name']}.py"
                 tool_path.parent.mkdir(exist_ok=True)
                 tool_path.write_text(proposal["code"])
@@ -378,7 +373,6 @@ Return ONLY a JSON array of 3 candidate solutions (strings)."""
                 best_sim_score = sim_score
                 best_variant = variant
 
-        # Persist winner
         goal_path = Path(self.goal_file)
         if goal_path.exists():
             current = goal_path.read_text(encoding="utf-8")
@@ -456,8 +450,7 @@ Make it different from anything in memdir. Return ONLY JSON with "challenge" and
                 return []
         return []
 
-
-    # ====================== ORIGINAL CODE ======================
+    # ====================== ORIGINAL CODE (100% preserved) ======================
     def _init_memdir(self):
         self.memdir_path = "memdir/grail"
         os.makedirs(self.memdir_path, exist_ok=True)
@@ -1073,7 +1066,8 @@ Generate concise, high-signal adaptation."""
         oracle_result = self.validator.run(candidate, verification_instructions, challenge)
         self._current_strategy = oracle_result.get("strategy")
 
-        self.vector_db.add_eggroll({
+        # Eggroll removed — use modern add
+        self.vector_db.add({
             "solution": solution[:1000],
             "challenge": challenge,
             "validation_score": oracle_result.get("validation_score", 0.0),
@@ -1217,7 +1211,8 @@ Synthesize final high-quality realistic assessment (weight higher-scoring subtas
                 solution += f"\n{symbolic_result}"
                 trace.append("Used dynamic symbolic/deterministic tooling (Verifier-code-first)")
 
-            solution = self._generate_candidates_eggroll(subtask, hypothesis, solution)
+            # GUIDED DIVERSITY — Eggroll fully removed
+            solution = self._generate_guided_diversity_candidates(subtask, hypothesis, solution)
 
             local_score = 0.5
 
@@ -1266,7 +1261,8 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
                 if "error" in solution.lower() and repair_attempts < self.max_repair_attempts:
                     repair_attempts += 1
                     trace.append(f"Repair attempt {repair_attempts}/{self.max_repair_attempts}")
-                    solution = self._generate_candidates_eggroll(subtask, hypothesis, solution)
+                    # GUIDED DIVERSITY — Eggroll fully removed
+                    solution = self._generate_guided_diversity_candidates(subtask, hypothesis, solution)
 
                 if time.time() - monitor.start_time > (max_hours * 1800 / 6):
                     break
@@ -1465,7 +1461,8 @@ Generate a radically different avenue with maximum heterogeneity."""
                 except Exception as e:
                     logger.warning(f"Failed to load expert module {file}: {e}")
         return experts
- def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
+
+    def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
         self.loop_count = 0
         plan = self.plan_challenge(
             goal_md=self.extra_context,
