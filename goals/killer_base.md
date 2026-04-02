@@ -12,7 +12,7 @@ Solve ANY sponsor challenge with maximum ValidationOracle score + novelty + symb
 - Every Adaptation Arbos step must first search trajectory_vector_db + memdir/grail for proven high-score symbolic patterns.
 - Maximize symbolic coverage per compute unit while preserving reproducibility.
 - On low-score or stale runs, explicitly trigger re_adapt with compressed deltas and consider deep replan via new avenue plan.
-- Run reflection on every prompt evolution step. Ensure evolution stays strictly on task.
+- Run reflection on every prompt evolution step. Ensure evolution stays strictly on task
 
 ## Toggles & Explanations (parsed automatically)
 ### Core Behavior
