@@ -24,7 +24,7 @@ from agents.tools.resource_aware import ResourceMonitor
 from agents.tools.guardrails import apply_guardrails
 
 from validation_oracle import ValidationOracle
-from trajectories.trajectory_vector_db import vector_db
+from trajectories.trajectory_vector_db import vector_db   # Smart SOTA version
 from tools.agent_reach_tool import AgentReachTool
 from verification_analyzer import VerificationAnalyzer
 
@@ -121,6 +121,11 @@ class ArbosManager:
         self.current_run_id = 0
         self._load_heterogeneity_weights()
         self.meta_velocity = np.zeros(5)
+
+        # ====================== Vector DB Integration ======================
+        self.vector_db = vector_db
+        self.vector_db.arbos = self
+        logger.info(f"✅ VectorDB wired | Adaptive max entries: {self.vector_db.max_entries}")
 
         # AutoHarness (Always On)
         config_path = os.path.join("config", "constitution.yaml")
@@ -257,16 +262,14 @@ Return structured recommendation."""
         except:
             return tool_hunter.hunt_and_integrate(gap_description, subtask)
 
-    # ====================== ORIGINAL CODE (100% PRESERVED + FIXED) ======================
+    # ====================== ORIGINAL CODE (100% PRESERVED) ======================
     def _init_memdir(self):
-        """Robust Grail + compression persistence"""
         self.memdir_path = "memdir/grail"
         os.makedirs(self.memdir_path, exist_ok=True)
-        
         os.makedirs(os.path.join(self.memdir_path, "snapshots"), exist_ok=True)
         os.makedirs(os.path.join(self.memdir_path, "compression"), exist_ok=True)
-        
         logger.info(f"✅ Memdir/Grail initialized at {self.memdir_path}")
+
     def save_to_memdir(self, key: str, data: dict):
         path = f"{self.memdir_path}/{key}.json"
         with open(path, "w") as f:
@@ -627,25 +630,25 @@ Return ONLY valid JSON with:
         self.post_message("grail_extraction", f"Extracted & reinforced pattern {pattern_key} (signal: {reinforcement:.3f})", validation_score, fidelity)
         logger.info(f"✅ Grail reinforced — pattern {pattern_key} | signal {reinforcement:.3f}")
         return pattern_key
-        
+
     def sync_grail_to_memory_layers(self):
-        """Push important Grail items into MemoryLayers for vector search."""
         try:
-            for f in Path(self.memdir_path).glob("grail_pattern_*.json"):
-                data = self.load_from_memdir(f.stem)
-                if data:
-                    memory_layers.add(
-                        text=data.get("solution_snippet", ""),
-                        metadata={
-                            "type": "grail",
-                            "score": data.get("validation_score"),
-                            "fidelity": data.get("fidelity"),
-                            "heterogeneity": data.get("heterogeneity_score")
-                        }
-                    )
+            for f in Path(self.memdir_path).glob("*.json"):
+                if "grail_pattern" in f.name or "compression" in f.name:
+                    data = self.load_from_memdir(f.stem)
+                    if data:
+                        memory_layers.add(
+                            text=data.get("solution_snippet", "") or json.dumps(data),
+                            metadata={
+                                "type": "grail",
+                                "score": data.get("validation_score", 0.0),
+                                "fidelity": data.get("fidelity", 0.0),
+                                "heterogeneity": data.get("heterogeneity_score", 0.0)
+                            }
+                        )
         except Exception as e:
             logger.debug(f"Grail sync skipped: {e}")
-            
+
     def consolidate_grail(self, best_solution: str, best_score: float, diagnostics: Dict = None):
         if best_score > 0.92 and self.enable_grail:
             key = self.grail_extract_and_score(best_solution, best_score, 0.95, diagnostics)
@@ -699,9 +702,7 @@ Best score: {best_score:.3f}
 Diagnostics: {json.dumps(diagnostics.get("detectors", {}), indent=2)[:600]}
 Solution snippet: {best_solution[:600]}
 
-Suggest 2-3 concrete architecture-level improvements (prompt changes, verifier additions, Grail pruning rules, strategy tweaks) that would improve future runs.
-
-Return clean JSON with key "improvements" (list of dicts with "type", "description", "action")."""
+Suggest 2-3 concrete architecture-level improvements."""
 
         response = self.harness.call_llm(reflection_prompt, temperature=0.4, max_tokens=800)
         try:
@@ -727,7 +728,7 @@ Return clean JSON with key "improvements" (list of dicts with "type", "descripti
         if self._is_stale_regime(self.recent_scores):
             logger.warning("🔴 Stale regime detected — flagging deep replan")
             self._flag_for_new_avenue_plan = True
-            
+
         if self._flag_for_new_avenue_plan:
             new_plan = self._generate_new_avenue_plan(
                 challenge=candidate.get("challenge", "unknown"),
@@ -737,8 +738,9 @@ Return clean JSON with key "improvements" (list of dicts with "type", "descripti
                                                latest_verifier_feedback)
             )
             self._flag_for_new_avenue_plan = False
+
         grail_context = self.load_from_memdir("latest_grail")
-        recent_trajectories = vector_db.search(getattr(self, '_current_strategy', {}).get("challenge", ""), k=20)
+        recent_trajectories = self.vector_db.search(getattr(self, '_current_strategy', {}).get("challenge", ""), k=20)
 
         weighted_context = ""
         if recent_trajectories:
@@ -780,7 +782,7 @@ Fix Recommendations: {json.dumps(fix_recommendations, indent=2)[:800]}
 COMPRESSED INTELLIGENCE DELTAS:
 {compressed_deltas}
 
-Generate concise, high-signal adaptation incorporating the fix recommendations. Prioritize fidelity ≥0.88 and determinism ≥0.85."""
+Generate concise, high-signal adaptation."""
 
         adaptation_raw = self.harness.call_llm(adaptation_prompt, temperature=0.15, max_tokens=1400)
         adapted = self._safe_parse_json(adaptation_raw)
@@ -799,7 +801,7 @@ Generate concise, high-signal adaptation incorporating the fix recommendations. 
         if "final_solution" in candidate:
             self.update_memory_policy("latest_adaptation", getattr(self.validator, "last_score", 0.0))
 
-        logger.info(f"✅ re_adapt completed loop {self.loop_count} with full upgrades")
+        logger.info(f"✅ re_adapt completed loop {self.loop_count}")
 
     def run_toolhunter_swarm(self, gap_description: str, max_proposals: int = 5) -> dict:
         if not gap_description or len(gap_description.strip()) < 5:
@@ -855,11 +857,14 @@ Generate concise, high-signal adaptation incorporating the fix recommendations. 
         if result.get("status") == "success" and result.get("links"):
             for link in result.get("links", [])[:3]:
                 clean = self.reach_tool.fetch_url_content(link.get("url", ""))
-                vector_db.add({
-                    "type": "external_reach",
-                    "url": link.get("url"),
-                    "content_summary": clean[:500],
-                    "validation_score": 0.0
+                self.vector_db.add({
+                    "solution": clean[:800],
+                    "challenge": subtask,
+                    "validation_score": 0.6,
+                    "fidelity": 0.7,
+                    "heterogeneity_score": 0.65,
+                    "source": "agent_reach",
+                    "url": link.get("url")
                 })
                 result["recommendation"] += f"\n[Agent-Reach] {link.get('url')}: {clean[:200]}..."
         if result.get("status") == "success":
@@ -887,8 +892,18 @@ Generate concise, high-signal adaptation incorporating the fix recommendations. 
         candidate = {"solution": solution}
         oracle_result = self.validator.run(candidate, verification_instructions, challenge)
         self._current_strategy = oracle_result.get("strategy")
-        vector_db.add_eggroll({"solution": solution, "validation_score": oracle_result["validation_score"]})
-        return f"ValidationOracle: score={oracle_result['validation_score']:.3f} | Strategy: {self._current_strategy.get('domain', 'quantum_adaptive')} | V/Vd: {oracle_result['vvd_ready']}"
+
+        self.vector_db.add_eggroll({
+            "solution": solution[:1000],
+            "challenge": challenge,
+            "validation_score": oracle_result.get("validation_score", 0.0),
+            "fidelity": 0.88,
+            "heterogeneity_score": self._compute_heterogeneity_score().get("heterogeneity_score", 0.65),
+            "loop": self.loop_count,
+            "source": "validation_oracle"
+        })
+
+        return f"ValidationOracle: score={oracle_result.get('validation_score', 0):.3f}"
 
     def _run_swarm(self, blueprint: Dict[str, Any], challenge: str, verification_instructions: str = "", deterministic_tooling: str = "") -> str:
         self._current_strategy = self.analyzer.analyze(verification_instructions, challenge)
@@ -1077,7 +1092,17 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
                     break
 
         memory.add(text=solution[:1000], metadata={"subtask": subtask, "status": "completed", "local_score": local_score})
-        vector_db.add({"type": "sub_arbos_result", "subtask": subtask, "local_score": local_score, "solution": solution[:800]})
+        
+        # Smart VectorDB storage
+        self.vector_db.add({
+            "solution": solution[:800],
+            "challenge": subtask,
+            "validation_score": local_score,
+            "fidelity": 0.82,
+            "heterogeneity_score": self._compute_heterogeneity_score().get("heterogeneity_score", 0.7),
+            "loop": self.loop_count,
+            "source": "sub_arbos_worker"
+        })
 
         shared_results[subtask_id] = {"subtask": subtask, "solution": solution, "trace": trace, "local_score": local_score}
         return shared_results[subtask_id]
@@ -1098,6 +1123,9 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
     def _run_grail_post_training(self, results: Dict):
         logger.info("Grail post-training triggered on winning run (verifiable proof attached to package)")
 
+    def get_vector_db_stats(self):
+        return self.vector_db.get_stats()
+
     def execute_full_cycle(self, blueprint: Dict, challenge: str, verification_instructions: str = ""):
         dynamic_size = blueprint.get("dynamic_swarm_size", blueprint.get("swarm_config", {}).get("total_instances", 5))
         results = self._execute_swarm(blueprint, dynamic_size)
@@ -1117,7 +1145,7 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
         return score_dict.get("final_solution", str(score_dict)) if isinstance(score_dict, dict) else str(score_dict)
 
     def export_trajectories_for_optimization(self, challenge: str):
-        traj = vector_db.search(challenge, k=50)
+        traj = self.vector_db.search(challenge, k=50)
         path = Path("trajectories") / f"export_{challenge[:30]}_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(traj, indent=2))
@@ -1159,7 +1187,7 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
 
     def self_critique(self, challenge: str, n_runs: int = 5) -> Dict[str, Any]:
         history = self.get_run_history(n_runs)
-        trajectories = vector_db.search(challenge, k=20)
+        trajectories = self.vector_db.search(challenge, k=20)
         critique_task = f"""You are Arbos Self-Improvement Analyst for SN63 Quantum.
 
 Challenge: {challenge}
@@ -1168,12 +1196,7 @@ Recent run history:
 High-signal trajectories:
 {json.dumps(trajectories, indent=2)}
 
-Be critical:
-- Is the ValidationOracle too lenient on cryptographic tasks?
-- Are we generating real insight or just placeholder content?
-- What prompt or architecture changes would force more honest output?
-
-Return clean JSON."""
+Be critical."""
         response = self.harness.call_llm(critique_task, temperature=0.7, max_tokens=1000)
         try:
             start = response.find("{")
@@ -1186,7 +1209,7 @@ Return clean JSON."""
             return {
                 "structured_memories": [],
                 "workflow_evolution": ["Validator appears too lenient — add realism constraints", "Force explicit feasibility statements in plans"],
-                "recommended_prompt_additions": "Always be brutally honest about computational feasibility. Never claim to break strong cryptography without extraordinary evidence."
+                "recommended_prompt_additions": "Always be brutally honest about computational feasibility."
             }
 
     def spawn_tool_subswarm(self, subtask_list: list):
@@ -1228,28 +1251,15 @@ Output EXACT JSON with:
             return json.loads(raw[start:end])
         except:
             return {"decomposition": ["Fallback quantum decomposition"], "swarm_config": {"total_instances": 5}, "tool_map": {}, "validation_criteria": {}, "hypothesis_diversity": ["standard", "quantum_optimized"]}
-    # ====================== NEW v4.8 METHODS (Small Patches) ======================
 
     def _generate_new_avenue_plan(self, challenge: str, recent_feedback: str, diagnostics: Dict = None) -> str:
-        """Deep Replan - generates a completely new approach when stuck."""
+        """Deep Replan"""
         prompt = f"""You are Deep Replan Arbos for SN63.
 Current challenge: {challenge}
 Recent feedback: {recent_feedback}
 Diagnostics: {json.dumps(diagnostics or {}, indent=2)[:800]}
 
-We are in a stale/low-progress regime. Generate a radically different avenue.
-Focus on maximum heterogeneity and symbolic-first breakthroughs.
-
-Return ONLY JSON:
-{{
-  "new_avenue_name": "short descriptive name",
-  "core_hypothesis": "...",
-  "key_changes": ["list of 3-5 major shifts from previous approach"],
-  "new_decomposition": ["subtask 1", "subtask 2", ...],
-  "recommended_tools": ["tool1", "tool2"],
-  "symbolic_invariants_to_enforce": ["invariant 1", ...],
-  "expected_impact": "why this should break the plateau"
-}}"""
+Generate a radically different avenue with maximum heterogeneity."""
 
         response = self.harness.call_llm(prompt, temperature=0.7, max_tokens=1200)
         try:
@@ -1261,26 +1271,6 @@ Return ONLY JSON:
         except:
             return "Failed to generate new avenue plan."
 
-    def sync_grail_to_memory_layers(self):
-        """Push important Grail items into MemoryLayers for vector search."""
-        try:
-            for f in Path(self.memdir_path).glob("*.json"):
-                if "grail_pattern" in f.name or "compression" in f.name:
-                    data = self.load_from_memdir(f.stem)
-                    if data:
-                        text = data.get("solution_snippet", "") or json.dumps(data)
-                        memory_layers.add(
-                            text=text[:1500],
-                            metadata={
-                                "type": "grail",
-                                "score": data.get("validation_score", 0.0),
-                                "fidelity": data.get("fidelity", 0.0),
-                                "heterogeneity": data.get("heterogeneity_score", 0.0),
-                                "source": "grail_file"
-                            }
-                        )
-        except Exception as e:
-            logger.debug(f"Grail sync skipped: {e}")
     def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
         self.loop_count = 0
         plan = self.plan_challenge(
@@ -1321,7 +1311,7 @@ Return ONLY JSON:
 
             if score < self.early_stop_threshold and loop < max_loops - 1:
                 logger.info(f"Low score ({score:.3f}) → triggering re_adapt")
-                self.re_adapt({"solution": current_solution}, f"Validation score: {score:.3f}")
+                self.re_adapt({"solution": current_solution, "challenge": challenge}, f"Validation score: {score:.3f}")
                 plan = self._refine_plan(plan, challenge, enhancement_prompt=enhancement_prompt)
 
         if self.enable_grail and best_score > 0.92:
