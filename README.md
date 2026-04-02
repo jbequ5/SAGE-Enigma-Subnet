@@ -80,26 +80,23 @@ flowchart TD
 
 ### Maximum Heterogeneity Principle – The Core Scaling Strategy
 
-**This is the hidden engine that makes the system win on problems that have zero obvious solutions.**
+**This is the hidden engine that makes the system win on problems with no obvious solutions.**
 
-The **Principle of Maximum Heterogeneity** is now a first-class thesis pillar of the Enigma Machine. Every major decision point is deliberately diversified across five axes:
+The **Principle of Maximum Heterogeneity** is now a first-class thesis pillar. Every major decision point is deliberately diversified across five axes:
 
-- **Agent diversity** — different sub-Arbos reasoning styles and roles  
-- **Hypothesis diversity** — multiple competing explanations per subtask  
-- **Tool-path diversity** — parallel ToolHunter / ModelHunter / PaperHunter / ReadyAI-DataHunter routes  
-- **Interaction-graph diversity** — varied message-bus and dependency patterns  
-- **Compute-substrate diversity** — local GPU, Chutes, custom endpoints, Quasar long-context  
+- Agent diversity  
+- Hypothesis diversity  
+- Tool-path diversity  
+- Interaction-graph diversity  
+- Compute-substrate diversity  
 
 **Why this strategy wins:**
 
-Hard sponsor challenges have no single “correct” path. Traditional swarms quickly collapse into mode-collapse or local optima. Heterogeneity forces the miner to explore the **full solution space** while the verifier-first gate (ValidationOracle + symbolic 0-1 checks) ensures only high-fidelity paths survive.
+Hard challenges have no single “correct” path. Traditional swarms collapse into mode-collapse or local optima. Heterogeneity forces the miner to explore the **full solution space** while the verifier-first gate ensures only high-fidelity paths survive.
 
-- Heterogeneity scoring is computed on every Grail extraction and re_adapt.  
-- Adaptive EMA weights (slow, gradual tuning with meta_velocity) automatically reinforce the axes that actually move ValidationOracle scores.  
-- Stale-regime detection (z-score + prolonged-low logic) intelligently triggers **Deep Replan** (`_generate_new_avenue_plan`) when progress plateaus — generating an entirely new strategic avenue while preserving all prior Grail knowledge.  
-- A heterogeneity bonus is baked into reinforcement signals and compression deltas, so the system learns over time to favor diverse trajectories.
+Heterogeneity scoring runs on every Grail extraction and re_adapt. Adaptive EMA weights automatically reinforce the axes that actually move ValidationOracle scores. Stale-regime detection (z-score + prolonged-low) triggers **Deep Replan** when progress plateaus — generating an entirely new strategic avenue while preserving all prior Grail knowledge.
 
-The result is a miner that does not just get better at known patterns — it gets systematically better at **discovery** on open-ended, high-difficulty problems. This is the key reason the Enigma Machine scales under verifier-first constraints while staying 100% deterministic and reproducible.
+A heterogeneity bonus is baked into reinforcement signals and compression deltas, so the system learns to favor diverse trajectories over time. This is why the Enigma Machine scales on open-ended, high-difficulty problems while staying 100% verifier-gated, deterministic, and reproducible.
 
 ### Bittensor Subnet Inspired Intelligence
 
@@ -109,8 +106,8 @@ The result is a miner that does not just get better at known patterns — it get
 - **SN64 Chutes** — Decentralized serverless AI compute  
 - **SN81 Grail** — Verifiable reinforcement learning & post-training 
 
-  This turns raw subnet intelligence into a cryptographically inspired, verifiable self-improvement loop that compounds intelligence across runs.
-  
+This turns raw subnet intelligence into a cryptographically inspired, verifiable self-improvement loop that compounds intelligence across runs.
+
 ### Prompt Evolution Intelligence
 The system is powered by layered, compounding English prompts.  
 `killer_base.md` provides the challenge-agnostic foundation and English Evolution Modules.  
@@ -141,48 +138,24 @@ The **inner loop** focuses on rapid, high-fidelity problem-solving **within a si
 - `re_adapt()` triggered on low ValidationOracle scores, incorporating diagnostics, fix recommendations, Grail patterns, and recent messages.
 
 **Integrated Intelligence Compression Layer**  
-All raw inputs (trajectories from `vector_db`, message bus entries, Grail artifacts, and diagnostics) are now passed through `compress_intelligence_delta()` **before** reaching Adaptation Arbos or the main adaptation prompt. 
-
-This produces dense, reinforcement-weighted "intelligence deltas" (using the exact formula `validation_score × fidelity^1.5 × symbolic_coverage`). The compressor forces explicit lessons such as:
-- "Pattern X increased score by +0.18 because Y"
-- Meta-lessons like "On high-difficulty symbolic challenges, force Z before LLM"
-- Policy updates for `memory_policy_weights` or `killer_base.md`
-
-**Impact on the inner loop**:  
-- Context size drops 60-75% while **increasing** signal density.  
-- `re_adapt()` now receives clean, high-value input instead of noisy raw dumps → faster, more precise adaptations per compute unit.  
-- Compression routes to your lightweight `sub_arbos_model`, keeping the inner loop efficient
-- Output includes a self-assessed `compression_score` for monitoring.
-
-This makes every inner-loop iteration smarter without changing the fixed objective (max ValidationOracle score + determinism + novelty).
+All raw inputs are passed through `compress_intelligence_delta()` before reaching Adaptation Arbos. This produces dense, reinforcement-weighted intelligence deltas (`validation_score × fidelity^1.5 × symbolic_coverage`). Context size drops 60-75% while signal density increases. `re_adapt()` now receives clean, high-value input instead of noisy raw dumps.
 
 ### Outer Loop Intelligence (Cross-Run / Persistent Evolution)
 
 The **outer loop** operates **across multiple runs**, compounding intelligence over time through persistent memory and self-improvement.
 
 **Key mechanisms**:
-- Grail extraction & reinforcement on winning runs (`grail_on_winning_runs: true`).
+- Grail extraction & reinforcement on winning runs.
 - `memory_policy_weights`, `meta_reflection_history`, and `known_failure_modes`.
 - TrajectoryVectorDB persistence + export for optimization.
 - `consolidate_grail()`, `meta_reflect()`, and history tracking.
 - Automatic appending of English Evolution Modules and reflections to `killer_base.md`.
 
 **Integrated Intelligence Compression Layer**  
-The compression prompt itself (`## COMPRESSION_PROMPT` in `killer_base.md`) is now a **first-class evolvable artifact** in the outer loop.
-
-- On strong runs (`best_score > 0.85` and Grail enabled), `evolve_compression_prompt()` triggers automatically.
-- It saves the current version to `memdir/grail/compression_prompt_vN.json` using the same reinforcement signal.
-- A lightweight evolution step (routed to `sub_arbos_model`) mutates/combines high-reinforcement versions and appends the improved prompt back to `killer_base.md`.
-- Future runs automatically load the latest evolved compressor via `load_compression_prompt()`.
-
-**Impact on the outer loop**:  
-- The **input pipeline** to all intelligence mechanisms (re_adapt, planning, synthesis) becomes self-improving.  
-- Compression evolves to become denser and better at surfacing exactly the patterns that move ValidationOracle scores.  
-- This creates compounding gains: better input → better inner-loop adaptations → higher-scoring runs → even better compressor.  
-- All evolution stays strictly verifier-gated and aligned to your fixed objective.
+The compression prompt itself (`## COMPRESSION_PROMPT` in `killer_base.md`) is a first-class evolvable artifact. On strong runs it evolves and is appended back to `killer_base.md`. Future runs automatically load the latest version.
 
 **Overall architecture benefit**:  
-The compression layer sits as a **shared intelligence filter** between the two loops. It makes the inner loop more efficient (denser context = faster/better decisions) while turning the outer loop into a true meta-learner (the preprocessor itself improves over time). This is hardware-aware and scales naturally with Grail reinforcement.
+The compression layer acts as a shared intelligence filter between inner and outer loops — making the inner loop faster and turning the outer loop into a true meta-learner.
 
 ### Compute Flexibility
 Local GPU (Ollama) is the default for zero extra cost, but the system is **not** designed around it. Switch anytime to Chutes, already-running endpoints, or custom hosted setups via the UI. Resource-aware logic and dynamic swarm sizing adapt to whatever compute you choose.
