@@ -1068,23 +1068,6 @@ Generate concise, high-signal adaptation."""
             return f"ToolHunter + Agent-Reach ({result.get('source', 'unknown')}): {result.get('recommendation')}"
         return "ToolHunter + Agent-Reach found no strong match for this quantum subtask."
 
-    def _generate_candidates_eggroll(self, subtask: str, hypothesis: str, current_solution: str) -> str:
-        base = {"solution": current_solution, "novelty_proxy": 0.5, "est_compute": 1.0}
-        candidates = [base]
-        for i in range(3):
-            perturbed, _ = self.generate_low_rank_perturbation(base, seed=i)
-            candidates.append(perturbed)
-        ranked = sorted(candidates, key=lambda c: compute_energy(c, self.validator, rank=self.eggroll_rank), reverse=True)
-        return ranked[0]["solution"]
-
-    def generate_low_rank_perturbation(self, base_solution: Dict, rank: int = None, seed: int = None) -> Tuple[Dict, Dict]:
-        if rank is None: rank = self.eggroll_rank
-        if seed is not None: np.random.seed(seed)
-        perturbation = {"delta_novelty": np.random.normal(0, self.sigma / np.sqrt(rank)), "rank": rank}
-        perturbed = base_solution.copy()
-        perturbed["novelty_proxy"] = perturbed.get("novelty_proxy", 0.5) + perturbation["delta_novelty"]
-        return perturbed, perturbation
-
     def _run_verification(self, solution: str, verification_instructions: str, challenge: str) -> str:
         candidate = {"solution": solution}
         oracle_result = self.validator.run(candidate, verification_instructions, challenge)
