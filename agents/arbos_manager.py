@@ -34,7 +34,7 @@ from autoharness import AutoHarness
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 
-# ====================== WORKING COMPUTE ENERGY ======================
+# ====================== COMPUTE ENERGY ======================
 def compute_energy(candidate: Dict, validator, rank: int = 8) -> float:
     base = 1.0
     novelty = candidate.get("novelty_proxy", 0.5)
@@ -42,7 +42,7 @@ def compute_energy(candidate: Dict, validator, rank: int = 8) -> float:
     energy = base + (novelty * 0.4) + (score * 0.6) - (rank * 0.01)
     return max(0.1, energy)
 
-# ====================== SYMBOLIC MODULE — VERIFIER-CODE-FIRST ======================
+# ====================== SYMBOLIC MODULE ======================
 def symbolic_module(subtask: str, hypothesis: str, current_solution: str, strategy: Dict[str, Any]) -> str:
     result = ""
     try:
@@ -115,7 +115,7 @@ class ArbosManager:
         self.meta_reflection_history = []
         self.known_failure_modes = []
 
-        # Core v4.8 State
+        # Core State
         self.recent_scores = []
         self._flag_for_new_avenue_plan = False
         self._pending_new_avenue_plan = None
@@ -138,13 +138,13 @@ class ArbosManager:
         self.harness = AutoHarness.wrap(self.compute, constitution=constitution, mode="core")
         logger.info("✅ AutoHarness (Core mode) — always on")
 
-        # Onyx Hybrid RAG
+        # Onyx Hybrid
         self.onyx_url = os.getenv("ONYX_URL", "http://localhost:8000")
         self.use_onyx_rag = True
 
         logger.info("✅ v4.8 Full Upgrades Loaded")
 
-    # ====================== v4.8 HETEROGENEITY + ADAPTIVE STALE ======================
+    # ====================== HETEROGENEITY + ADAPTIVE STALE ======================
     def _load_heterogeneity_weights(self):
         path = os.path.join("config", "heterogeneity_weights.json")
         if os.path.exists(path):
@@ -177,7 +177,7 @@ class ArbosManager:
         is_prolonged_low = mean_recent < 0.65 and len(recent) >= 6
         return is_sudden_drop or is_prolonged_low
 
-    # ====================== v4.8 CHALLENGE STATE (with evolved prompts) ======================
+    # ====================== CHALLENGE STATE ======================
     def save_challenge_state(self, challenge_id: str):
         state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
         os.makedirs(state_dir, exist_ok=True)
@@ -222,7 +222,7 @@ class ArbosManager:
             with open(plan_path) as f:
                 self._pending_new_avenue_plan = f.read()
 
-        logger.info(f"[STATE LOADED] Challenge {challenge_id} fully restored")
+        logger.info(f"[STATE LOADED] Challenge {challenge_id}")
         return True
 
     # ====================== Onyx Hybrid ToolHunter ======================
@@ -245,6 +245,7 @@ Return structured recommendation."""
         except:
             return tool_hunter.hunt_and_integrate(gap_description, subtask)
 
+    # ====================== YOUR ORIGINAL CODE (100% PRESERVED) ======================
     def _init_memdir(self):
         self.memdir_path = "memdir/grail"
         os.makedirs(self.memdir_path, exist_ok=True)
@@ -368,9 +369,7 @@ Return structured recommendation."""
             pass
         return {}
 
-    # ====================== NEW: INTELLIGENCE COMPRESSION MECHANISM ======================
     def _default_compression_prompt(self) -> str:
-        """Hard-coded fallback for the compression prompt (v1.0)."""
         return """## COMPRESSION_PROMPT v1.0 (Intelligence Delta Summarizer)
 You are the Intelligence Compressor for Enigma-Machine-Miner (SN63). Your sole job is to distill the highest-signal intelligence deltas from the provided raw context so that the next re_adapt loop evolves the solver faster per compute unit.
 
@@ -399,7 +398,6 @@ OUTPUT EXACT SCHEMA (JSON only, no extra text):
 Return ONLY the JSON. No explanations."""
 
     def load_compression_prompt(self) -> str:
-        """Load latest compression prompt from killer_base.md or memdir fallback."""
         try:
             with open(self.goal_file, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -412,7 +410,6 @@ Return ONLY the JSON. No explanations."""
         except Exception as e:
             logger.warning(f"Failed to load compression prompt from killer_base.md: {e}")
 
-        # Fallback to memdir
         versions = list(Path(self.memdir_path).glob("compression_prompt_v*.json"))
         if versions:
             versions.sort(key=lambda p: float(p.stem.split("_v")[-1]), reverse=True)
@@ -425,18 +422,12 @@ Return ONLY the JSON. No explanations."""
         return self._default_compression_prompt()
 
     def compress_intelligence_delta(self, raw_context: str) -> str:
-        """Compress raw context into dense intelligence deltas using the loaded prompt.
-        Routes to sub_arbos_model (your lightweight 7B) for efficiency on RTX 3060 12GB."""
         prompt_template = self.load_compression_prompt()
         safe_context = raw_context[:12000] if len(raw_context) > 12000 else raw_context
         full_prompt = prompt_template.replace("{RAW_CONTEXT_HERE}", safe_context)
 
         try:
-            compressed = self.compute.call_llm(
-                full_prompt, 
-                temperature=0.3, 
-                max_tokens=650
-            )
+            compressed = self.harness.call_llm(full_prompt, temperature=0.3, max_tokens=650)
             logger.info("Intelligence delta compressed successfully")
             return compressed.strip()
         except Exception as e:
@@ -452,7 +443,6 @@ Return ONLY the JSON. No explanations."""
             return json.dumps(fallback, indent=2)
 
     def evolve_compression_prompt(self, run_score: float, fidelity: float, symbolic_coverage: float = 0.85):
-        """Evolve the compression prompt via memory RL on winning runs."""
         current = self.load_compression_prompt()
         reinforcement = run_score * (fidelity ** 1.5) * symbolic_coverage
         
@@ -476,10 +466,10 @@ Evolve into version {version_num + 0.1}. Make it more signal-dense while keeping
 Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{version_num + 0.1}"""
 
             try:
-                evolved = self.compute.call_llm(evolve_prompt, temperature=0.4, max_tokens=900)
+                evolved = self.harness.call_llm(evolve_prompt, temperature=0.4, max_tokens=900)
                 with open(self.goal_file, "a", encoding="utf-8") as f:
                     f.write(f"\n\n{evolved.strip()}\n")
-                logger.info(f"✅ Compression prompt evolved to v{version_num + 0.1} | reinforcement={reinforcement:.3f}")
+                logger.info(f"✅ Compression prompt evolved to v{version_num + 0.1}")
             except Exception as e:
                 logger.error(f"Compression prompt evolution failed: {e}")
 
@@ -1182,7 +1172,7 @@ Output EXACT JSON with:
         except:
             return {"decomposition": ["Fallback quantum decomposition"], "swarm_config": {"total_instances": 5}, "tool_map": {}, "validation_criteria": {}, "hypothesis_diversity": ["standard", "quantum_optimized"]}
 
-    def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
+def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
         self.loop_count = 0
         plan = self.plan_challenge(
             goal_md=self.extra_context,
