@@ -181,19 +181,39 @@ class ArbosManager:
                 "substrate_diversity": 0.70
             }
         }
+            # ====================== EXPERT TOOL PROPOSAL ======================
+    def process_tool_proposals(self):
+        """Process all pending tool proposals safely."""
+        proposal_files = list(Path(self.memdir_path).glob("tool_proposal_*.json"))
+        if not proposal_files:
+            return
 
-    def _is_stale_regime(self, recent_scores: list[float]) -> bool:
-        if len(recent_scores) < self.current_heterogeneity_weights.get("min_runs_before_stale_check", 6):
-            return False
-        recent = np.array(recent_scores[-self.current_heterogeneity_weights["adaptive_stale_window"]:])
-        mean_recent = np.mean(recent)
-        std_recent = np.std(recent) if len(recent) > 1 else 0.1
-        current = recent[-1]
-        z_score = (current - mean_recent) / std_recent
-        is_sudden_drop = z_score < -self.current_heterogeneity_weights["adaptive_z_threshold"]
-        is_prolonged_low = mean_recent < 0.65 and len(recent) >= 6
-        return is_sudden_drop or is_prolonged_low
+        logger.info(f"Processing {len(proposal_files)} tool proposals...")
 
+        for pfile in proposal_files:
+            try:
+                proposal = self.load_from_memdir(pfile.stem)
+                
+                # Auto-generate code if needed
+                if proposal.get("code") == "AUTO_GENERATE":
+                    gen_prompt = f"""Generate clean, safe Python code for this tool:
+Name: {proposal['name']}
+Description: {proposal['description']}
+Test input: {proposal.get('test_input', '')}
+
+Return ONLY the function named `run(input_dict)`."""
+                    generated_code = self.harness.call_llm(gen_prompt, temperature=0.3, max_tokens=800)
+                    proposal["code"] = generated_code
+
+                # Safety check with AutoHarness
+                is_safe = self.harness.validate_code(proposal["code"])  # assuming AutoHarness has this
+                if not is_safe:
+                    logger.warning(f"Tool {proposal['name']} rejected by AutoHarness safety")
+                    pfile.unlink(missing_ok=True)
+                    continue
+
+                # Save as real tool (in tools/runtime/)
+                tool_path = Path("tools/runtime") / f"{proposal['name']}.
     # ====================== CHALLENGE STATE ======================
     def save_challenge_state(self, challenge_id: str):
         state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
@@ -788,6 +808,7 @@ Generate concise, high-signal adaptation."""
         adapted = self._safe_parse_json(adaptation_raw)
         self._current_strategy = adapted.get("strategy", self._current_strategy)
         self.validator.adapt_scoring(self._current_strategy)
+        self.process_tool_proposals()   # ← Add this
 
         self.save_to_memdir("latest_grail", {
             "loop": self.loop_count,
@@ -1141,6 +1162,7 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
             self._run_grail_post_training(results)
 
         proposals = self._generate_tool_proposals(results)
+        self.process_tool_proposals()   # ← Add this
         self.memory_layers.add_proposals(proposals)
         return score_dict.get("final_solution", str(score_dict)) if isinstance(score_dict, dict) else str(score_dict)
 
