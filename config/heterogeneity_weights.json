@@ -1,0 +1,10 @@
+{
+  "weights": [0.25, 0.25, 0.20, 0.15, 0.15],
+  "dimension_names": ["agent_diversity", "hypothesis_diversity", "tool_path_diversity", "graph_diversity", "substrate_diversity"],
+  "adaptive_stale_window": 8,
+  "adaptive_z_threshold": 1.5,
+  "min_runs_before_stale_check": 6,
+  "rescue_nudge_factor": 0.18,
+  "rescue_decay": 0.65,
+  "history": []
+}
