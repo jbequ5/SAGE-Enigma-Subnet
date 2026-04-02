@@ -74,7 +74,7 @@ st.markdown("""
 </script>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center;'>🔒 ALLIED ENIGMA MINER v4.6</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>🔒 ALLIED ENIGMA MINER v4.8</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #ffaa00;'>TOP SECRET • BUNKER COMMAND POST 1944 • SN63 QUANTUM INNOVATE</h3>", unsafe_allow_html=True)
 st.caption("🔴 ENIGMA ROTORS SPINNING • LIVE DECRYPTION MISSION ACTIVE")
 
@@ -122,7 +122,7 @@ with col3:
                 del st.session_state[k]
         st.rerun()
 
-# ====================== GOAL.MD EDITOR (Full Strategy - Single Source of Truth) ======================
+# ====================== GOAL.MD EDITOR ======================
 st.subheader("📟 FULL STRATEGY — GOAL.md")
 st.caption("This is the single source of truth. Edit Core Strategy, English Modules, and Templates here.")
 
@@ -246,41 +246,36 @@ with col_th1:
 with col_th2:
     st.info("Pro tip: Run this anytime — even mid-challenge.")
 
-# ====================== 🧠 MEMORY & DIAGNOSTICS (New Tab - Non-Invasive) ======================
-st.subheader("🧠 Memory & Diagnostics Intelligence")
-st.caption("Grail reinforcement + AgentFixer-style failure diagnostics (view when needed)")
+# ====================== NEW v4.8 FEATURES ======================
+st.subheader("🧠 v4.8 Intelligence Layer")
+col_a, col_b = st.columns(2)
 
-# Live Grail Reinforcement
+with col_a:
+    if st.button("💾 Save Current Challenge State"):
+        challenge_id = st.text_input("Challenge ID", value="current", key="save_id")
+        if challenge_id:
+            manager.save_challenge_state(challenge_id)
+            st.success(f"State saved: {challenge_id}")
+
+with col_b:
+    if st.button("📂 Load Challenge State"):
+        challenge_id = st.text_input("Challenge ID", value="current", key="load_id")
+        if challenge_id:
+            if manager.load_challenge_state(challenge_id):
+                st.success(f"Loaded: {challenge_id}")
+            else:
+                st.error("No saved state found")
+
+if st.button("🧠 Generate New Avenue Plan (Deep Replan)"):
+    plan = manager._generate_new_avenue_plan(
+        challenge=challenge or "Current Challenge",
+        recent_feedback="User requested deep replan"
+    )
+    st.json(plan)
+
+# Grail Status
 reinforcement_avg = sum(manager.grail_reinforcement.values()) / max(len(manager.grail_reinforcement), 1) if hasattr(manager, 'grail_reinforcement') and manager.grail_reinforcement else 0.0
-st.metric("Grail Reinforcement Signal", f"{reinforcement_avg:.3f}", help="Higher = stronger retained high-value patterns")
-
-# Top reinforced patterns
-if hasattr(manager, 'grail_reinforcement') and manager.grail_reinforcement:
-    top_patterns = sorted(manager.grail_reinforcement.items(), key=lambda x: x[1], reverse=True)[:5]
-    st.subheader("Top Reinforced Grail Patterns")
-    for key, score in top_patterns:
-        st.caption(f"{key} — Reinforcement: **{score:.3f}**")
-
-# Latest Diagnostics
-if hasattr(manager, 'diagnostic_history') and manager.diagnostic_history:
-    latest_diag = manager.diagnostic_history[-1]
-    st.subheader("Latest Rich Diagnostics")
-    for detector_name, data in latest_diag.get("detectors", {}).items():
-        status = "✅ Passed" if data.get("passed") else "⚠️ Failed"
-        st.write(f"**{detector_name.replace('_', ' ').title()}**: {status} — {data.get('details', '')[:120]}...")
-
-    with st.expander("Full Diagnostics JSON"):
-        st.json(latest_diag)
-else:
-    st.info("No diagnostics run yet. Generate a plan or run a swarm to see them.")
-
-if st.button("🔄 Force Grail Consolidation Now"):
-    if st.session_state.get("final_solution"):
-        manager.consolidate_grail(st.session_state.final_solution, getattr(manager.validator, 'last_score', 0.0))
-        st.success("✅ Grail consolidation forced")
-        st.rerun()
-    else:
-        st.warning("No solution yet to consolidate")
+st.metric("Grail Reinforcement Signal", f"{reinforcement_avg:.3f}")
 
 # ====================== COMPUTE SETUP ======================
 st.subheader("🔌 Compute Setup")
@@ -322,7 +317,7 @@ if st.button("🔍 Generate High-Level Plan", type="primary", use_container_widt
     if not challenge.strip():
         st.error("Please enter a challenge description.")
     else:
-        with st.spinner("Planning Arbos running on Local GPU..."):
+        with st.spinner("Planning Arbos running..."):
             plan = manager.plan_challenge(
                 goal_md=edited_goal, 
                 challenge=challenge, 
