@@ -90,7 +90,5 @@ Create the `experts/` folder and start dropping domain knowledge. Use the Stream
 
 Questions or feature requests? Ping @dTAO_Dad on X.
 
-Made with focus on first-principles agentic design for Bittensor SN63.
-explanation is now much stronger and clearer in both the Sub-Arbos step and the dedicated verification section.
+Made with focus on first-principles agentic design for Bittensor Subnet 63, Enigma. 
 
-Let me know if you want any final adjustments!
