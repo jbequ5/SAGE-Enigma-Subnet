@@ -17,5 +17,4 @@
 ## Metrics Snapshot
 (See [[brain/metrics.md]])
 
-# Legacy strategy/toggles/Grail appends (auto-concatenated on load for backward compatibility)
-[Original GOAL + Core Strategy + Toggles + COMPRESSION_PROMPT + English modules from v4.9 are now pulled from brain/ on startup]
+# Legacy content auto-concatenated on load for full backward compatibility (v4.9 GOAL + Core Strategy + Toggles + English modules now live in brain/)
