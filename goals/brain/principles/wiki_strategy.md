@@ -1,3 +1,8 @@
 # WIKI_STRATEGY_PROMPT (Ingestion / Pruning / Distillation / Linting)
 
-Ingest raw/ → distill to wiki/ (concepts/, invariants/, subtasks/). Enforce compression policy. Output strict JSON deltas for knowledge/ hierarchy. Reference shared_core. Prune after N runs unless ValidationOracle lift.
+Reference: [[../shared_core.md|Shared Core]]
+
+Ingest raw material into knowledge/raw/. Distill into structured wiki/ (concepts/, invariants/, subtasks/).  
+Enforce compression and pruning policy: retain only items with proven ValidationOracle or heterogeneity lift.  
+Output strict JSON deltas for dynamic folder creation and upward promotion.  
+Maintain cross-field synthesis links. Keep substrate fully inspectable and English-first.
