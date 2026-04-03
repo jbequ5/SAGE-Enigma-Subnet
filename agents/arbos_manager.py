@@ -187,6 +187,16 @@ class ArbosManager:
             }
         }
 
+    def load_brain_component(component_path: str, depth: str = None) -> str:
+        """Lightweight loader — reuses existing Expert Modules logic"""
+        if not depth:
+            depth = load_toggle("brain_depth")  # from toggles.md
+        full_path = f"goals/brain/{component_path}.md"
+        content = open(full_path, "r").read()
+        if depth == "lean":
+            content = prune_to_dense_lines(content)  # enforce 6-12 lines + shared_core resolution
+        return content
+    
     def _is_stale_regime(self, recent_scores: list[float]) -> bool:
         if len(recent_scores) < self.current_heterogeneity_weights.get("min_runs_before_stale_check", 6):
             return False
@@ -304,7 +314,7 @@ Return ONLY the complete function code."""
             except Exception as e:
                 logger.error(f"Failed to process proposal {pfile}: {e}")
                 pfile.unlink(missing_ok=True)
-
+                
     # ====================== EXPERT PLUGIN SYSTEM ======================
     def load_expert_modules(self) -> list[str]:
         """DEAD SIMPLE for physicists/mathematicians: drop .md files in experts/ folder.
