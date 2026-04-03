@@ -5,6 +5,7 @@
 - English-first, signal-dense, fully inspectable Markdown substrate.
 - Resource-aware + mycelial stigmergy: local .md edits as adaptation signals; upward promotion and pruning only on proven lift.
 - Inspectability above all — no black-box layers.
+- Heterogeneity-maximizing across 5 axes — see [[heterogeneity.md|Heterogeneity Principle]]
 
 # MARL-style Credit Rules
 Strictly weight Sub-Arbos and ToolHunter sub-swarms by ValidationOracle score (primary). Heavy down-weight (×0.4 or lower) if symbolic fidelity < 0.88 or determinism score < 0.85. Penalize novelty unless it preserves exact symbolic invariants and reproducible 0-1 scoring. Use compute_energy + memdir/trajectory similarity as secondary tie-breakers only.
