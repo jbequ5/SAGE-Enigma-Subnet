@@ -1,94 +1,117 @@
-# THE ENIGMA MACHINE – Arbos-Led Intelligent Solver
+# THE ENIGMA MACHINE – Arbos-Led Intelligent Solver (v5)
 
 **English-first • Verifier-first • Self-evolving • Maximum Heterogeneity**
 
-Built from first principles to solve extremely hard sponsor challenges — quantum, cryptographic, mathematical, symbolic, or any well-defined problem — while maximizing novelty, ValidationOracle score, and reproducible IP.
+The Enigma Machine is a closed-loop, biologically-inspired agentic system designed to solve extremely hard, well-defined sponsor challenges — quantum, cryptographic, mathematical, symbolic, or otherwise — while permanently upgrading its own intelligence.
 
-What makes it unique is not just another multi-agent swarm. It is a **closed-loop self-improving system** where every run permanently upgrades the miner’s own reasoning, memory, compression strategy, graph relationships, and prompt intelligence. The result is compounding discovery capability that gets measurably stronger over time.
+What makes it unique is its **living second brain**: a deliberately .md-heavy architecture that treats every run as both a problem-solving episode and a permanent evolutionary step. High-signal outcomes are distilled, reinforced, and folded back into the system’s principles, memory, compression strategy, and prompt substrate. The result is compounding discovery capability that grows measurably stronger with each use.
 
-The **Principle of Maximum Heterogeneity** is the decisive advantage that allows it to break novel problems with no obvious solutions. While most agent systems quickly collapse into mode-collapse or local optima, the Enigma Machine deliberately forces systematic exploration across five axes — agent styles, hypotheses, tool paths, interaction graphs, and compute substrates — at every decision point. This diversification, tightly gated by verifier-first symbolic checks and ValidationOracle scoring, enables genuine discovery on open-ended, high-difficulty challenges where traditional approaches fail. Heterogeneity scoring, adaptive weighting, and stale-regime deep replanning ensure the system does not just optimize known patterns — it systematically expands its ability to find breakthroughs.
+### Top-Down Intelligence Architecture
 
-### Unified Execution Flow with Integrated Intelligence
+The system is deliberately layered from the most flexible to the most rigorous:
 
-1. **Edit `killer_base.md`** — the single living source of truth. Contains the challenge-agnostic foundation, toggles, English Evolution Modules, and the self-evolving COMPRESSION_PROMPT that improves with every strong run.
+1. **Natural Language Substrate**  
+2. **Core Principles**  
+3. **Prompt Evolution & Compression**  
+4. **Arbos Self-Learning Loop** (inner + outer)  
+5. **Verification Intelligence**
 
-2. **(Optional but powerful)** Drop domain-expert knowledge into the `experts/` folder — any `.md` file is automatically loaded as an **Expert Module** and injected into all downstream prompts.
+This hierarchy keeps the miner fully human-inspectable, English-editable, and self-improving while enforcing verifier-first rigor at every level.
 
-3. **Enter the challenge + verification instructions**.
+#### 1. Natural Language Substrate
 
-4. **Click “Generate High-Level Plan”** → Planning Arbos creates a detailed strategy and auto-populates a challenge-specific post-planning enhancement prompt (now enriched with any active Expert Modules).
+Natural language is the most powerful, flexible, and human-augmentable medium for intelligence. Unlike rigid code or vector embeddings that become opaque, natural language remains readable, editable, and evolvable by both humans and the system itself.
 
-5. **Review & edit** the enhancement prompt to inject human intelligence.  
-   **(Optional)** Save the edited enhancement as a Grail pattern — instantly appended to `killer_base.md` and stored in `memdir/grail`.
+The Enigma Machine embraces this fully with a deliberately .md-heavy brain. Every piece of intelligence — strategies, principles, patterns, and findings — lives in Markdown files that are both human-readable and machine-actionable. This design gives domain experts (physicists, mathematicians, cryptographers) low-friction access to inject deep knowledge simply by dropping `.md` files into the `experts/` folder.
 
-6. **Approve the Plan** → Orchestrator Arbos refines the blueprint and generates a specialized Pre-Launch Context that includes graph relationships.
+The system maintains a hierarchical **wiki database** (`goals/knowledge/<challenge_id>/wiki/`) of the most impactful findings and patterns. Sub-Arbos workers write directly to this database as stigmergy signals, creating a living, inspectable archive of concepts, invariants, subtasks, and cross-field synthesis. Over time, the miner does not just solve problems — it builds and refines its own structured knowledge base, turning isolated wins into permanent, reusable intelligence.
 
-7. **Post-Orchestration Review Dashboard** — full visibility into swarm strategy, ToolHunter sub-swarm recommendations (including Onyx RAG execution when enabled), validation criteria, and pre-launch context.
+#### 2. Core Principles
 
-8. **Launch the Swarm** → Dynamic Swarm + parallel ToolHunter sub-swarm (ModelHunter / ToolHunter / PaperHunter / ReadyAI-DataHunter) with Amdahl-aware routing and optional Onyx hybrid RAG execution for high-signal gap filling.
+The stable axioms that govern all reasoning live in `goals/brain/principles/` and are referenced by **every** prompt via `brain_loader.py`.
 
-9. **Sub-Arbos Workers** — each worker receives **intelligently determined verification criteria** set by Orchestrator Arbos during the blueprint phase. They perform verifier-first symbolic execution, Guided Diversity exploration (structured heterogeneity maximization instead of random perturbations), ToolHunter + Onyx calls, and real-time inter-worker messaging via the lightweight message bus. This early, precise validation guidance keeps every sub-Arbos tightly on track from the very first step.
+- **`shared_core.md`** establishes verifier-first discipline and MARL credit rules. It ensures symbolic invariants and determinism thresholds (≥0.85) are enforced on every subtask, preventing drift and rewarding only reproducible, high-fidelity paths.
+- **`heterogeneity.md`** is the decisive scaling principle. It forces systematic diversity across five axes (agent styles, hypotheses, tool paths, interaction graphs, compute substrates) at every decision point, preventing mode-collapse on novel problems.
+- **`wiki_strategy.md`** defines hierarchical knowledge management. Raw material is ingested into `knowledge/raw/`, then distilled, pruned, and promoted into `wiki/concepts/`, `wiki/invariants/`, and `wiki/subtasks/`. It outputs structured JSON deltas for dynamic folder creation and upward promotion.
+- **`bio_strategy.md`** brings mycelial heuristics to life: Sub-Arbos workers act as hyphal tips that perform local sensing, stigmergy (direct `.md` writes), redundancy/loops, symbiosis detection across subtasks, and aggressive pruning of low-signal paths. Optional quantum-bio coherence is toggleable in guided diversity phases.
+- **`english_evolution.md`** supplies challenge-specialized modules that auto-specialize per run to maximize the effectiveness of the tools they're feeding in a challenge specific way.
 
-10. **Synthesis Arbos** — MARL-weighted aggregation that only credits paths meeting strict fidelity and determinism thresholds.
+These principles are not passive documentation — they are actively loaded with `lean`/`rich` depth toggling and aggressive pruning. Once introduced, they are integrated throughout the system: every Planning, Orchestration, Sub-Arbos, and Adaption step explicitly references the relevant principle files, ensuring the entire swarm operates under the same high-signal axioms.
 
-11. **ValidationOracle + Intelligent Verification Techniques** — the unbreakable gate. Executes your exact verifier code snippets + SymPy invariants + 0-1 edge-case checks on the synthesized solution.  
+#### 3. Prompt Evolution & Compression
 
-12. **Low Score?** → Adaptation Arbos (`re_adapt`) uses compressed intelligence deltas, vector DB recall, graph relationships, and Expert Modules for fast, precise adaptation.
+The system does not just use prompts — it evolves them in a closed outer loop.
 
-13. **High Score?** → Grail extraction, reinforcement, MCTS-guided compression evolution, and one-click SN63 packaging.
+The base strategy prompt (`killer_base.md`) evolves with every inner-loop run. High-signal Grail patterns and aha insights are automatically promoted back into it, making the canonical entry point smarter and more battle-tested over time.
 
-14. **Scientist Mode** — on-demand or automatic synthetic challenge generation + progress benchmarking.
+The principled prompts (`brain/principles/*.md`) evolve from high-signal system input. On strong runs or aha moments, `evolve_principles_post_run` generates targeted, concise deltas that are appended directly to the principle files. The Compression Arbos (`brain/principles/compression.md` v1.3) distills raw trajectories using the reinforcement formula `reinforcement_score = validation_score × fidelity^1.5 × symbolic_coverage × heterogeneity_bonus`, ensuring only the most impactful patterns survive and compound.
 
-### Natural Language Intelligence: The Evolving Prompt Ecosystem
+This dual evolution — base prompt growing through inner-loop success, principled prompts refining through high-signal feedback — turns the entire prompt ecosystem into a self-improving substrate.
 
-One of the most powerful aspects of the Enigma Machine is that intelligence lives primarily in **natural language** — a flexible, human-augmentable, self-improving substrate.
+#### 4. Arbos Self-Learning Loop (Inner + Outer)
 
-- **`killer_base.md`** serves as the root prompt ecosystem. It contains the challenge-agnostic core strategy, toggles, English Evolution Modules, and the live, self-evolving COMPRESSION_PROMPT.
-- **Planning Arbos** starts deliberately agnostic and specializes into a challenge-specific enhancement prompt, automatically injecting Expert Modules.
-- **Enhancement Prompt Layer** is fully editable by the human and can be permanently saved as Grail patterns.
-- **Orchestrator Arbos**, synthesis, re_adapt, diversity generation, and Scientist Mode prompts all inherit and build upon this evolving English foundation.
+**Inner Loop** (per-challenge execution):  
+Planning Arbos → Orchestrator Arbos → Dynamic Swarm (Sub-Arbos workers + parallel ToolHunter sub-swarms) → Synthesis Arbos → ValidationOracle → Adaptation Arbos (`re_adapt`) if score is low.
 
-This design gives world-class physicists and mathematicians an extremely low-friction way to inject deep domain knowledge without touching Python. More importantly, the prompts themselves evolve: strong runs permanently improve the compression prompt via MCTS-guided self-play, and Grail patterns become part of the permanent reasoning repertoire. The miner is not just solving problems — it is literally improving how it *thinks* about problem decomposition, hypothesis generation, and symbolic reasoning over time.
+Sub-Arbos workers act as hyphal tips: they run verifier-first symbolic checks, guided diversity, tool calls, and local reflection loops. High-signal findings trigger immediate stigmergy writes to the wiki hierarchy.
 
-### Maximum Heterogeneity Principle – The Core Scaling Strategy
+**Outer Loop** (cross-run brain evolution):  
+- Aha moments (local score jumps or heterogeneity spikes) are detected at the Sub-Arbos level and gated by toggles.  
+- ValidationOracle + WikiHealthOracle boost scores from high-signal wiki contributions.  
+- **Grail RL** reinforces high-value trajectories via `memory_reinforcement_signal` (using the same reinforcement formula) and stores them in the persistent memdir-backed Grail for future recall.  
+- **Deep Replan** triggers automatically on stale-regime detection (z-score drop or prolonged low scores), generating an entirely new strategic avenue while preserving all prior Grail patterns and forcing a fresh Planning Arbos run.
 
-On problems with zero obvious solutions, heterogeneity is the decisive advantage.
+The result is a true self-compounding system: intelligence is accumulated and refined across runs.
 
-The system deliberately maximizes diversity across five axes at every decision point:
-- Agent diversity
-- Hypothesis diversity
-- Tool-path diversity
-- Interaction-graph diversity
-- Compute-substrate diversity
+#### 5. Verification Intelligence
 
-Heterogeneity scoring is computed live on every Grail extraction and re_adapt. Adaptive EMA weights slowly reinforce the axes that actually move ValidationOracle scores. When progress stalls, stale-regime detection triggers **Deep Replan**, generating an entirely new strategic avenue while preserving all prior knowledge.
+Verification is the unbreakable core pillar. The miner (human or automated) provides exact verification requirements and code snippets at the start of every challenge. These feed directly into the ValidationOracle, which adapts dynamically with the system.
 
-A heterogeneity bonus is baked into every reinforcement signal and compression delta. This prevents mode-collapse and forces systematic exploration of the full solution space, while the verifier-first gate ensures only high-fidelity paths survive. This combination is the primary reason the Enigma Machine can attack open-ended, high-difficulty problems with genuine discovery power.
+The oracle propagates task-specific validation criteria (self-check prompts, symbolic invariants, success thresholds) all the way down to Sub-Arbos level detail. Every worker runs continuous self-checks against these criteria throughout its execution. The oracle further strengthens this pillar by intelligently hunting tools, papers, and data via the parallel ToolHunter sub-swarms (ModelHunter, ToolHunter, PaperHunter, ReadyAI-DataHunter), ensuring the verification layer is always armed with the best available resources.
 
-### Bittensor Subnet Inspired Intelligence
+This creates an early, continuous verification signal that dramatically reduces drift and wasted compute while keeping the entire swarm tightly aligned to the miner’s exact success definition.
 
-The miner compounds intelligence from multiple subnets (SN11 TrajectoryRL, SN33 ReadyAI, SN24 Quasar, SN64 Chutes, SN81 Grail) into a single, verifiable self-improvement loop.
+### Miner Actions
 
-### Strict Verification Intelligence at Every Level
-During orchestration, Orchestrator Arbos analyzes the challenge and generates **task-specific validation_criteria** (including self-check prompts, symbolic invariants, and success thresholds) that are passed down to every Sub-Arbos worker. Each worker runs continuous self-checks against these criteria throughout its execution loop. This creates an early, continuous verification signal rather than a single end-of-pipeline check. The result is dramatically reduced drift: agents stay aligned to the exact success definition from the moment they begin work, wasted compute on off-track paths is minimized, and only high-fidelity trajectories reach Synthesis Arbos. AgentFixer-style multi-detector diagnostics (symbolic invariants, prompt coherence, parsing schema, novelty drift, cross-stage coherence) run at every stage and feed directly into Grail extraction, compression, and re_adapt loops.
+The miner itself performs a small but critical set of high-leverage actions:
+- Edits the Brain Suite via the Streamlit dashboard.
+- Provides challenge description + verification code/requirements.
+- Reviews and edits the Planning-generated enhancement prompt.
+- Saves strong patterns as Grail entries.
+- Triggers Scientist Mode for synthetic benchmarking and progress measurement.
+- Monitors wiki growth and principle evolution over multiple runs.
 
-### Compute Flexibility
+All other intelligence emerges from the Arbos loops and the evolving brain.
 
-You have the option to run whatever compute you want, and the intelligence of the system automatically manages your compute resources with dynamic swarm sizing and resource-aware early-abort logic.
+### Unified Execution Flow
+
+1. Edit the Brain via the Streamlit Brain Dashboard.  
+2. Enter challenge + verification requirements/code.  
+3. Planning Arbos (all principles injected) → editable enhancement prompt.  
+4. Orchestrator Arbos → blueprint with task-specific validation criteria.  
+5. Launch Dynamic Swarm + parallel ToolHunter sub-swarms (Amdahl-aware).  
+6. Sub-Arbos workers execute with continuous self-checks and stigmergy wiki writes.  
+7. Synthesis → ValidationOracle.  
+8. Low score → re_adapt (using compressed deltas + bio heuristics).  
+9. High score → Grail RL reinforcement + outer-loop brain evolution (including Deep Replan if stale).
 
 ### Quick Start
 
 ```bash
 pip install -r requirements.txt
-# AutoHarness requires one manual git clone + pip install -e . step (see requirements.txt)
+# Follow AutoHarness setup instructions in requirements.txt
 streamlit run streamlit_app.py
 ```
 
-Create the `experts/` folder and start dropping domain knowledge. Use the Streamlit Expert Input panel to propose new tools. Run Scientist Mode whenever you want to measure real progress.
+Create the `experts/` folder for domain knowledge. Use the Brain Dashboard to inspect and evolve principles directly. Run Scientist Mode for synthetic benchmarking.
 
 **The bunker is open.**
 
-Questions or feature requests? Ping @dTAO_Dad on X.
+Questions or sponsor challenges? Ping @dTAO_Dad on X.
 
-Made with focus on first-principles agentic design for Bittensor Subnet 63, Enigma. 
+Built with first-principles agentic design for Bittensor Subnet 63, Enigma.
+```
 
+This version now follows your vision exactly — broad and philosophical in Section 1, progressively more detailed and technical as we descend the layers, with every element you flagged explicitly addressed.
+
+Would you like a Mermaid diagram for the top-down layers, any further expansion in a specific section, or is this ready to ship?
