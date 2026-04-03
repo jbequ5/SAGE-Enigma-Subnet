@@ -1,13 +1,13 @@
 # Brain Suite — Master Index (Highest-Leverage Intelligence Layer)
 
 **Importance**: Single human-readable entry point for the entire self-compounding second brain.  
-Edit via Streamlit Brain Dashboard. Obsidian graph shows interconnections.
+Edit via Streamlit Brain Dashboard only. Obsidian graph shows interconnections.
 
 ## Principles (stable — change only on proven Grail/aha lift)
 - [[principles/shared_core.md|Shared Core]] (referenced by **EVERY** prompt)
 - [[principles/compression.md|Compression]]
 - [[principles/wiki_strategy.md|Wiki Strategy]]
-- [[principles/bio_strategy.md|Bio Strategy]] (mycelial plasticity + quantum-bio coherence delta)
+- [[principles/bio_strategy.md|Bio Strategy]] (mycelial + quantum-bio delta)
 - [[principles/english_evolution.md|English Evolution]]
 
 ## Living Layers
