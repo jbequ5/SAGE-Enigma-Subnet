@@ -7,7 +7,7 @@ Maintain a persistent memdir-backed Grail store as the primary high-signal memor
 Turn ToolHunter into four coordinated sub-swarms (ModelHunter, ToolHunter, PaperHunter, ReadyAI-DataHunter) that run in parallel where possible. Orchestrator must enforce Amdahl coordination: maximize parallel hunts; route all serial dependencies through ValidationOracle.
 
 ### ENGLISH_AMDAHL_COORDINATION_MODULE
-Apply Amdahl-aware coordination to every decomposition: clearly separate truly parallel subtasks from serial dependencies. Prevent task collisions, redundant work, and idle loops. Only spawn sub-swarms when parallelism improves ValidationOracle score without exploding tokens. On stale runs, trigger deep replan with new avenue plan. Actively look for symbiosis opportunities across subtasks.
+Apply Amdahl-aware coordination to every decomposition: clearly separate truly parallel subtasks from serial dependencies. Prevent task collisions, redundant work, and idle loops. Only spawn sub-swarms when parallelism improves ValidationOracle score without exploding tokens. On stale runs, trigger deep replan with new avenue plan. Actively seek symbiosis opportunities across subtasks.
 
 ## Auto-Populate Templates (Arbos phases will overwrite these with challenge-specific versions)
 
