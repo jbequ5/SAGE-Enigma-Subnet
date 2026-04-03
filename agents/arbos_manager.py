@@ -253,7 +253,21 @@ class ArbosManager:
         if self.quantum_coherence_mode:
             full_prompt += "\nQuantum-bio mode active: apply tunneling/entanglement heuristics where resource_aware allows."
         return self.harness.call_llm(full_prompt, temperature=0.3, max_tokens=600)
-
+        
+    def post_high_signal_finding(self, subtask: str, content: str, local_score: float):
+        """Structured message bus push from Sub-Arbos for wiki/brain ingestion"""
+        self.post_message(
+            sender="SubArbos",
+            content=content,
+            msg_type="high_signal_finding",
+            importance=0.9,
+            validation_score=local_score,
+            fidelity=0.85
+        )
+        # Optional immediate wiki delta trigger
+        if self.aha_adaptation_enabled and local_score > 0.78:
+            self._apply_wiki_strategy(content, getattr(self, "_current_challenge_id", "current"))
+            
     def _run_symbiosis_arbos(self, aggregated_outputs: Dict, message_bus: List) -> List[str]:
         if not self.symbiosis_synthesis:
             return []
@@ -719,10 +733,10 @@ Synthesize final high-quality realistic assessment (weight higher-scoring subtas
         validation_criteria = self._current_validation_criteria.get(subtask, self._current_validation_criteria)
         trace = [f"Sub-Arbos {subtask_id} started | Using Criteria: {json.dumps(validation_criteria, indent=2)[:400]}..."]
 
-        # Dynamic subtask wiki folder + Bio integration (Orchestrator level)
+        # Ensure proper challenge_id for wiki hierarchy
         challenge_id = getattr(self, "_current_challenge_id", "current_challenge")
         subtask_path = self._create_subtask_wiki_folder(challenge_id, str(subtask_id))
-        
+
         if self.config.get("resource_aware") and monitor.elapsed_hours() > max_hours * 0.75:
             solution = "Early abort: time budget exceeded."
             trace.append("Resource-aware early abort")
@@ -734,7 +748,7 @@ Synthesize final high-quality realistic assessment (weight higher-scoring subtas
             symbolic_result = symbolic_module(subtask, hypothesis, solution, getattr(self, "_current_strategy", {"enabled_modules": ["sympy"]}))
             if symbolic_result:
                 solution += f"\n{symbolic_result}"
-                trace.append("Used dynamic symbolic/deterministic tooling (Verifier-code-first)")
+                trace.append("Used dynamic symbolic/deterministic tooling")
 
             # Bio Strategy + Mycelial Stigmergy
             bio_delta = self._apply_bio_strategy(subtask, solution)
@@ -763,6 +777,25 @@ Give a score (0.0-1.0) and short explanation."""
                     except:
                         local_score = 0.5
 
+                # === NEW: Post-high-signal reflection loop (your requested feature) ===
+                if local_score > 0.75 and self.aha_adaptation_enabled:
+                    trace.append(f"High-signal finding detected (score {local_score:.2f}) — running reflection")
+                    reflection = self.harness.call_llm(
+                        f"Subtask: {subtask}\nSolution: {solution[:1200]}\nExtract the single highest-signal insight, invariant, or symbiosis opportunity for the wiki.",
+                        temperature=0.2, max_tokens=400
+                    )
+                    # Push to message bus as structured finding
+                    self.post_message(
+                        sender=f"SubArbos_{subtask_id}",
+                        content=reflection,
+                        msg_type="high_signal_finding",
+                        importance=0.9,
+                        validation_score=local_score,
+                        fidelity=0.85
+                    )
+                    # Immediate stigmergy write
+                    self._write_subtask_md(subtask_path, solution + f"\n\n[REFLECTION] {reflection}")
+
                 reflect_task = f"""You are a focused sub-Arbos for SN63 Quantum.
 Subtask: {subtask}
 Hypothesis: {hypothesis}
@@ -789,7 +822,6 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
 
                 if "error" in solution.lower() and repair_attempts < self.max_repair_attempts:
                     repair_attempts += 1
-                    trace.append(f"Repair attempt {repair_attempts}/{self.max_repair_attempts}")
                     solution = self._generate_guided_diversity_candidates(subtask, hypothesis, solution)
 
                 if time.time() - monitor.start_time > (max_hours * 1800 / 6):
@@ -859,7 +891,7 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
                 logger.warning(f"Failed to add proposal: {e}")
         
         return proposals
-
+            
     def _run_grail_post_training(self, results: Dict):
         logger.info("Grail post-training triggered on winning run (verifiable proof attached to package)")
 
