@@ -14,32 +14,7 @@ Solve ANY sponsor challenge with maximum ValidationOracle score + novelty + symb
 - On low-score or stale runs, explicitly trigger re_adapt with compressed deltas and consider deep replan via new avenue plan.
 - Run reflection on every prompt evolution step. Ensure evolution stays strictly on task
 
-## Toggles & Explanations (parsed automatically)
-### Core Behavior
-miner_review_after_loop: false
-max_loops: 8
-miner_review_final: true
 
-### Compute & Resource Management
-compute_source: local_gpu
-max_compute_hours: 4.0
-resource_aware: true
-dynamic_swarm: true
-light_compression: true
-
-### Safety & Quality
-guardrails: true
-verifier_first: true
-toolhunter_escalation: true
-manual_tool_installs_allowed: true
-
-### Self-Improvement & Adaptation
-grail_on_winning_runs: true
-self_critique_enabled: true
-low_score_threshold: 0.65
-use_trajectory_search: true
-stale_regime_detection: true
-deep_replan_on_stale: true
 
 ### MARL-style Credit Rules
 marl_credit_rule: "Strictly weight Sub-Arbos and ToolHunter sub-swarms ONLY by ValidationOracle score (primary). Heavy down-weight (×0.4 or lower) if symbolic fidelity < 0.88 OR determinism score < 0.85. Penalize novelty unless it preserves exact symbolic invariants and reproducible 0-1 scoring. Use compute_energy + memdir/trajectory similarity as secondary tie-breakers only."
