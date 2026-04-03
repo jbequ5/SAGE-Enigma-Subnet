@@ -25,13 +25,6 @@
 ## GOAL
 Solve ANY sponsor challenge with maximum ValidationOracle score + novelty + symbolic fidelity while staying strictly under compute limits, maximizing reproducible IP, and forcing verifier-code-first determinism at every step.
 
-
-### MARL-style Credit Rules
-marl_credit_rule: "Strictly weight Sub-Arbos and ToolHunter sub-swarms ONLY by ValidationOracle score (primary). Heavy down-weight (×0.4 or lower) if symbolic fidelity < 0.88 OR determinism score < 0.85. Penalize novelty unless it preserves exact symbolic invariants and reproducible 0-1 scoring. Use compute_energy + memdir/trajectory similarity as secondary tie-breakers only."
-
-### Smart Oracle Generation Rules
-oracle_gen_rule: "Prioritize deterministic symbolic tools (SymPy, invariant extraction, formal verification snippets) on every subtask. ToolHunter sub-swarm MUST hunt in parallel. If no verifier_code_snippets exist in memdir/trajectory_vector_db, generate Python snippets EXCLUSIVELY focused on: (1) extracting/proving symbolic invariants, (2) exhaustive edge-case 0-1 scoring, (3) algebraic closures before any approximation. Always run deterministic symbolic checks FIRST."
-
 ## LOCAL_MODEL_ROUTING (Customize for your set-up)
 planning_model: deepseek-r1:14b-q4_K_M
 orchestrator_model: deepseek-r1:14b-q4_K_M
