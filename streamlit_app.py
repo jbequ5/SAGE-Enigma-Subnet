@@ -122,44 +122,99 @@ with col3:
                 del st.session_state[k]
         st.rerun()
 
-# ====================== GOAL.MD EDITOR ======================
-st.subheader("📟 FULL STRATEGY — GOAL.md")
-st.caption("This is the single source of truth. Edit Core Strategy, English Modules, and Templates here.")
+# ====================== IMPROVED BRAIN-AWARE STRATEGY EDITOR ======================
+st.subheader("🧠 STRATEGY LAYERS — Brain Suite")
+st.caption("killer_base.md is now a thin shim. Edit high-leverage components selectively below.")
 
-goal_path = Path("goals/killer_base.md")
-goal_path.parent.mkdir(parents=True, exist_ok=True)
+# Thin shim overview (read-only)
+st.markdown("**Canonical Entry Point (Thin Shim)**")
+with st.expander("View killer_base.md shim", expanded=False):
+    try:
+        with open("goals/killer_base.md", "r", encoding="utf-8") as f:
+            shim_content = f.read()
+        st.text_area("Shim Content (read-only — do not edit here)", value=shim_content, height=180, disabled=True)
+    except Exception as e:
+        st.error(f"Could not load shim: {e}")
 
-if not goal_path.exists():
-    goal_path.write_text("""# Enigma Machine Miner - Base Strategy
+# Structured editing by component
+col_shim, col_select = st.columns([1, 2])
+with col_select:
+    edit_mode = st.radio(
+        "Edit Mode",
+        options=["Individual Components", "Full Concatenated View", "Quick Toggles Only"],
+        horizontal=True,
+        key="strategy_edit_mode"
+    )
 
-## Core Strategy (Challenge-Agnostic Base Prompt)
-Treat every problem as pure symbolic/text — no premature domain assumptions.
-Verifier-code-first + symbolic invariants on every subtask before any LLM generation.
-ToolHunter sub-swarm must run in parallel where possible.
-Reward only trajectories that measurably improve ValidationOracle score.
+if edit_mode == "Individual Components":
+    st.markdown("**Select Component to Edit**")
+    component_options = {
+        "Core Strategy": "core_strategy",
+        "Shared Core Principles": "principles/shared_core",
+        "Compression Prompt": "principles/compression",
+        "Wiki Strategy": "principles/wiki_strategy",
+        "Bio Strategy (mycelial + quantum)": "principles/bio_strategy",
+        "English Evolution Modules": "principles/english_evolution",
+        "Centralized Toggles": "toggles",
+        "Live Metrics": "metrics"
+    }
+    
+    selected = st.selectbox("Choose layer", options=list(component_options.keys()), key="component_select")
+    component_path = component_options[selected]
+    
+    try:
+        content = load_brain_component(component_path)
+        edited = st.text_area(f"Editing: {selected}", value=content, height=380, key=f"edit_{component_path.replace('/', '_')}")
+        
+        col_save1, col_save2 = st.columns(2)
+        with col_save1:
+            if st.button(f"💾 Save {selected}", type="primary"):
+                full_path = f"goals/brain/{component_path}.md"
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(edited)
+                st.success(f"✅ Saved {selected}")
+                st.rerun()
+        with col_save2:
+            if st.button("🔄 Save & Compress Full Suite", type="secondary"):
+                # Trigger MCTS-style compression across the entire brain
+                raw = f"Manual edit to {selected} — triggering suite-wide compression"
+                compressed = manager.compress_intelligence_delta(raw)
+                st.success("✅ Full brain suite compressed")
+                st.json(compressed[:800] + "..." if len(str(compressed)) > 800 else compressed)
+                st.rerun()
+    except Exception as e:
+        st.error(f"Could not load or save component '{selected}': {e}")
 
-## English Evolution Modules
-### ENGLISH_MEMDIR_GRAIL_MODULE
-Maintain a persistent memdir-backed Grail store...
+elif edit_mode == "Full Concatenated View":
+    # Legacy full view (concat shim + key brain pieces)
+    st.caption("Legacy full view — use sparingly (for backward compatibility)")
+    try:
+        full_concat = load_brain_component("index") + "\n\n" + load_brain_component("core_strategy")
+        edited_full = st.text_area("Full Concatenated Strategy", value=full_concat, height=420, key="full_concat_edit")
+        if st.button("Save Full View (updates shim + core)"):
+            with open("goals/killer_base.md", "w", encoding="utf-8") as f:
+                f.write(edited_full)
+            st.success("✅ Full view saved to killer_base.md shim")
+            st.rerun()
+    except Exception as e:
+        st.error(f"Error building full view: {e}")
 
-### ENGLISH_TOOL_SWARM_MODULE
-Turn ToolHunter into four coordinated sub-swarms...
+else:  # Quick Toggles Only
+    st.subheader("Quick Toggles")
+    try:
+        toggles_content = load_brain_component("toggles")
+        edited_toggles = st.text_area("Edit Toggles (brain_depth, aha_adaptation_enabled, symbiosis_synthesis, etc.)", 
+                                      value=toggles_content, height=300, key="quick_toggles_edit")
+        if st.button("Save Toggles"):
+            with open("goals/brain/toggles.md", "w", encoding="utf-8") as f:
+                f.write(edited_toggles)
+            st.success("✅ Toggles saved — reload manager / rerun to apply")
+            st.rerun()
+    except Exception as e:
+        st.error(f"Error loading toggles: {e}")
 
-### ENGLISH_AMDAHL_COORDINATION_MODULE
-Apply Amdahl-aware coordination...
-""", encoding="utf-8")
-
-with open(goal_path, "r", encoding="utf-8") as f:
-    current_goal = f.read()
-
-edited_goal = st.text_area("Full Strategy Content (Core + Modules + Templates)", value=current_goal, height=420, key="goal_editor_unique")
-
-if st.button("💾 Save Full Strategy"):
-    with open(goal_path, "w", encoding="utf-8") as f:
-        f.write(edited_goal)
-    st.success("✅ Full Strategy saved to GOAL.md")
-    st.rerun()
-
+# Optional: Show importance / last compressed note
+st.caption("**Pro tip**: Changess.")
 # ====================== CHALLENGE DEFINITION & VERIFICATION ======================
 st.subheader("🎯 MISSION TARGET")
 col_chal, col_ver = st.columns([1, 1])
@@ -189,6 +244,76 @@ with col_ver:
         verification_instructions = verification_response.get("text", default_verification)
     else:
         verification_instructions = str(verification_response) if verification_response else default_verification
+        
+# ====================== NEW: BRAIN SUITE DASHBOARD TAB ======================
+tab_plan, tab_orch, tab_brain, tab_hunter, tab_final = st.tabs([
+    "📋 High-Level Plan", 
+    "🚀 Orchestration", 
+    "🧠 Brain Suite", 
+    "🛰️ ToolHunter Recon", 
+    "📦 Final Review & Packaging"
+])
+
+with tab_brain:
+    st.header("🧠 BRAIN SUITE — Self-Compounding Intelligence Layer")
+    st.caption("Mycelial + Karpathy-style wiki + Bio heuristics. Edit live. One-click compress & promote.")
+
+    # Master Index
+    st.subheader("Master Index")
+    index_content = load_brain_component("index")
+    st.markdown(index_content)
+
+    # Principles Accordion
+    with st.expander("📜 Principles (Stable — change only on proven lift)", expanded=False):
+        for principle in ["shared_core", "compression", "wiki_strategy", "bio_strategy", "english_evolution"]:
+            with st.expander(f"→ {principle.replace('_', ' ').title()}", expanded=False):
+                content = load_brain_component(f"principles/{principle}")
+                edited = st.text_area(f"Edit {principle}", value=content, height=300, key=f"edit_{principle}")
+                if st.button(f"Save & Compress {principle}", key=f"save_{principle}"):
+                    # Save back to correct file
+                    full_path = f"goals/brain/principles/{principle}.md"
+                    with open(full_path, "w", encoding="utf-8") as f:
+                        f.write(edited)
+                    st.success(f"✅ Saved {principle}")
+                    # Trigger compression across suite
+                    manager.compress_intelligence_delta("Brain suite updated — run MCTS compression")
+                    st.rerun()
+
+    # Toggles
+    with st.expander("🔧 Centralized Toggles", expanded=True):
+        toggles_content = load_brain_component("toggles")
+        edited_toggles = st.text_area("Toggles (brain_depth, aha_adaptation_enabled, etc.)", value=toggles_content, height=250)
+        if st.button("Save Toggles"):
+            with open("goals/brain/toggles.md", "w", encoding="utf-8") as f:
+                f.write(edited_toggles)
+            st.success("✅ Toggles saved — reload manager to apply")
+            st.rerun()
+
+    # Metrics
+    with st.expander("📊 Live Metrics", expanded=False):
+        metrics_content = load_brain_component("metrics")
+        st.markdown(metrics_content)
+        if st.button("Refresh Metrics"):
+            st.rerun()
+
+    # Grail Patterns
+    with st.expander("🏆 Grail Patterns (auto-promoted)", expanded=False):
+        grail_dir = Path("goals/brain/grail_patterns")
+        if grail_dir.exists():
+            for f in grail_dir.glob("*.json"):
+                st.json(f.read_text())
+        else:
+            st.info("No grail patterns yet — will auto-populate on high-signal runs")
+
+    # One-click full suite compression
+    if st.button("🔄 Compress Entire Brain Suite + Promote to Grail", type="primary"):
+        with st.spinner("Running MCTS-guided compression across all principles..."):
+            # Trigger existing compression on brain components
+            raw = "Brain suite update — high-signal deltas from recent aha/wiki runs"
+            compressed = manager.compress_intelligence_delta(raw)
+            st.success("✅ Brain suite compressed")
+            st.json(compressed)
+            st.rerun()
 
 # ====================== SIDEBAR - MISSION CONTROLS ======================
 with st.sidebar:
