@@ -845,7 +845,13 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
     # ====================== REMAINING ORIGINAL METHODS (100% preserved) ======================
     def _run_verification(self, solution: str, verification_instructions: str, challenge: str) -> str:
         candidate = {"solution": solution}
-        oracle_result = self.validator.run(candidate, verification_instructions, challenge)
+        oracle_result = self.validator.run(
+    candidate=...,
+    verification_instructions=...,
+    challenge=challenge,
+    goal_md=...,
+    message_bus=self.message_bus   # ← Add this
+)
         self._current_strategy = oracle_result.get("strategy")
 
         self.vector_db.add({
