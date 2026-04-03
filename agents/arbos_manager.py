@@ -733,7 +733,7 @@ Synthesize final high-quality realistic assessment (weight higher-scoring subtas
         validation_criteria = self._current_validation_criteria.get(subtask, self._current_validation_criteria)
         trace = [f"Sub-Arbos {subtask_id} started | Using Criteria: {json.dumps(validation_criteria, indent=2)[:400]}..."]
 
-        # Ensure proper challenge_id for wiki hierarchy
+        # Proper challenge_id for wiki hierarchy
         challenge_id = getattr(self, "_current_challenge_id", "current_challenge")
         subtask_path = self._create_subtask_wiki_folder(challenge_id, str(subtask_id))
 
@@ -777,23 +777,14 @@ Give a score (0.0-1.0) and short explanation."""
                     except:
                         local_score = 0.5
 
-                # === NEW: Post-high-signal reflection loop (your requested feature) ===
+                # === SIMPLIFIED REFLECTION LOOP (keeps the biological soul) ===
                 if local_score > 0.75 and self.aha_adaptation_enabled:
                     trace.append(f"High-signal finding detected (score {local_score:.2f}) — running reflection")
                     reflection = self.harness.call_llm(
                         f"Subtask: {subtask}\nSolution: {solution[:1200]}\nExtract the single highest-signal insight, invariant, or symbiosis opportunity for the wiki.",
                         temperature=0.2, max_tokens=400
                     )
-                    # Push to message bus as structured finding
-                    self.post_message(
-                        sender=f"SubArbos_{subtask_id}",
-                        content=reflection,
-                        msg_type="high_signal_finding",
-                        importance=0.9,
-                        validation_score=local_score,
-                        fidelity=0.85
-                    )
-                    # Immediate stigmergy write
+                    # Simple stigmergy write (no extra message bus type)
                     self._write_subtask_md(subtask_path, solution + f"\n\n[REFLECTION] {reflection}")
 
                 reflect_task = f"""You are a focused sub-Arbos for SN63 Quantum.
