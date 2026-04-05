@@ -7,14 +7,11 @@ import numpy as np
 from verification_analyzer import VerificationAnalyzer
 from goals.brain_loader import load_toggle
 
-# Optional: only import if simulationhunter_enabled (to avoid hard dependency)
-# from agents.tools.simulation_hunter import simulation_hunter  # if it exists
-
 class ValidationOracle:
     def __init__(self, goal_file: str = "goals/killer_base.md", compute=None, arbos=None):
         self.analyzer = VerificationAnalyzer(goal_file)
         self.compute = compute
-        self.arbos = arbos  # Now properly passed from ArbosManager
+        self.arbos = arbos
 
         self.last_score = 0.0
         self.last_vvd_ready = False
@@ -41,24 +38,53 @@ class ValidationOracle:
             pass
         return {}
 
+    def _compute_mau_reinforcement(self, mau_text: str, validation_score: float, fidelity: float, heterogeneity: float) -> float:
+        """v5.1 MAU Pyramid scoring"""
+        symbolic_coverage = 0.85 if "sympy" in mau_text.lower() or "deterministic" in mau_text.lower() else 0.6
+        return validation_score * (fidelity ** 1.5) * symbolic_coverage * heterogeneity
+
     def _compute_wiki_contrib(self) -> float:
-        """v5.1-aware Wiki contribution — ties into MAU / ByteRover when enabled."""
+        """Full v5.1 MAU Pyramid aware wiki contribution"""
         try:
             if not os.path.exists("goals/knowledge"):
                 return 0.0
 
-            wiki_files = 0
+            total_mau_score = 0.0
+            mau_count = 0
+
             for root, _, files in os.walk("goals/knowledge"):
                 if any(x in root.lower() for x in ["wiki", "subtasks", "invariants", "concepts"]):
-                    wiki_files += len([f for f in files if f.endswith((".md", ".json"))])
+                    for f in files:
+                        if f.endswith((".md", ".json")):
+                            try:
+                                path = os.path.join(root, f)
+                                with open(path, "r", encoding="utf-8") as file:
+                                    content = file.read()[:2000]  # limit for speed
+                                # Simple MAU simulation: split on paragraphs/sentences
+                                maus = [s.strip() for s in content.split("\n\n") if len(s.strip()) > 30]
+                                for mau in maus[:10]:  # cap per file
+                                    score = self._compute_mau_reinforcement(
+                                        mau,
+                                        self.last_score,
+                                        self.last_fidelity,
+                                        self.arbos._compute_heterogeneity_score()["heterogeneity_score"] if self.arbos else 0.7
+                                    )
+                                    total_mau_score += score
+                                    mau_count += 1
+                            except:
+                                pass
 
-            base_contrib = min(0.25, wiki_files * 0.05)
+            if mau_count == 0:
+                return 0.0
 
-            # Boost if ByteRover MAU pyramid is active
+            avg_mau_score = total_mau_score / mau_count
+            contrib = min(0.35, avg_mau_score * 0.12)  # gentle scaling
+
+            # Extra boost when byterover_mau_enabled
             if getattr(self.arbos, 'byterover_mau_enabled', False):
-                base_contrib = min(0.35, base_contrib * 1.4)
+                contrib = min(0.45, contrib * 1.5)
 
-            return round(base_contrib, 3)
+            return round(contrib, 3)
         except:
             return 0.0
 
@@ -94,17 +120,14 @@ Produced Solution:
             except Exception:
                 pass
 
-        # === PRIORITY 2: LLM SCORING (fallback) with model registry routing ===
+        # === PRIORITY 2: LLM SCORING with model routing ===
         score = deterministic_score
         notes = f"Primarily deterministic/verifier-first scoring (strength: {deterministic_score:.2f})"
         vvd_ready = score > 0.82
         realism_penalty = False
 
         if deterministic_score <= 0.35 and self.compute is not None:
-            # Use Arbos model routing for verification (allows frontier on stagnation)
-            model_config = getattr(self.arbos, 'load_model_registry', lambda **kwargs: {})(
-                role="verification" if hasattr(self.arbos, 'load_model_registry') else None
-            )
+            model_config = self.arbos.load_model_registry(role="verification") if hasattr(self.arbos, 'load_model_registry') else {}
 
             scoring_prompt = f"""You are a strict, expert Validation Oracle for Bittensor SN63.
 
@@ -116,25 +139,16 @@ Scoring Rules:
 - Heavily penalize generic or overconfident answers.
 - Reward honest feasibility statements and any real symbolic progress.
 
-Return ONLY valid JSON:
-{{
-  "validation_score": float 0.0-1.0,
-  "vvd_ready": boolean,
-  "notes": "brief realistic explanation",
-  "deterministic_strength": float,
-  "realism_penalty": boolean
-}}"""
+Return ONLY valid JSON with the keys shown."""
 
             try:
                 response = self.compute.call_llm(
                     prompt=scoring_prompt,
                     temperature=0.35,
                     max_tokens=900,
-                    task_type="verification",
                     model_config=model_config
                 )
                 parsed = self._safe_parse_json(response)
-                
                 score = float(parsed.get("validation_score", deterministic_score + 0.45))
                 notes = parsed.get("notes", "LLM-assisted realistic scoring")
                 vvd_ready = bool(parsed.get("vvd_ready", score > 0.80))
@@ -145,43 +159,39 @@ Return ONLY valid JSON:
                 vvd_ready = False
                 realism_penalty = True
 
-        # Final safety clamp
         self.last_score = max(0.35, min(0.94, score))
         self.last_vvd_ready = vvd_ready
-        self.last_fidelity = round(0.80 + (np.random.normal(0, 0.08) if not hasattr(self.arbos, 'deterministic_mode') else 0), 3)
+        self.last_fidelity = round(0.80 + np.random.normal(0, 0.08), 3)
         self.last_notes = notes
 
         if realism_penalty:
             self.last_notes += " | Realism penalty applied"
 
-        # ====================== v5.1 WIKI + AHA + C3A INTEGRATION ======================
+        # ====================== v5.1 FULL MAU PYRAMID WIKI INTEGRATION ======================
         wiki_contrib = self._compute_wiki_contrib()
         self.last_wiki_contrib = wiki_contrib
 
         aha_strength = max(0.0, self.last_score - 0.65) if self.last_score > 0.70 else 0.0
         self.last_aha_strength = round(aha_strength, 3)
 
-        # Gentle boost from wiki activity (Sub-Arbos stigmergy)
+        # Boost from wiki activity (MAU reinforcement)
         if wiki_contrib > 0.05:
-            self.last_score = min(0.96, self.last_score + (wiki_contrib * 0.06))
+            self.last_score = min(0.96, self.last_score + (wiki_contrib * 0.08))
 
-        # C3A confidence recompute (core v5.1)
-        c = 0.75  # default
-        if hasattr(self.arbos, 'compute_confidence'):
-            # Example: pull from diagnostics or well data when available
-            c = self.arbos.compute_confidence(edge_coverage=0.78, invariant_tightness=0.70, historical_reliability=0.88)
+        # C3A confidence
+        c = self.arbos.compute_confidence(0.78, 0.70, 0.88) if hasattr(self.arbos, 'compute_confidence') else 0.75
 
-        # Decision Journal write (v5.1)
+        # Decision Journal write
         if hasattr(self.arbos, 'decision_journal_enabled') and self.arbos.decision_journal_enabled:
             self.arbos.write_decision_journal(
                 subtask_id="validation_oracle",
                 hypothesis="Validation score computed",
                 evidence=notes,
                 performance_delta={"delta_c": c, "delta_s": self.last_score, "wiki_contrib": wiki_contrib},
-                organic_thought=f"AHA strength: {aha_strength:.3f}"
+                organic_thought=f"AHA strength: {aha_strength:.3f} | MAU contrib: {wiki_contrib:.3f}"
             )
 
-        # Update metrics only when meaningful
+        # Update brain metrics
         if wiki_contrib > 0.05 or aha_strength > 0.1:
             try:
                 metrics_path = "goals/brain/metrics.md"
@@ -197,7 +207,7 @@ Return ONLY valid JSON:
         return {
             "validation_score": self.last_score,
             "vvd_ready": self.last_vvd_ready,
-            "notes": self.last_notes + f" | Wiki contrib: {wiki_contrib:.3f} | C3A c: {c:.3f}",
+            "notes": self.last_notes + f" | Wiki/MAU contrib: {wiki_contrib:.3f} | C3A c: {c:.3f}",
             "strategy": strategy,
             "fidelity": self.last_fidelity,
             "deterministic_strength": deterministic_score,
