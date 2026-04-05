@@ -92,15 +92,7 @@ After the inner loop completes, the outer loop ensures permanent evolution:
 - High-score runs or detected AHA moments activate **`evolve_principles_post_run`**, which distills targeted deltas and appends them directly to the principle files and master compression prompt. This is the mechanism that makes the entire natural-language substrate evolve.
 
 **Why this is huge on Enigma**  
-Bittensor SN63 rewards miners that deliver **consistent, compounding improvement** rather than one-off lucky solutions. Most agent systems are single-loop and static — they solve (or fail) a challenge and reset with the same prompts and memory. Enigma’s dual inner/outer loop + ByteRover memory + stigmergic wiki creates a true self-improving research organism. Each run not only attacks the current sponsor challenge with maximum focus but also permanently upgrades the system’s principles, knowledge hierarchy, and prompt substrate. Over time, Enigma becomes sharper, more knowledgeable, and better adapted to frontier quantum, cryptographic, and symbolic problems — delivering a decisive, compounding edge in a distributed, compute-constrained environment where every run must count toward long-term intelligence growth.
-
----
-
-This version is now significantly deeper and more detailed. It pulls directly from the DetailedREADME.md and brain principles (hyphal tips, stigmergy, Symbiosis Arbos, BIO_MYCELIAL_DELTA, ToolHunter sub-swarms, reinforcement formula, Deep Replan, etc.), spells out the step-by-step flows, and emphasizes the biological/distributed nature that differentiates it on Bittensor.
-
-It flows naturally from the previous sections (especially the strengthened Prompt Evolution) while staying in the same professional tone.
-
-Would you like me to send the **full updated README** with sections 2, 3, and 4 all refreshed, or any further adjustments to this one?
+Most agent systems are single-loop and static — they solve (or fail) a challenge and reset with the same prompts and memory. Enigma’s dual inner/outer loop + ByteRover memory + stigmergic wiki creates a true self-improving research organism. Each run not only attacks the current sponsor challenge with maximum focus but also permanently upgrades the system’s principles, knowledge hierarchy, and prompt substrate. Over time, Enigma becomes sharper, more knowledgeable, and better adapted to frontier quantum, cryptographic, and symbolic problems — delivering a decisive, compounding edge in a distributed, compute-constrained environment where every run must count toward long-term intelligence growth.
 
 ### 5. Verification Intelligence
 
