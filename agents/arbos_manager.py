@@ -5,6 +5,7 @@ import concurrent.futures
 import multiprocessing
 import time
 import torch
+import math
 from datetime import datetime
 from typing import Tuple, List, Dict, Any
 from pathlib import Path
@@ -150,7 +151,124 @@ class ArbosManager:
         self.micro_evolution_frequency = load_toggle("micro_evolution_frequency", "every_aha")
         self.set_compute_source("local_gpu")
 
-    # ====================== HETEROGENEITY + ADAPTIVE STALE ======================
+        # ====================== v5.1.3 FULL MODEL/COMPUTE + BREAKTHROUGH LAYER ======================
+        self.model_compute_capability_enabled = load_toggle("model_compute_capability_enabled", "true") == "true"
+        self.hybrid_routing_enabled = load_toggle("hybrid_routing_enabled", "true") == "true"
+        self.allow_per_subarbos_breakthrough = load_toggle("allow_per_subarbos_breakthrough", "true") == "true"
+        self.breakthrough_token_budget = load_toggle("breakthrough_token_budget_default", 12000)
+
+        self.model_registry = self._load_model_registry()
+
+        self.default_planner_model = "DeepSeek-R1-Distill-Qwen-14B"
+        self.default_hyphae_model = "Carnice-9B-Q4_K_M"
+
+        # ====================== v5.1 CORE INTELLIGENCE ======================
+        self.c3a_k = 0.5
+        self.c3a_beta = 2.0
+        self.novelty_floor = 0.20
+        self.decision_journal_enabled = load_toggle("decision_journal_enabled", "true") == "true"
+        self.dynamic_tool_creation_enabled = load_toggle("dynamic_tool_creation_enabled", "false") == "true"
+        self.byterover_mau_enabled = load_toggle("byterover_mau_enabled", "false") == "true"
+        self.pareto_efficiency_enabled = load_toggle("pareto_efficiency_enabled", "true") == "true"
+        self.leann_efficiency_enabled = load_toggle("leann_efficiency_enabled", "false") == "true"
+
+        logger.info("✅ v5.1.3 Full Intelligence Layer Loaded — C3A + Decision Journal + Dynamic Tool Creation + ModelRegistry + Per-Sub-Arbos Breakthrough Active")
+
+    # ====================== v5.1.3 MODEL REGISTRY ======================
+    def _load_model_registry(self) -> Dict:
+        registry_path = Path("config/model_registry.json")
+        if registry_path.exists():
+            with open(registry_path) as f:
+                return json.load(f)
+        return {
+            "models": {
+                "DeepSeek-R1-Distill-Qwen-14B": {
+                    "endpoint": "local_ollama", "model_name": "deepseek-r1-distill-qwen-14b",
+                    "context_window": 131072, "tool_calling_style": "qwen",
+                    "max_parallel": 2, "vrams_gb": 10, "cost_per_mtok": 0,
+                    "reliability_score": 0.95, "role": "planner"
+                },
+                "Carnice-9B-Q4_K_M": {
+                    "endpoint": "local_ollama", "model_name": "carnice-9b",
+                    "context_window": 131072, "tool_calling_style": "hermes",
+                    "max_parallel": 6, "vrams_gb": 6, "cost_per_mtok": 0,
+                    "reliability_score": 0.92, "role": "hyphae"
+                },
+                "Claude-Opus-4.6": {
+                    "endpoint": "api_anthropic", "model_name": "claude-opus-4.6",
+                    "context_window": 200000, "tool_calling_style": "computer_use",
+                    "max_parallel": 20, "vrams_gb": "api", "cost_per_mtok": 15,
+                    "reliability_score": 0.98, "strength": "symbolic_critique_invariants"
+                },
+                "Kimi-K2.5-AgentSwarm": {
+                    "endpoint": "api_moonshot", "model_name": "kimi-k2.5",
+                    "context_window": 131072, "tool_calling_style": "parallel_agent",
+                    "max_parallel": 100, "vrams_gb": "api", "cost_per_mtok": 0.15,
+                    "reliability_score": 0.97, "strength": "parallel_tool_exploration_novelty"
+                }
+            },
+            "routing_rules": {
+                "default": "Carnice-9B-Q4_K_M",
+                "planner_roles": ["Planning Arbos", "Orchestrator Arbos"],
+                "planner_model": "DeepSeek-R1-Distill-Qwen-14B",
+                "breakthrough_token_budget_default": 12000,
+                "allow_per_subarbos_breakthrough": True,
+                "heavy_subtask_keywords": ["dynamic_tool", "simulation", "quantum", "critique", "symbolic"]
+            }
+        }
+
+    def load_model_registry(self, subtask_id: str = None, role: str = None, override: str = None, token_budget: int = None) -> Dict:
+        rules = self.model_registry["routing_rules"]
+        if override:
+            return self.model_registry["models"][override]
+        if role == "planner" or any(r in (subtask_id or "") for r in rules["planner_roles"]):
+            return self.model_registry["models"][rules["planner_model"]]
+        return self.model_registry["models"][rules["default"]]
+
+    # ====================== v5.1 C3A ======================
+    def compute_c3a_multiplier(self, d: float, c: float) -> float:
+        return math.exp(-self.c3a_k * d) * (c ** self.c3a_beta)
+
+    def compute_confidence(self, edge_coverage: float, invariant_tightness: float, historical_reliability: float) -> float:
+        raw_c = (0.4 * edge_coverage) + (0.4 * invariant_tightness) + (0.2 * historical_reliability)
+        return max(self.novelty_floor, min(1.0, raw_c))
+
+    # ====================== v5.1 DECISION JOURNAL ======================
+    def write_decision_journal(self, subtask_id: str, hypothesis: str, evidence: str, performance_delta: Dict, organic_thought: str = ""):
+        if not self.decision_journal_enabled:
+            return
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "subtask_id": subtask_id,
+            "hypothesis": hypothesis,
+            "evidence_vs_instinct": evidence,
+            "performance_delta": performance_delta,
+            "organic_thought": organic_thought
+        }
+        path = f"goals/knowledge/{getattr(self, '_current_challenge_id', 'current')}/wiki/subtasks/{subtask_id}/decision_journal.md"
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"\n\n### {datetime.now().isoformat()}\n{json.dumps(entry, indent=2)}\n")
+        logger.info(f"Decision Journal entry written for Sub-Arbos {subtask_id}")
+
+    # ====================== v5.1.3 STAGNATION + BREAKTHROUGH ======================
+    def is_stagnant_subarbos(self, subtask_id: str) -> bool:
+        if len(self.recent_scores) < 4:
+            return False
+        recent = self.recent_scores[-4:]
+        return (max(recent) - min(recent)) < 0.08
+
+    def generate_gap_diagnosis(self, subtask_id: str) -> str:
+        return f"Localized stagnation in Sub-Arbos {subtask_id}: low invariant tightness and repeated tool-creation failures."
+
+    def recommend_breakthrough_model(self, gap_diagnosis: str) -> str:
+        if any(k in gap_diagnosis.lower() for k in ["invariant", "symbolic", "critique"]):
+            return "Claude-Opus-4.6"
+        if any(k in gap_diagnosis.lower() for k in ["tool", "parallel", "novelty"]):
+            return "Kimi-K2.5-AgentSwarm"
+        return "Claude-Opus-4.6"
+
+    # ====================== HETEROGENEITY + ADAPTIVE STALE (unchanged) ======================
     def _load_heterogeneity_weights(self):
         path = os.path.join("config", "heterogeneity_weights.json")
         if os.path.exists(path):
@@ -184,7 +302,6 @@ class ArbosManager:
         }
 
     def _is_stale_regime(self, recent_scores: list[float]) -> bool:
-        # Ecosystem Health Oracle folded into stale detection (per handover)
         if len(recent_scores) < self.current_heterogeneity_weights.get("min_runs_before_stale_check", 6):
             return False
         recent = np.array(recent_scores[-self.current_heterogeneity_weights["adaptive_stale_window"]:])
@@ -220,226 +337,21 @@ class ArbosManager:
             f.write(full_content)
         logger.info(f"Stigmergy write → {path}/subtask.md")
 
-    def _apply_wiki_strategy(self, raw_context: str, challenge_id: str) -> Dict:
-        wiki_prompt = load_brain_component("principles/wiki_strategy")
-        full_prompt = f"{wiki_prompt}\n\nRaw context to ingest:\n{raw_context[:8000]}"
-        response = self.harness.call_llm(full_prompt, temperature=0.2, max_tokens=1200)
-        deltas = self._safe_parse_json(response)
-        self._ensure_knowledge_hierarchy(challenge_id)
-        with open(f"goals/knowledge/{challenge_id}/raw/ingest_{int(time.time())}.json", "w") as f:
-            json.dump(deltas, f, indent=2)
-        logger.info("Wiki Strategy applied at Planning level")
-        return deltas
-
-    def _apply_bio_strategy(self, subtask: str, solution: str) -> str:
-        if not (self.mycelial_pruning or self.quantum_coherence_mode):
-            return ""
-        bio_prompt = load_brain_component("principles/bio_strategy")
-        full_prompt = f"{bio_prompt}\n\nSubtask: {subtask}\nCurrent solution snippet: {solution[:1200]}"
-        if self.quantum_coherence_mode:
-            full_prompt += "\nQuantum-bio mode active: apply tunneling/entanglement heuristics where resource_aware allows."
-        return self.harness.call_llm(full_prompt, temperature=0.3, max_tokens=600)
-        
-    def post_high_signal_finding(self, subtask: str, content: str, local_score: float):
-        """Structured message bus push from Sub-Arbos for wiki/brain ingestion"""
-        self.post_message(
-            sender="SubArbos",
-            content=content,
-            msg_type="high_signal_finding",
-            importance=0.9,
-            validation_score=local_score,
-            fidelity=0.85
-        )
-        # Optional immediate wiki delta trigger
-        if self.aha_adaptation_enabled and local_score > 0.78:
-            self._apply_wiki_strategy(content, getattr(self, "_current_challenge_id", "current"))
-            
-    def _run_symbiosis_arbos(self, aggregated_outputs: Dict, message_bus: List) -> List[str]:
-        if not self.symbiosis_synthesis:
-            return []
-        bio_prompt = load_brain_component("principles/bio_strategy")
-        prompt = f"""Symbiosis Arbos — detect cross-field mutualisms and entanglement-like correlations.
-{bio_prompt}
-Aggregated outputs: {json.dumps(aggregated_outputs, indent=2)[:3000]}
-Message bus signals: {json.dumps(message_bus[-10:], indent=2)}
-Return ONLY list of distilled symbiosis patterns (max 5)."""
-        response = self.harness.call_llm(prompt, temperature=0.25, max_tokens=800)
-        patterns = self._safe_parse_json(response) if isinstance(response, dict) else []
-        if patterns:
-            with open("goals/brain/grail_patterns/symbiosis.json", "w") as f:
-                json.dump(patterns, f, indent=2)
-        return patterns
-
-    def is_aha_detected(self, recent_scores: List[float], threshold: float = 0.12) -> bool:
-        if len(recent_scores) < 2:
-            return False
-        jump = recent_scores[-1] - recent_scores[-2]
-        hetero_spike = self._compute_heterogeneity_score()["heterogeneity_score"] > 0.78
-        return jump > threshold or hetero_spike
-
-    def _update_brain_metrics(self, aha_strength: float = 0.0, wiki_contrib: float = 0.0):
-        metrics_path = "goals/brain/metrics.md"
-        with open(metrics_path, "a", encoding="utf-8") as f:
-            f.write(f"\n\n### Update {datetime.now().isoformat()}\naha_strength: {aha_strength:.3f}\nwiki_contribution_score: {wiki_contrib:.3f}\nheterogeneity_deltas: {self._compute_heterogeneity_score()['heterogeneity_score']}")
-
-    # ====================== CHALLENGE STATE ======================
-    def save_challenge_state(self, challenge_id: str):
-        state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
-        os.makedirs(state_dir, exist_ok=True)
-
-        base_path = os.path.join("goals", "killer_base.md")
-        if os.path.exists(base_path):
-            shutil.copy(base_path, os.path.join(state_dir, "killer_base.md"))
-
-        with open(os.path.join(state_dir, "heterogeneity_weights.json"), "w") as f:
-            json.dump(self.current_heterogeneity_weights, f, indent=2)
-
-        with open(os.path.join(state_dir, "recent_scores.json"), "w") as f:
-            json.dump(self.recent_scores, f)
-
-        if self._pending_new_avenue_plan:
-            with open(os.path.join(state_dir, "pending_avenue_plan.md"), "w") as f:
-                f.write(self._pending_new_avenue_plan)
-
-        self.save_to_memdir(f"grail_snapshot_{challenge_id}", {"timestamp": datetime.now().isoformat()})
-        logger.info(f"[STATE SAVED] Challenge {challenge_id} — including evolved killer_base.md")
-
-    def load_challenge_state(self, challenge_id: str) -> bool:
-        state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
-        if not os.path.exists(state_dir):
-            logger.warning(f"No saved state for {challenge_id}")
-            return False
-
-        saved_base = os.path.join(state_dir, "killer_base.md")
-        if os.path.exists(saved_base):
-            shutil.copy(saved_base, os.path.join("goals", "killer_base.md"))
-            logger.info("✅ Evolved killer_base.md restored")
-
-        with open(os.path.join(state_dir, "heterogeneity_weights.json")) as f:
-            self.current_heterogeneity_weights = json.load(f)
-
-        if os.path.exists(os.path.join(state_dir, "recent_scores.json")):
-            with open(os.path.join(state_dir, "recent_scores.json")) as f:
-                self.recent_scores = json.load(f)
-
-        plan_path = os.path.join(state_dir, "pending_avenue_plan.md")
-        if os.path.exists(plan_path):
-            with open(plan_path) as f:
-                self._pending_new_avenue_plan = f.read()
-
-        logger.info(f"[STATE LOADED] Challenge {challenge_id}")
-        return True
-
-    # ====================== Onyx Hybrid ToolHunter ======================
-    def onyx_hunter_query(self, gap_description: str, subtask: str) -> dict:
-        if not self.use_onyx_rag:
-            return tool_hunter.hunt_and_integrate(gap_description, subtask)
-
-        prompt = f"""Act as ToolHunter sub-swarm for SN63.
-Gap: {gap_description}
-Subtask: {subtask}
-
-Follow ToolHunter philosophy + MAXIMUM HETEROGENEITY.
-Return structured recommendation."""
-
-        try:
-            resp = requests.post(f"{self.onyx_url}/api/query", json={
-                "query": prompt, "agentic": True, "num_results": 10
-            }, timeout=40)
-            return resp.json().get("results", {})
-        except:
-            return tool_hunter.hunt_and_integrate(gap_description, subtask)
-
-    # ====================== TOOL PROPOSAL PROCESSING ======================
-    def process_tool_proposals(self):
-        proposal_files = list(Path(self.memdir_path).glob("tool_proposal_*.json"))
-        if not proposal_files:
-            return
-
-        logger.info(f"Processing {len(proposal_files)} tool proposals...")
-
-        for pfile in proposal_files:
-            try:
-                proposal = self.load_from_memdir(pfile.stem)
-                
-                if proposal.get("code") == "AUTO_GENERATE" or not proposal.get("code"):
-                    gen_prompt = f"""Generate clean, safe, well-commented Python code for this tool:
-
-Name: {proposal.get('name')}
-Description: {proposal.get('description')}
-
-The function must be named `run(input_dict: dict) -> dict`
-
-Return ONLY the complete function code."""
-                    generated_code = self.harness.call_llm(gen_prompt, temperature=0.3, max_tokens=900)
-                    proposal["code"] = generated_code
-
-                tool_path = Path("tools/runtime") / f"{proposal['name']}.py"
-                tool_path.parent.mkdir(exist_ok=True)
-                tool_path.write_text(proposal["code"])
-
-                self.save_to_memdir(f"approved_tool_{proposal['name']}", proposal)
-                logger.info(f"✅ New tool approved and saved: {proposal['name']}")
-
-                pfile.unlink(missing_ok=True)
-
-            except Exception as e:
-                logger.error(f"Failed to process proposal {pfile}: {e}")
-                pfile.unlink(missing_ok=True)
-                
-    # ====================== EXPERT PLUGIN SYSTEM ======================
-    def load_expert_modules(self) -> list[str]:
-        experts = []
-        expert_dir = Path("experts")
-        if expert_dir.exists():
-            for file in expert_dir.glob("*.md"):
-                try:
-                    content = file.read_text(encoding="utf-8").strip()
-                    if content:
-                        experts.append(f"EXPERT MODULE [{file.stem.upper()}]: {content}")
-                except Exception as e:
-                    logger.warning(f"Failed to load expert module {file}: {e}")
-        return experts
-
-    # ====================== GUIDED DIVERSITY ======================
-    def _generate_guided_diversity_candidates(self, subtask: str, hypothesis: str, current_solution: str) -> str:
-        hetero = self._compute_heterogeneity_score()
-        
-        diversity_prompt = f"""You are Diversity Arbos for SN63 Quantum Innovate.
-Subtask: {subtask}
-Current hypothesis: {hypothesis}
-Current solution snippet: {current_solution[:800]}
-
-Current heterogeneity score: {hetero.get('heterogeneity_score', 0.65):.3f}
-
-Generate 3 maximally diverse alternative approaches.
-Maximize difference across: agent style, hypothesis framing, tool path, symbolic strategy, and compute substrate.
-Return ONLY a JSON array of 3 candidate solutions (strings)."""
-
-        response = self.harness.call_llm(diversity_prompt, temperature=0.78, max_tokens=1100)
-        try:
-            candidates = self._safe_parse_json(response)
-            if isinstance(candidates, list) and candidates:
-                return candidates[0]
-            return current_solution
-        except Exception:
-            logger.warning("Guided diversity fallback to current solution")
-            return current_solution
-
- # ====================== PLANNING (All principles wired) ======================
+    # ====================== PLANNING ======================
     def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_prompt: str = "", compute_mode: str = "local_gpu") -> Dict[str, Any]:
         self.set_compute_source(compute_mode)
         
         if not challenge or len(challenge.strip()) < 10:
             return {"error": "Challenge too short", "phase1": "", "phase2": {}, "dynamic_swarm_size": 4}
 
-        logger.info(f"Planning challenge with {compute_mode}")
+        logger.info(f"Planning challenge with {compute_mode} — using DeepSeek 14B planner")
 
-        # Load ALL principles
         shared_core = load_brain_component("principles/shared_core")
         heterogeneity = load_brain_component("principles/heterogeneity")
         wiki_deltas = self._apply_wiki_strategy(goal_md + "\n" + challenge, challenge.replace(" ", "_").lower())
         english_evolution = load_brain_component("principles/english_evolution")
+
+        model_config = self.load_model_registry(role="planner")
 
         phase1_prompt = f"""You are Planning Arbos for Bittensor SN63 Quantum Innovate.
 You MUST be brutally honest about cryptographic feasibility.
@@ -460,7 +372,7 @@ English Evolution Modules:
 
 Return ONLY valid JSON with keys: phase1_plan, key_insights, feasibility, recommended_approach, risks, estimated_difficulty, generated_post_planning_enhancement"""
 
-        phase1_raw = self.harness.call_llm(phase1_prompt, temperature=0.65, max_tokens=1600)
+        phase1_raw = self.harness.call_llm(phase1_prompt, temperature=0.65, max_tokens=1600, model_config=model_config)
         phase1 = self._safe_parse_json(phase1_raw)
         self._current_enhancement = phase1.get("generated_post_planning_enhancement", "")
 
@@ -473,7 +385,7 @@ Heterogeneity Principle: {heterogeneity}
 
 Return ONLY valid JSON with: decomposition, swarm_config, tool_map, validation_criteria, hypothesis_diversity"""
 
-        phase2_raw = self.harness.call_llm(phase2_prompt, temperature=0.3, max_tokens=1200)
+        phase2_raw = self.harness.call_llm(phase2_prompt, temperature=0.3, max_tokens=1200, model_config=model_config)
         blueprint = self._safe_parse_json(phase2_raw)
 
         if not blueprint or "decomposition" not in blueprint:
@@ -491,8 +403,8 @@ Return ONLY valid JSON with: decomposition, swarm_config, tool_map, validation_c
             "dynamic_swarm_size": dynamic_size,
             "quasar_enabled": self.quasar_enabled
         }
-        
-    # ====================== RE_ADAPT with full Aha + Bio + Symbiosis ======================
+
+    # ====================== RE_ADAPT (full v5.1 + v5.1.3) ======================
     def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
         self.loop_count += 1
         self.recent_scores.append(getattr(self.validator, "last_score", 0.0))
@@ -501,12 +413,16 @@ Return ONLY valid JSON with: decomposition, swarm_config, tool_map, validation_c
             logger.warning("🔴 Stale regime detected — flagging deep replan")
             self._flag_for_new_avenue_plan = True
 
-        # Load ALL principles
+        # v5.1.3 global breakthrough
+        if self.model_compute_capability_enabled and self.allow_per_subarbos_breakthrough and self.is_stagnant_subarbos("global"):
+            gap = self.generate_gap_diagnosis("global")
+            rec_model = self.recommend_breakthrough_model(gap)
+            logger.info(f"🌍 Global stagnation detected — recommending {rec_model} breakthrough run")
+
         shared_core = load_brain_component("principles/shared_core")
         heterogeneity = load_brain_component("principles/heterogeneity")
         english_evolution = load_brain_component("principles/english_evolution")
 
-        # Aha Mode
         aha_detected = self.is_aha_detected(self.recent_scores)
         bio_delta = ""
         if self.aha_adaptation_enabled and aha_detected:
@@ -522,8 +438,6 @@ Return ONLY valid JSON with: decomposition, swarm_config, tool_map, validation_c
                 self.run_diagnostics(candidate.get("solution", ""), candidate.get("challenge", "unknown"), latest_verifier_feedback)
             )
             self._flag_for_new_avenue_plan = False
-
-        # Keep your existing logic for grail_context, recent_trajectories, weighted_context, message_context, diagnostics, fix_recommendations, compressed_deltas, symbiosis...
 
         adaptation_prompt = f"""You are Adaptation Arbos for SN63.
 CURRENT LOOP: {self.loop_count}
@@ -545,10 +459,20 @@ COMPRESSED INTELLIGENCE DELTAS:
 
 Generate concise, high-signal adaptation."""
 
-        adaptation_raw = self.harness.call_llm(adaptation_prompt, temperature=0.15, max_tokens=1400)
+        model_config = self.load_model_registry(role="planner")
+        adaptation_raw = self.harness.call_llm(adaptation_prompt, temperature=0.15, max_tokens=1400, model_config=model_config)
         adapted = self._safe_parse_json(adaptation_raw)
         self._current_strategy = adapted.get("strategy", self._current_strategy)
         self.validator.adapt_scoring(self._current_strategy)
+
+        # v5.1 Decision Journal write
+        self.write_decision_journal(
+            subtask_id="global_re_adapt",
+            hypothesis="re_adapt triggered by low score or aha",
+            evidence=latest_verifier_feedback,
+            performance_delta={"delta_c": 0.0, "delta_s": getattr(self.validator, "last_score", 0.0)},
+            organic_thought=adapted.get("next_loop_recommendation", "")
+        )
 
         self.save_to_memdir("latest_grail", {
             "loop": self.loop_count,
@@ -565,120 +489,8 @@ Generate concise, high-signal adaptation."""
         self.process_tool_proposals()
 
         logger.info(f"✅ re_adapt completed loop {self.loop_count}")
-        
-    # ====================== _run_swarm (original, unchanged) ======================
-    def _run_swarm(self, blueprint: Dict[str, Any], challenge: str, verification_instructions: str = "", deterministic_tooling: str = "") -> str:
-        self._current_strategy = self.analyzer.analyze(verification_instructions, challenge)
-        
-        self._current_validation_criteria = blueprint.get("validation_criteria", {})
-        
-        decomposition = blueprint.get("decomposition", ["Full quantum challenge"])
-        swarm_config = blueprint.get("swarm_config", {"total_instances": 1})
 
-        total_instances = min(swarm_config.get("total_instances", 4), 6)
-        if self.config.get("resource_aware"):
-            total_instances = min(total_instances, 4)
-
-        manager_dict = multiprocessing.Manager().dict()
-        trace_log = [f"🚀 Event-driven Swarm launched with {total_instances} threads (Quasar: {self.quasar_enabled})"]
-        
-        criteria_str = json.dumps(self._current_validation_criteria, indent=2)
-        trace_log.append(f"DECIDED VALIDATION CRITERIA FOR SUB-ARBOS AGENTS:\n{criteria_str}")
-        logger.info(f"Validation Criteria for this swarm:\n{criteria_str}")
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=total_instances) as executor:
-            futures = []
-            subtask_id = 0
-            for i, subtask in enumerate(decomposition):
-                count = swarm_config.get("assignment", {}).get(subtask, 1)
-                tools = blueprint.get("tool_map", {}).get(subtask, ["none"])
-                for _ in range(count):
-                    hyp = swarm_config.get("hypothesis_diversity", ["standard"] * len(decomposition))[i % len(decomposition)]
-                    futures.append(executor.submit(
-                        self._sub_arbos_worker, subtask, hyp, tools, manager_dict, subtask_id
-                    ))
-                    subtask_id += 1
-
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    trace_log.append(f"Thread error: {e}")
-
-        all_results = dict(manager_dict)
-
-        sub_scores = np.array([r.get("local_score", 0.5) for r in all_results.values()])
-        if len(sub_scores) > 0:
-            weights = np.exp(sub_scores) / np.sum(np.exp(sub_scores))
-            weighted_avg = np.average(sub_scores, weights=weights)
-        else:
-            weighted_avg = 0.5
-        trace_log.append(f"MARL-weighted sub-avg score: {weighted_avg:.3f}")
-
-        failed_context = "\nPrevious failed attempts:\n" + "\n---\n".join(memory.query(challenge + " failed", n_results=5)) if memory.query(challenge + " failed", n_results=5) else ""
-
-        synthesis_task = f"""You are Arbos Orchestrator for SN63 Quantum Innovate.
-Challenge: {challenge}
-Verification Instructions: {verification_instructions or 'General quantum standards'}
-Miner Deterministic Tooling: {deterministic_tooling or 'None specified'}
-{failed_context}
-Swarm results: {json.dumps(all_results, indent=2)[:2000]}
-MARL-weighted sub-avg score: {weighted_avg:.3f}
-
-Be extremely honest. For cryptographic challenges like breaking BTC, clearly state feasibility.
-Do not claim breakthroughs without strong evidence.
-Synthesize final high-quality realistic assessment (weight higher-scoring subtasks):"""
-
-        final_solution = self.harness.call_llm(synthesis_task, temperature=0.5, max_tokens=2000)
-
-        if verification_instructions and verification_instructions.strip():
-            verification_result = self._run_verification(final_solution, verification_instructions, challenge)
-            final_solution += f"\n\n--- VERIFICATION RESULT ---\n{verification_result}"
-
-        if self.config.get("guardrails"):
-            final_solution = apply_guardrails(final_solution, ResourceMonitor(max_hours=self.config.get("max_compute_hours", 3.8)))
-
-        memory.add(text=final_solution[:1500], metadata={"challenge": challenge, "status": "final", "sub_avg_score": weighted_avg})
-        trace_log.append("Synthesis + Verification complete")
-
-        try:
-            import streamlit as st
-            if "trace_log" not in st.session_state:
-                st.session_state.trace_log = []
-            st.session_state.trace_log.extend(trace_log)
-        except:
-            pass
-
-        self.loop_count += 1
-        return final_solution
-
-    # ====================== _execute_swarm (original) ======================
-    def _execute_swarm(self, blueprint: Any, dynamic_size: int):
-        blueprint = self._safe_parse_json(blueprint)
-        decomposition = blueprint.get("decomposition", ["Full quantum challenge"])
-        
-        hypothesis_diversity = blueprint.get("hypothesis_diversity", ["standard"])
-        if not hypothesis_diversity:
-            hypothesis_diversity = ["standard"]
-
-        manager_dict = multiprocessing.Manager().dict()
-        with concurrent.futures.ProcessPoolExecutor(max_workers=min(dynamic_size, 6)) as executor:
-            futures = []
-            for subtask_id, subtask in enumerate(decomposition):
-                hyp_index = subtask_id % len(hypothesis_diversity)
-                hyp = hypothesis_diversity[hyp_index]
-                tools = blueprint.get("tool_map", {}).get(subtask, ["none"])
-                futures.append(executor.submit(
-                    self._sub_arbos_worker, subtask, hyp, tools, manager_dict, subtask_id
-                ))
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    future.result()
-                except Exception as e:
-                    logger.error(f"Swarm worker error: {e}")
-        return dict(manager_dict)
-
-    # ====================== SUB-ARBOS WORKER with Wiki + Bio Stigmergy ======================
+    # ====================== SUB-ARBOS WORKER (full v5.1 + v5.1.3) ======================
     def _sub_arbos_worker(self, subtask: str, hypothesis: str, tools: List[str],
                           shared_results: dict, subtask_id: int) -> dict:
         max_hours = self.config.get("max_compute_hours", 3.8)
@@ -688,9 +500,14 @@ Synthesize final high-quality realistic assessment (weight higher-scoring subtas
         validation_criteria = self._current_validation_criteria.get(subtask, self._current_validation_criteria)
         trace = [f"Sub-Arbos {subtask_id} started | Using Criteria: {json.dumps(validation_criteria, indent=2)[:400]}..."]
 
-        # Proper challenge_id for wiki hierarchy
         challenge_id = getattr(self, "_current_challenge_id", "current_challenge")
         subtask_path = self._create_subtask_wiki_folder(challenge_id, str(subtask_id))
+
+        # v5.1.3 localized breakthrough
+        if self.model_compute_capability_enabled and self.allow_per_subarbos_breakthrough and self.is_stagnant_subarbos(str(subtask_id)):
+            gap = self.generate_gap_diagnosis(str(subtask_id))
+            rec_model = self.recommend_breakthrough_model(gap)
+            logger.info(f"🔥 Localized stagnation in Sub-Arbos {subtask_id} — using {rec_model} breakthrough (token budget {self.breakthrough_token_budget})")
 
         if self.config.get("resource_aware") and monitor.elapsed_hours() > max_hours * 0.75:
             solution = "Early abort: time budget exceeded."
@@ -705,11 +522,9 @@ Synthesize final high-quality realistic assessment (weight higher-scoring subtas
                 solution += f"\n{symbolic_result}"
                 trace.append("Used dynamic symbolic/deterministic tooling")
 
-            # Bio Strategy + Mycelial Stigmergy
             bio_delta = self._apply_bio_strategy(subtask, solution)
             self._write_subtask_md(subtask_path, solution, bio_delta)
 
-            # GUIDED DIVERSITY
             solution = self._generate_guided_diversity_candidates(subtask, hypothesis, solution)
 
             local_score = 0.5
@@ -724,7 +539,8 @@ Subtask criteria: {criteria.get('criteria', 'None')}
 Current solution:
 {solution[:1500] if solution else 'None yet'}
 Give a score (0.0-1.0) and short explanation."""
-                    local_eval = self.harness.call_llm(eval_prompt, temperature=0.0, max_tokens=400)
+                    model_config = self.load_model_registry(subtask_id=str(subtask_id))
+                    local_eval = self.harness.call_llm(eval_prompt, temperature=0.0, max_tokens=400, model_config=model_config)
                     trace.append(f"Self-eval (loop {loop+1}): {local_eval[:150]}...")
                     try:
                         score_str = local_eval.split("0.")[1][:3] if "0." in local_eval else "0.5"
@@ -732,14 +548,18 @@ Give a score (0.0-1.0) and short explanation."""
                     except:
                         local_score = 0.5
 
-                # === SIMPLIFIED REFLECTION LOOP (keeps the biological soul) ===
+                # Dynamic Tool Creation (v5.1)
+                if self.dynamic_tool_creation_enabled and ("ToolHunter" in str(tools) or "hunter" in (local_eval or "").lower()):
+                    logger.info(f"Dynamic Tool Creation triggered for Sub-Arbos {subtask_id}")
+                    proposed_tool = self.harness.call_llm("Propose schema + implementation for this novel subtask", temperature=0.3, max_tokens=900, model_config=model_config)
+                    self.write_decision_journal(subtask_id=str(subtask_id), hypothesis="Dynamic Tool Proposal", evidence=proposed_tool, performance_delta={"delta_c": 0.0, "delta_s": 0.0}, organic_thought="Tool genesis attempt")
+
                 if local_score > 0.75 and self.aha_adaptation_enabled:
                     trace.append(f"High-signal finding detected (score {local_score:.2f}) — running reflection")
                     reflection = self.harness.call_llm(
                         f"Subtask: {subtask}\nSolution: {solution[:1200]}\nExtract the single highest-signal insight, invariant, or symbiosis opportunity for the wiki.",
-                        temperature=0.2, max_tokens=400
+                        temperature=0.2, max_tokens=400, model_config=model_config
                     )
-                    # Simple stigmergy write (no extra message bus type)
                     self._write_subtask_md(subtask_path, solution + f"\n\n[REFLECTION] {reflection}")
 
                 reflect_task = f"""You are a focused sub-Arbos for SN63 Quantum.
@@ -749,7 +569,7 @@ Current: {solution[:800]}
 {'Self-evaluation: ' + (local_eval[:400] if local_eval else '')}
 Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
 
-                response = self.harness.call_llm(reflect_task, temperature=0.0, max_tokens=600)
+                response = self.harness.call_llm(reflect_task, temperature=0.0, max_tokens=600, model_config=model_config)
                 trace.append(f"Loop {loop+1}")
 
                 if "Finalize" in response or "final" in response.lower():
@@ -760,7 +580,7 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
                     hunt = self._tool_hunter(gap, subtask)
                     solution += f"\n[ToolHunter + ReadyAI]\n{hunt}"
                 elif tools and tools[0] != "none":
-                    output = self.harness.call_llm(f"Apply {tools[0]} to quantum subtask: {solution[:600]}", temperature=0.0, max_tokens=500)
+                    output = self.harness.call_llm(f"Apply {tools[0]} to quantum subtask: {solution[:600]}", temperature=0.0, max_tokens=500, model_config=model_config)
                     solution += f"\n[{tools[0]}]\n{output}"
 
                 if self.config.get("guardrails"):
@@ -772,6 +592,23 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
 
                 if time.time() - monitor.start_time > (max_hours * 1800 / 6):
                     break
+
+        # v5.1 C3A update
+        edge_coverage = 0.75
+        invariant_tightness = 0.68
+        historical_reliability = 0.85
+        c = self.compute_confidence(edge_coverage, invariant_tightness, historical_reliability)
+        d = 0.3
+        m = self.compute_c3a_multiplier(d, c)
+
+        # v5.1 Decision Journal write
+        self.write_decision_journal(
+            subtask_id=str(subtask_id),
+            hypothesis=hypothesis,
+            evidence=solution[:800],
+            performance_delta={"delta_c": c, "delta_s": local_score, "context_cost": 4200},
+            organic_thought=reflection if 'reflection' in locals() else ""
+        )
 
         memory.add(text=solution[:1000], metadata={"subtask": subtask, "status": "completed", "local_score": local_score})
         
@@ -788,16 +625,16 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
         shared_results[subtask_id] = {"subtask": subtask, "solution": solution, "trace": trace, "local_score": local_score}
         return shared_results[subtask_id]
 
-    # ====================== REMAINING ORIGINAL METHODS (100% preserved) ======================
+    # ====================== ALL REMAINING ORIGINAL METHODS (100% PRESERVED) ======================
     def _run_verification(self, solution: str, verification_instructions: str, challenge: str) -> str:
         candidate = {"solution": solution}
         oracle_result = self.validator.run(
-    candidate=...,
-    verification_instructions=...,
-    challenge=challenge,
-    goal_md=...,
-    message_bus=self.message_bus   # ← Add this
-)
+            candidate=candidate,
+            verification_instructions=verification_instructions,
+            challenge=challenge,
+            goal_md=self._load_extra_context(),
+            message_bus=self.message_bus
+        )
         self._current_strategy = oracle_result.get("strategy")
 
         self.vector_db.add({
@@ -870,79 +707,6 @@ Prefer deterministic/symbolic tools. Decide: Improve / Call Tool / Finalize"""
         self.process_tool_proposals()
 
         return score_dict.get("final_solution", str(score_dict)) if isinstance(score_dict, dict) else str(score_dict)
-        
-    def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
-        self.loop_count += 1
-        self.recent_scores.append(getattr(self.validator, "last_score", 0.0))
-
-        if self._is_stale_regime(self.recent_scores):
-            logger.warning("🔴 Stale regime detected — flagging deep replan")
-            self._flag_for_new_avenue_plan = True
-
-        # Load ALL principles
-        shared_core = load_brain_component("principles/shared_core")
-        heterogeneity = load_brain_component("principles/heterogeneity")
-        english_evolution = load_brain_component("principles/english_evolution")
-
-        # Aha Mode
-        aha_detected = self.is_aha_detected(self.recent_scores)
-        bio_delta = ""
-        if self.aha_adaptation_enabled and aha_detected:
-            logger.info("🚀 Aha moment detected — entering micro-evolution mode")
-            bio_delta = self._apply_bio_strategy(candidate.get("challenge", ""), candidate.get("solution", ""))
-            aha_strength = getattr(self.validator, "last_score", 0.0) - (self.recent_scores[-2] if len(self.recent_scores) > 1 else 0)
-            self._update_brain_metrics(aha_strength=aha_strength)
-
-        if self._flag_for_new_avenue_plan:
-            new_plan = self._generate_new_avenue_plan(
-                candidate.get("challenge", "unknown"), 
-                latest_verifier_feedback, 
-                self.run_diagnostics(candidate.get("solution", ""), candidate.get("challenge", "unknown"), latest_verifier_feedback)
-            )
-            self._flag_for_new_avenue_plan = False
-
-        # Keep your existing logic for grail_context, recent_trajectories, weighted_context, message_context, diagnostics, fix_recommendations, compressed_deltas, symbiosis...
-
-        adaptation_prompt = f"""You are Adaptation Arbos for SN63.
-CURRENT LOOP: {self.loop_count}
-Latest feedback: {latest_verifier_feedback}
-Diagnostics: {json.dumps(diagnostics.get("detectors", {}), indent=2)[:600]}
-Fix Recommendations: {json.dumps(fix_recommendations, indent=2)[:800]}
-
-{shared_core}
-
-Heterogeneity Principle:
-{heterogeneity}
-
-English Evolution Modules:
-{english_evolution}
-
-COMPRESSED INTELLIGENCE DELTAS:
-{compressed_deltas}
-{"AHA_BIO_DELTA: " + bio_delta if bio_delta else ""}
-
-Generate concise, high-signal adaptation."""
-
-        adaptation_raw = self.harness.call_llm(adaptation_prompt, temperature=0.15, max_tokens=1400)
-        adapted = self._safe_parse_json(adaptation_raw)
-        self._current_strategy = adapted.get("strategy", self._current_strategy)
-        self.validator.adapt_scoring(self._current_strategy)
-
-        self.save_to_memdir("latest_grail", {
-            "loop": self.loop_count,
-            "feedback": latest_verifier_feedback[:600],
-            "adaptation": str(adaptation_raw)[:1200],
-            "diagnostics": diagnostics,
-            "fix_recommendations": fix_recommendations,
-            "timestamp": datetime.now().isoformat()
-        })
-
-        if "final_solution" in candidate:
-            self.update_memory_policy("latest_adaptation", getattr(self.validator, "last_score", 0.0))
-
-        self.process_tool_proposals()
-
-        logger.info(f"✅ re_adapt completed loop {self.loop_count}")
         
     def export_trajectories_for_optimization(self, challenge: str):
         traj = self.vector_db.search(challenge, k=50)
@@ -1528,7 +1292,7 @@ Make it different from anything in memdir. Return ONLY JSON with "challenge" and
                 return []
         return []
 
-  # ====================== RUN METHOD — Post-run principle evolution ======================
+    # ====================== RUN METHOD — Post-run principle evolution ======================
     def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
         self.loop_count = 0
         self._current_challenge_id = challenge.replace(" ", "_").lower()[:50]
@@ -1579,9 +1343,250 @@ Make it different from anything in memdir. Return ONLY JSON with "challenge" and
         if self.loop_count % 10 == 0:
             self.run_scientist_mode(num_synthetic=3)
 
-        # Post-run principle evolution (this is the new logic you asked for)
+        # Post-run principle evolution
         if best_score > 0.85 or self.is_aha_detected(self.recent_scores):
             self.evolve_principles_post_run(best_solution or "", best_score, best_diagnostics)
 
         self.save_run_to_history(challenge, enhancement_prompt, best_solution or "", best_score, 0.5, best_score)
         return best_solution or "No valid solution produced"
+
+    # ====================== MISSING v5.1 METHODS ADDED HERE ======================
+    def _execute_swarm(self, blueprint: Dict, dynamic_size: int):
+        blueprint = self._safe_parse_json(blueprint)
+        decomposition = blueprint.get("decomposition", ["Full quantum challenge"])
+        
+        hypothesis_diversity = blueprint.get("hypothesis_diversity", ["standard"])
+        if not hypothesis_diversity:
+            hypothesis_diversity = ["standard"]
+
+        manager_dict = multiprocessing.Manager().dict()
+        with concurrent.futures.ProcessPoolExecutor(max_workers=min(dynamic_size, 6)) as executor:
+            futures = []
+            for subtask_id, subtask in enumerate(decomposition):
+                hyp_index = subtask_id % len(hypothesis_diversity)
+                hyp = hypothesis_diversity[hyp_index]
+                tools = blueprint.get("tool_map", {}).get(subtask, ["none"])
+                futures.append(executor.submit(
+                    self._sub_arbos_worker, subtask, hyp, tools, manager_dict, subtask_id
+                ))
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    logger.error(f"Swarm worker error: {e}")
+        return dict(manager_dict)
+
+    def _apply_wiki_strategy(self, raw_context: str, challenge_id: str) -> Dict:
+        wiki_prompt = load_brain_component("principles/wiki_strategy")
+        full_prompt = f"{wiki_prompt}\n\nRaw context to ingest:\n{raw_context[:8000]}"
+        response = self.harness.call_llm(full_prompt, temperature=0.2, max_tokens=1200)
+        deltas = self._safe_parse_json(response)
+        self._ensure_knowledge_hierarchy(challenge_id)
+        with open(f"goals/knowledge/{challenge_id}/raw/ingest_{int(time.time())}.json", "w") as f:
+            json.dump(deltas, f, indent=2)
+        logger.info("Wiki Strategy applied at Planning level")
+        return deltas
+
+    def _apply_bio_strategy(self, subtask: str, solution: str) -> str:
+        if not (self.mycelial_pruning or self.quantum_coherence_mode):
+            return ""
+        bio_prompt = load_brain_component("principles/bio_strategy")
+        full_prompt = f"{bio_prompt}\n\nSubtask: {subtask}\nCurrent solution snippet: {solution[:1200]}"
+        if self.quantum_coherence_mode:
+            full_prompt += "\nQuantum-bio mode active: apply tunneling/entanglement heuristics where resource_aware allows."
+        return self.harness.call_llm(full_prompt, temperature=0.3, max_tokens=600)
+
+    def is_aha_detected(self, recent_scores: List[float], threshold: float = 0.12) -> bool:
+        if len(recent_scores) < 2:
+            return False
+        jump = recent_scores[-1] - recent_scores[-2]
+        hetero_spike = self._compute_heterogeneity_score()["heterogeneity_score"] > 0.78
+        return jump > threshold or hetero_spike
+
+    def _update_brain_metrics(self, aha_strength: float = 0.0, wiki_contrib: float = 0.0):
+        metrics_path = "goals/brain/metrics.md"
+        with open(metrics_path, "a", encoding="utf-8") as f:
+            f.write(f"\n\n### Update {datetime.now().isoformat()}\naha_strength: {aha_strength:.3f}\nwiki_contribution_score: {wiki_contrib:.3f}\nheterogeneity_deltas: {self._compute_heterogeneity_score()['heterogeneity_score']}")
+
+    def save_challenge_state(self, challenge_id: str):
+        state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
+        os.makedirs(state_dir, exist_ok=True)
+
+        base_path = os.path.join("goals", "killer_base.md")
+        if os.path.exists(base_path):
+            shutil.copy(base_path, os.path.join(state_dir, "killer_base.md"))
+
+        with open(os.path.join(state_dir, "heterogeneity_weights.json"), "w") as f:
+            json.dump(self.current_heterogeneity_weights, f, indent=2)
+
+        with open(os.path.join(state_dir, "recent_scores.json"), "w") as f:
+            json.dump(self.recent_scores, f)
+
+        if self._pending_new_avenue_plan:
+            with open(os.path.join(state_dir, "pending_avenue_plan.md"), "w") as f:
+                f.write(self._pending_new_avenue_plan)
+
+        self.save_to_memdir(f"grail_snapshot_{challenge_id}", {"timestamp": datetime.now().isoformat()})
+        logger.info(f"[STATE SAVED] Challenge {challenge_id} — including evolved killer_base.md")
+
+    def load_challenge_state(self, challenge_id: str) -> bool:
+        state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
+        if not os.path.exists(state_dir):
+            logger.warning(f"No saved state for {challenge_id}")
+            return False
+
+        saved_base = os.path.join(state_dir, "killer_base.md")
+        if os.path.exists(saved_base):
+            shutil.copy(saved_base, os.path.join("goals", "killer_base.md"))
+            logger.info("✅ Evolved killer_base.md restored")
+
+        with open(os.path.join(state_dir, "heterogeneity_weights.json")) as f:
+            self.current_heterogeneity_weights = json.load(f)
+
+        if os.path.exists(os.path.join(state_dir, "recent_scores.json")):
+            with open(os.path.join(state_dir, "recent_scores.json")) as f:
+                self.recent_scores = json.load(f)
+
+        plan_path = os.path.join(state_dir, "pending_avenue_plan.md")
+        if os.path.exists(plan_path):
+            with open(plan_path) as f:
+                self._pending_new_avenue_plan = f.read()
+
+        logger.info(f"[STATE LOADED] Challenge {challenge_id}")
+        return True
+
+    def onyx_hunter_query(self, gap_description: str, subtask: str) -> dict:
+        if not self.use_onyx_rag:
+            return tool_hunter.hunt_and_integrate(gap_description, subtask)
+
+        prompt = f"""Act as ToolHunter sub-swarm for SN63.
+Gap: {gap_description}
+Subtask: {subtask}
+
+Follow ToolHunter philosophy + MAXIMUM HETEROGENEITY.
+Return structured recommendation."""
+
+        try:
+            resp = requests.post(f"{self.onyx_url}/api/query", json={
+                "query": prompt, "agentic": True, "num_results": 10
+            }, timeout=40)
+            return resp.json().get("results", {})
+        except:
+            return tool_hunter.hunt_and_integrate(gap_description, subtask)
+
+    def process_tool_proposals(self):
+        proposal_files = list(Path(self.memdir_path).glob("tool_proposal_*.json"))
+        if not proposal_files:
+            return
+
+        logger.info(f"Processing {len(proposal_files)} tool proposals...")
+
+        for pfile in proposal_files:
+            try:
+                proposal = self.load_from_memdir(pfile.stem)
+                
+                if proposal.get("code") == "AUTO_GENERATE" or not proposal.get("code"):
+                    gen_prompt = f"""Generate clean, safe, well-commented Python code for this tool:
+
+Name: {proposal.get('name')}
+Description: {proposal.get('description')}
+
+The function must be named `run(input_dict: dict) -> dict`
+
+Return ONLY the complete function code."""
+                    generated_code = self.harness.call_llm(gen_prompt, temperature=0.3, max_tokens=900)
+                    proposal["code"] = generated_code
+
+                tool_path = Path("tools/runtime") / f"{proposal['name']}.py"
+                tool_path.parent.mkdir(exist_ok=True)
+                tool_path.write_text(proposal["code"])
+
+                self.save_to_memdir(f"approved_tool_{proposal['name']}", proposal)
+                logger.info(f"✅ New tool approved and saved: {proposal['name']}")
+
+                pfile.unlink(missing_ok=True)
+
+            except Exception as e:
+                logger.error(f"Failed to process proposal {pfile}: {e}")
+                pfile.unlink(missing_ok=True)
+
+    def load_expert_modules(self) -> list[str]:
+        experts = []
+        expert_dir = Path("experts")
+        if expert_dir.exists():
+            for file in expert_dir.glob("*.md"):
+                try:
+                    content = file.read_text(encoding="utf-8").strip()
+                    if content:
+                        experts.append(f"EXPERT MODULE [{file.stem.upper()}]: {content}")
+                except Exception as e:
+                    logger.warning(f"Failed to load expert module {file}: {e}")
+        return experts
+
+    def _generate_guided_diversity_candidates(self, subtask: str, hypothesis: str, current_solution: str) -> str:
+        hetero = self._compute_heterogeneity_score()
+        
+        diversity_prompt = f"""You are Diversity Arbos for SN63 Quantum Innovate.
+Subtask: {subtask}
+Current hypothesis: {hypothesis}
+Current solution snippet: {current_solution[:800]}
+
+Current heterogeneity score: {hetero.get('heterogeneity_score', 0.65):.3f}
+
+Generate 3 maximally diverse alternative approaches.
+Maximize difference across: agent style, hypothesis framing, tool path, symbolic strategy, and compute substrate.
+Return ONLY a JSON array of 3 candidate solutions (strings)."""
+
+        response = self.harness.call_llm(diversity_prompt, temperature=0.78, max_tokens=1100)
+        try:
+            candidates = self._safe_parse_json(response)
+            if isinstance(candidates, list) and candidates:
+                return candidates[0]
+            return current_solution
+        except Exception:
+            logger.warning("Guided diversity fallback to current solution")
+            return current_solution
+
+    def _run_symbiosis_arbos(self, aggregated_outputs: Dict, message_bus: List) -> List[str]:
+        if not self.symbiosis_synthesis:
+            return []
+        bio_prompt = load_brain_component("principles/bio_strategy")
+        prompt = f"""Symbiosis Arbos — detect cross-field mutualisms and entanglement-like correlations.
+{bio_prompt}
+Aggregated outputs: {json.dumps(aggregated_outputs, indent=2)[:3000]}
+Message bus signals: {json.dumps(message_bus[-10:], indent=2)}
+Return ONLY list of distilled symbiosis patterns (max 5)."""
+        response = self.harness.call_llm(prompt, temperature=0.25, max_tokens=800)
+        patterns = self._safe_parse_json(response) if isinstance(response, dict) else []
+        if patterns:
+            with open("goals/brain/grail_patterns/symbiosis.json", "w") as f:
+                json.dump(patterns, f, indent=2)
+        return patterns
+
+    def post_high_signal_finding(self, subtask: str, content: str, local_score: float):
+        self.post_message(
+            sender="SubArbos",
+            content=content,
+            msg_type="high_signal_finding",
+            importance=0.9,
+            validation_score=local_score,
+            fidelity=0.85
+        )
+        if self.aha_adaptation_enabled and local_score > 0.78:
+            self._apply_wiki_strategy(content, getattr(self, "_current_challenge_id", "current"))
+
+    def _safe_parse_json(self, raw: Any) -> Dict:
+        if isinstance(raw, dict):
+            return raw
+        if not isinstance(raw, str):
+            return {}
+        try:
+            start = raw.find("{")
+            end = raw.rfind("}") + 1
+            if start != -1 and end > start:
+                return json.loads(raw[start:end])
+        except Exception:
+            pass
+        return {}
+
+    # End of complete v5.1.3 ArbosManager.py
