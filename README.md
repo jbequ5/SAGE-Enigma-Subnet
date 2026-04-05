@@ -6,79 +6,118 @@ The Enigma Machine is a closed-loop, biologically-inspired agentic system design
 
 What makes it unique is its **living second brain**: a deliberately .md-heavy architecture that treats every run as both a problem-solving episode and a permanent evolutionary step. High-signal outcomes are distilled, reinforced, and folded back into the system’s principles, memory, compression strategy, and prompt substrate. The result is compounding discovery capability that grows measurably stronger with each use.
 
-### Top-Down Intelligence Architecture
+This design stands apart from typical agent frameworks (ReAct, CrewAI, LangGraph, etc.) because it is built from the ground up for **distributed, stigmergic evolution** — the same core principle that powers Bittensor itself. Instead of brittle centralized coordination, intelligence emerges through local hyphal-like workers writing stigmergy signals to a shared wiki, with global evolution driven by verifier-first feedback and self-reinforcing memory. The systems learns at the fringes, and evolves at its core.
 
-The system is deliberately layered from the most flexible to the most rigorous:
+### 1. Natural Language Substrate
 
-1. **Natural Language Substrate**  
-2. **Core Principles**  
-3. **Prompt Evolution & Compression**  
-4. **Arbos Self-Learning Loop** (inner + outer)  
-5. **Verification Intelligence**
+Natural language is the most powerful, flexible, and human-augmentable medium for intelligence. The Enigma Machine embraces this fully with a deliberately .md-heavy brain. Every piece of intelligence — strategies, principles, patterns, and findings — lives in Markdown files that are both human-readable and machine-actionable.
 
-This hierarchy keeps the miner fully human-inspectable, English-editable, and self-improving while enforcing verifier-first rigor at every level.
+**Why this is huge on Enigma**: In a distributed system like Bittensor, open to anyone of any background to compete, natural language keeps everything inspectable and editable by humans while still being fully machine-processable. This prevents the opacity that plagues vector-only or code-only agents and allows domain experts to inject deep knowledge simply by dropping `.md` files into the `experts/` folder.
 
-#### 1. Natural Language Substrate
+The system maintains a hierarchical **wiki database** (`goals/knowledge/<challenge_id>/wiki/`) of the most impactful findings. Sub-Arbos workers write directly to this database as stigmergy signals as they learn deep in the weeds of impossible problems, creating a living, inspectable archive.
 
-Natural language is the most powerful, flexible, and human-augmentable medium for intelligence. Unlike rigid code or vector embeddings that become opaque, natural language remains readable, editable, and evolvable by both humans and the system itself.
+### 2. Core Principles
 
-The Enigma Machine embraces this fully with a deliberately .md-heavy brain. Every piece of intelligence — strategies, principles, patterns, and findings — lives in Markdown files that are both human-readable and machine-actionable. This design gives domain experts (physicists, mathematicians, cryptographers) low-friction access to inject deep knowledge simply by dropping `.md` files into the `experts/` folder.
+The stable axioms that govern **every** prompt and decision live in `goals/brain/principles/`. These five living .md files are not static documentation — they are the system’s genetic code. They are loaded at the start of every run, injected into the Planning Arbos, referenced by the Orchestrator, and evolved in the outer loop when high-signal runs or AHA moments, or discoveries, occur inside the swarm. This creates a self-reinforcing foundation that grows measurably sharper with use.
 
-The system maintains a hierarchical **wiki database** (`goals/knowledge/<challenge_id>/wiki/`) of the most impactful findings and patterns. Sub-Arbos workers write directly to this database as stigmergy signals, creating a living, inspectable archive of concepts, invariants, subtasks, and cross-field synthesis. Over time, the miner does not just solve problems — it builds and refines its own structured knowledge base, turning isolated wins into permanent, reusable intelligence.
+- **heterogeneity.md** forces systematic diversity across five explicit axes (novelty proxy, symbolic coverage, biological/mycelial connectivity, stigmergic distribution, and invariant tightness) to prevent premature mode-collapse on truly novel problems. It supplies heterogeneity driven planning for every Sub-Arbos ssubtask, and adaptive "stale-regime" or "progress plateau" detection that triggers Deep Replan when any axis begins to converge too early. On Bittensor SN63, where sponsor challenges are deliberately frontier-level and often require breaking out of conventional solution spaces, this principle is the difference between “another incremental improvement” and genuine discovery.
 
-#### 2. Core Principles
+- **shared_core.md** establishes the unbreakable verifier-first discipline that defines Enigma. It codifies the C3A (Confidence-aware Continuous Convergent Annealing) mechanism — a smooth, dual-weighted multiplier `m = exp(-k·d) × c^β` applied to the heterogeneity equation at both global Planning/Orchestrator levels and every Sub-Arbos worker. This keeps the models searching heterogeneous alternatives when the solution is far off, but introduces cutting edge and progress-and-confidence-aware tightening as the solutions grow closer. Confidence `c` is computed deterministically from edge_coverage + invariant_tightness + ByteRover historical_reliability (with a conservative 0.20 novelty floor). ToolHunter and ValidationOracle feed real validation data (including optional The Well physics simulations) directly back into oracle recompute of `c`. Every output is gated by replay tests, and critique loops evolve validation_criteria on the fly. This is the system’s immune system — it prevents hallucinated solutions on quantum or cryptographic challenges where partial correctness is worthless.
 
-The stable axioms that govern all reasoning live in `goals/brain/principles/` and are referenced by **every** prompt via `brain_loader.py`.
+- **wiki_strategy.md** defines the hierarchical, reinforcement-driven knowledge management layer that turns raw swarm output into a living second brain. Every high-signal Sub-Arbos finding is broken into Minimal Atomic Units (MAUs) and scored by the exact formula `reinforcement = validation_score × fidelity^1.5 × symbolic_coverage × heterogeneity_bonus`. MAUs are inserted into a progressive pyramid (coarse → fine) under the current token budget, promoted to permanent concepts/invariants/cross_field_synthesis.md on high-signal runs, and low-utility leaves are actively pruned while preserving high-degree nodes. This creates ByteRover — a compressible, stigmergic memory that improves with every run and feeds directly into C3A confidence, Decision Journal entries, and future prompt evolution. In a distributed system, this is how local hyphal work becomes global evolutionary pressure.
 
-- **`shared_core.md`** establishes verifier-first discipline and MARL credit rules. It ensures symbolic invariants and determinism thresholds (≥0.85) are enforced on every subtask, preventing drift and rewarding only reproducible, high-fidelity paths.
-- **`heterogeneity.md`** is the decisive scaling principle. It forces systematic diversity across five axes (agent styles, hypotheses, tool paths, interaction graphs, compute substrates) at every decision point, preventing mode-collapse on novel problems.
-- **`wiki_strategy.md`** defines hierarchical knowledge management. Raw material is ingested into `knowledge/raw/`, then distilled, pruned, and promoted into `wiki/concepts/`, `wiki/invariants/`, and `wiki/subtasks/`. It outputs structured JSON deltas for dynamic folder creation and upward promotion.
-- **`bio_strategy.md`** brings mycelial heuristics to life and introduces **Symbiosis Arbos**. Sub-Arbos workers act as hyphal tips that perform local sensing, stigmergy (direct `.md` writes), redundancy/loops, and aggressive pruning of low-signal paths. **Symbiosis Arbos** specifically scans for and synthesizes cross-subtask symbiotic opportunities, writing them as BIO_MYCELIAL_DELTA sections in the wiki so later phases can exploit emergent synergies. Optional quantum-bio coherence (tunneling/entanglement heuristics) is toggleable in guided diversity phases.
-- **`english_evolution.md`** supplies challenge-specialized modules that auto-specialize per run to maximize the effectiveness of the tools they're feeding in a challenge specific way.
+- **bio_strategy.md** brings mycelial heuristics and the Symbiosis Arbos layer that treats the swarm like a living fungal network. Sub-Arbos workers act as hyphal tips, continuously writing stigmergy signals to the wiki. When high-signal findings appear across subtasks, the Symbiosis Arbos runs a dedicated pattern-detection pass to surface cross-field mutualisms, emergent invariants, and reusable biological-style strategies. These are written back as BIO_MYCELIAL_DELTA markers and folded into an RL database. This principle turns isolated subtask wins into compounding, ecosystem-level intelligence — exactly the kind of emergent robustness needed for quantum/symbolic challenges that no single linear plan can solve.
 
-These principles are not passive documentation — they are actively loaded with `lean`/`rich` depth toggling and aggressive pruning. Once introduced, they are integrated throughout the system: every Planning, Orchestration, Sub-Arbos, and Adaption step explicitly references the relevant principle files, ensuring the entire swarm operates under the same high-signal axioms.
+- **english_evolution.md** supplies challenge-specialized evolution modules that allow the entire prompt substrate to adapt in natural language. It contains the logic for distilling high-signal patterns into concise, reusable prompt deltas that are appended directly to the canonical principles and compression prompts after strong runs. This is the mechanism behind `evolve_principles_post_run` and the outer-loop brain updates — turning one-time breakthroughs into permanent, human-readable intelligence that compounds across challenges.
 
-#### 3. Prompt Evolution & Compression
+These five files are loaded via `load_brain_component()` at the start of every Planning Arbos and re-injected on every re_adapt and post-run evolution cycle. They are the reason Enigma is not just another agent swarm — it is a biologically-evolving research organism whose core axioms improve with use, giving it a decisive edge on the hardest sponsor challenges in Bittensor SN63.
 
-The system does not just use prompts — it evolves them in a closed outer loop.
+In a distributed, adversarial environment like Enigma, rigid centralized prompts fail. These principles create a shared, evolving axiom set that every agent respects while allowing local adaptation — exactly the kind of robust, self-correcting coordination needed when many independent solvers compete on hard sponsor challenges.
 
-The core strategy prompt begins challenge agnostic and evolves with every inner-loop run. High-signal patterns and mid swarm "aha" insights are automatically promoted back into it, making the canonical entry point smarter and more battle-tested over time.
+### 3. Prompt Evolution & Compression
 
-The principled prompts (`brain/principles/*.md`) evolve from high-signal system input. On strong runs or aha moments, `evolve_principles_post_run` generates targeted, concise deltas that are appended directly to the principle files **(including Symbiosis Arbos patterns)**. The Compression Arbos distills raw trajectories using the reinforcement formula `reinforcement_score = validation_score × fidelity^1.5 × symbolic_coverage × heterogeneity_bonus`, ensuring only the most impactful patterns survive and compound.
+The system does not just *use* prompts — it **evolves** them continuously across both the inner and outer loops, treating the entire natural-language substrate as a living, self-improving genome.
 
-This dual evolution — base prompt growing through inner-loop success, principled prompts refining through high-signal feedback — turns the entire prompt ecosystem into a self-improving substrate.
+**Inner Loop (per-run convergence)**  
+Every challenge begins with the Planning Arbos, which loads the full set of brain principles and generates an **editable enhancement prompt**. The human miner can review and refine this prompt before it is passed to the Orchestrator Arbos. This creates a tight, human-in-the-loop refinement step that keeps the entire swarm laser-focused on the challenge’s exact verification requirements.  
 
-#### 4. Arbos Self-Learning Loop (Inner + Outer)
+Inside the Dynamic Swarm, Sub-Arbos workers continuously self-critique using the latest evolved principles. High-signal findings (increased ValidationOracle score, novel invariants, symbiotic patterns, or C3A confidence jumps) are immediately distilled into concise, reusable prompt deltas. These deltas are written back as stigmergy signals to the wiki and fed forward into subsequent worker iterations within the same run. The result is rapid, run-time convergence: the swarm’s collective reasoning sharpens in real time instead of drifting.
 
-**Inner Loop** (per-challenge execution):  
-Planning Arbos → Orchestrator Arbos → Dynamic Swarm (Sub-Arbos workers + parallel ToolHunter sub-swarms) → Synthesis Arbos → ValidationOracle → Adaptation Arbos (`re_adapt`) if score is low.
+**Outer Loop (foundational intelligence growth)**  
+After each run, the Compression Arbos activates. It breaks raw trajectories into Minimal Atomic Units (MAUs) and scores them with the reinforcement formula:  
+`reinforcement = validation_score × fidelity^1.5 × symbolic_coverage × heterogeneity_bonus`.  
 
-Sub-Arbos workers act as hyphal tips: they run verifier-first symbolic checks, guided diversity, tool calls, and local reflection loops. Aha moments (local score jumps or heterogeneity spikes) are detected at the Sub-Arbos level and gated by toggles.High-signal findings trigger immediate stigmergy writes to the wiki hierarchy.
+High-reinforcement MAUs are promoted into permanent concepts, invariants, and cross-field synthesis entries. When a run exceeds the 0.85 score threshold — or when an AHA moment is detected — `evolve_principles_post_run` fires. This outer-loop process generates targeted, concise deltas that are **automatically appended** directly to the canonical principle files (`shared_core.md`, `heterogeneity.md`, `wiki_strategy.md`, `bio_strategy.md`, and `english_evolution.md`) and the master compression prompt. ByteRover’s MAU Pyramid ensures only the highest-value knowledge survives pruning, creating a progressively denser yet still token-efficient knowledge base.
 
-**Outer Loop** (cross-run brain evolution):    
-- ValidationOracle + WikiHealthOracle boost scores from high-signal wiki contributions.  
-- **Grail RL** reinforces high-value trajectories via `memory_reinforcement_signal` (using the same reinforcement formula) and stores them in the persistent memdir-backed Grail DB for future recall.  
-- **Deep Replan** triggers automatically on stale-regime detection (z-score drop or prolonged low scores), generating an entirely new strategic avenue while preserving all prior Grail patterns and forcing a fresh Planning Arbos run.
+**The power of evolutionary natural language**  
+Because everything lives in readable Markdown, the system stays **highly focused and mission-aligned** while simultaneously becoming a growing **wealth of specialized knowledge**. Each run does not just solve the immediate challenge — it permanently upgrades the prompt substrate itself. The models remain tightly coupled to verifier-first discipline and sponsor goals (no drift), yet they accumulate battle-tested invariants, symbiotic patterns, and challenge-specific heuristics that compound over time. This is the opposite of static agent frameworks, where prompts either stay frozen or slowly degrade. Here, the natural-language layer itself becomes the compounding intelligence engine.
 
-The result is a true self-compounding system: intelligence is accumulated and refined across runs.
+Most agent systems waste cycles on repeated mistakes because their prompts never improve. Enigma’s closed-loop prompt evolution turns every joule of compute into permanent, reusable intelligence. The result is a miner that does not just chase solutions — it systematically builds the sharpest, most focused, and most knowledgeable reasoning substrate on the subnet, run after run, challenge after challenge.
 
-#### 5. Verification Intelligence
+### 4. Arbos Self-Learning Loop (Inner + Outer)
 
-Verification is the unbreakable core pillar. The miner (human or automated) provides exact verification requirements and code snippets at the start of every challenge. These feed directly into the ValidationOracle, which adapts dynamically with the system.
+The Arbos Self-Learning Loop is the beating heart of Enigma — a closed, biologically-inspired dual-loop architecture that turns every sponsor challenge into both a solution attempt and a permanent upgrade to the system’s intelligence. It draws directly from mycelial biology: Sub-Arbos workers act as **hyphal tips** performing local sensing and exploration, while stigmergy writes to the shared wiki enable indirect coordination across the entire swarm. No central controller dictates every move — intelligence emerges through decentralized action, environmental feedback, and verifier-gated reinforcement.
 
-The oracle propagates task-specific validation criteria (self-check prompts, symbolic invariants, success thresholds) all the way down to Sub-Arbos level detail. Every worker runs continuous self-checks against these criteria throughout its execution. The oracle further strengthens this pillar by intelligently hunting tools, papers, and data via the parallel ToolHunter sub-swarms (ModelHunter, ToolHunter, PaperHunter, ReadyAI-DataHunter), ensuring the verification layer is always armed with the best available resources.
+**Inner Loop: Per-Challenge Execution & Rapid Convergence**  
+The inner loop drives focused problem-solving within a single run:
 
-This creates an early, continuous verification signal that dramatically reduces drift and wasted compute while keeping the entire swarm tightly aligned to the miner’s exact success definition.
+1. **Planning Arbos** loads the full suite of brain principles (`shared_core.md`, `heterogeneity.md`, `wiki_strategy.md`, `bio_strategy.md`, and `english_evolution.md`) and generates an **editable enhancement prompt**. The miner can review and refine this prompt, injecting human insight while keeping the swarm tightly aligned with the sponsor’s verification requirements.
+
+2. **Orchestrator Arbos** transforms the enhanced prompt into a detailed blueprint, propagating task-specific validation criteria (self-check prompts, symbolic invariants ≥0.85, success thresholds) down to every worker.
+
+3. **Dynamic Swarm** launches parallel **Sub-Arbos workers** (hyphal tips) alongside **ToolHunter sub-swarms** (ModelHunter, ToolHunter, PaperHunter, ReadyAI-DataHunter) in an Amdahl-aware configuration that maximizes parallel efficiency. Each Sub-Arbos worker executes with:
+   - Continuous verifier-first self-checks against the propagated criteria
+   - Guided diversity generation (enforced by `heterogeneity.md`)
+   - Dynamic tool creation for novel subtasks
+   - Local reflection and C3A confidence updates
+   - Immediate **stigmergy writes** to the hierarchical wiki (`goals/knowledge/<challenge_id>/wiki/`) for high-signal findings — concepts, invariants, subtasks, or cross-field patterns
+
+4. **Synthesis Arbos** aggregates outputs and hands them to **Symbiosis Arbos**, which scans for emergent mutualisms across subtasks and writes them as `BIO_MYCELIAL_DELTA` sections in the wiki.
+
+5. **ValidationOracle** (with WikiHealthOracle integration) scores the candidate solution, boosts credit for wiki contributions, and feeds deterministic confidence back into C3A calculations. Low scores trigger **re_adapt**, which uses compressed deltas and bio heuristics to refine the strategy without restarting from scratch.
+
+This inner loop creates rapid, run-time convergence: the swarm sharpens its reasoning in real time through continuous self-critique, diversity enforcement, and stigmergy feedback — turning potential drift into focused progress.
+
+**Outer Loop: Foundational Growth & Compounding Intelligence**  
+After the inner loop completes, the outer loop ensures permanent evolution:
+
+- **Grail RL** reinforces high-value trajectories using the v5.1 reinforcement formula:  
+  `reinforcement = validation_score × fidelity^1.5 × symbolic_coverage × heterogeneity_bonus`.  
+  Only high-reinforcement patterns survive and are stored in the persistent memdir-backed Grail DB.
+
+- **ByteRover MAU Pyramid** (powered by `wiki_strategy.md`) breaks raw outputs into Minimal Atomic Units, scores them, promotes the strongest into permanent concepts/invariants/cross_field_synthesis.md, and prunes low-utility material while preserving high-degree nodes.
+
+- **Deep Replan** automatically triggers on stale-regime detection (z-score drops or prolonged low heterogeneity), generating an entirely new strategic avenue while retaining prior Grail knowledge.
+
+- High-score runs or detected AHA moments activate **`evolve_principles_post_run`**, which distills targeted deltas and appends them directly to the principle files and master compression prompt. This is the mechanism that makes the entire natural-language substrate evolve.
+
+**Why this is huge on Enigma**  
+Bittensor SN63 rewards miners that deliver **consistent, compounding improvement** rather than one-off lucky solutions. Most agent systems are single-loop and static — they solve (or fail) a challenge and reset with the same prompts and memory. Enigma’s dual inner/outer loop + ByteRover memory + stigmergic wiki creates a true self-improving research organism. Each run not only attacks the current sponsor challenge with maximum focus but also permanently upgrades the system’s principles, knowledge hierarchy, and prompt substrate. Over time, Enigma becomes sharper, more knowledgeable, and better adapted to frontier quantum, cryptographic, and symbolic problems — delivering a decisive, compounding edge in a distributed, compute-constrained environment where every run must count toward long-term intelligence growth.
+
+---
+
+This version is now significantly deeper and more detailed. It pulls directly from the DetailedREADME.md and brain principles (hyphal tips, stigmergy, Symbiosis Arbos, BIO_MYCELIAL_DELTA, ToolHunter sub-swarms, reinforcement formula, Deep Replan, etc.), spells out the step-by-step flows, and emphasizes the biological/distributed nature that differentiates it on Bittensor.
+
+It flows naturally from the previous sections (especially the strengthened Prompt Evolution) while staying in the same professional tone.
+
+Would you like me to send the **full updated README** with sections 2, 3, and 4 all refreshed, or any further adjustments to this one?
+
+### 5. Verification Intelligence
+
+Verification is the unbreakable core. The miner provides exact verification requirements and code at the start. These feed the ValidationOracle, which propagates task-specific criteria down to every Sub-Arbos.
+
+The oracle intelligently hunts tools and data via ToolHunter sub-swarms and recomputes C3A confidence when symbolic or quantum claims are made (with optional SimulationHunter / The Well grounding).
+
+**Why this is huge on Enigma**: In a prize-pool environment where solutions must be rigorously verifiable, early and continuous verification dramatically reduces wasted compute and prevents drift. Combined with dynamic tool creation and C3A, it creates a verifier-first loop that is far more robust than typical agent frameworks that treat verification as an afterthought.
 
 ### Miner Actions
 
-The miner itself performs a small but critical set of high-leverage actions:
-- Edits the Brain Suite via the Streamlit dashboard.
-- Provides challenge description + verification code/requirements.
-- Reviews and edits the Planning-generated enhancement prompt.
-- Saves strong patterns as Grail entries.
-- Triggers Scientist Mode for synthetic benchmarking and progress measurement.
-- Monitors wiki growth and principle evolution over multiple runs.
+- Edit the Brain via the Streamlit dashboard.
+- Provide challenge + verification requirements/code.
+- Review and edit the Planning-generated enhancement prompt.
+- Save strong patterns as Grail entries.
+- Trigger Scientist Mode for synthetic benchmarking.
+- Monitor wiki growth and principle evolution.
 
 All other intelligence emerges from the Arbos loops and the evolving brain.
 
@@ -89,10 +128,10 @@ All other intelligence emerges from the Arbos loops and the evolving brain.
 3. Planning Arbos (all principles injected) → editable enhancement prompt.  
 4. Orchestrator Arbos → blueprint with task-specific validation criteria.  
 5. Launch Dynamic Swarm + parallel ToolHunter sub-swarms (Amdahl-aware).  
-6. Sub-Arbos workers execute with continuous self-checks and stigmergy wiki writes.  
-7. Synthesis → Sybiosis (Check for simbiotic patterns) → ValidationOracle
-8. Low score → re_adapt (using compressed deltas + bio heuristics).  
-9. High score → Grail RL reinforcement + outer-loop brain evolution (including Deep Replan if stale).
+6. Sub-Arbos workers execute with continuous self-checks, dynamic tool creation, and stigmergy wiki writes.  
+7. Synthesis → Symbiosis Arbos (cross-field patterns) → ValidationOracle (with C3A and MAU-aware scoring).  
+8. Low score → re_adapt (compressed deltas + bio heuristics).  
+9. High score → Grail RL reinforcement + outer-loop brain evolution (including Deep Replan if stale) + ByteRover MAU promotion.
 
 ### Quick Start
 
@@ -100,12 +139,3 @@ All other intelligence emerges from the Arbos loops and the evolving brain.
 pip install -r requirements.txt
 # Follow AutoHarness setup instructions in requirements.txt
 streamlit run streamlit_app.py
-```
-
-Create the `experts/` folder for domain knowledge. Use the Brain Dashboard to inspect and evolve principles directly. Run Scientist Mode for synthetic benchmarking.
-
-**The bunker is open.**
-
-Questions or sponsor challenges? Ping @dTAO_Dad on X.
-
-Built with first-principles agentic design for Bittensor Subnet 63, Enigma.
