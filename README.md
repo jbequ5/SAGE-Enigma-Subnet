@@ -96,11 +96,23 @@ Most agent systems are single-loop and static — they solve (or fail) a challen
 
 ### 5. Verification Intelligence
 
-Verification is the unbreakable core. The miner provides exact verification requirements and code at the start. These feed the ValidationOracle, which propagates task-specific criteria down to every Sub-Arbos.
+Verification is not an afterthought — it is the **unbreakable core** and arguably the single most important architectural feature of the Enigma Machine. Every other layer (natural-language substrate, core principles, prompt evolution, Arbos loops, ByteRover memory) ultimately converges here. From the moment a sponsor challenge is ingested, the system operates in a relentlessly verifier-first mode that treats partial correctness as failure and demands deterministic, replayable proof at every scale.
 
-The oracle intelligently hunts tools and data via ToolHunter sub-swarms and recomputes C3A confidence when symbolic or quantum claims are made (with optional SimulationHunter / The Well grounding).
+The miner supplies exact verification requirements and executable validation code at the outset. These are parsed by the **ValidationOracle**, which immediately:
+- Extracts deterministic scoring snippets (symbolic invariants, edge-coverage thresholds, fidelity metrics, quantum feasibility checks) that run before any LLM call.
+- Propagates task-specific `validation_criteria` JSON down to the Orchestrator Arbos and every Sub-Arbos worker.
+- Injects live C3A (Confidence-aware Continuous Convergent Annealing) parameters so that confidence `c` is recomputed from `edge_coverage + invariant_tightness + ByteRover historical_reliability` (with the 0.20 novelty floor) at both global and hyphal levels.
 
-**Why this is huge on Enigma**: In a prize-pool environment where solutions must be rigorously verifiable, early and continuous verification dramatically reduces wasted compute and prevents drift. Combined with dynamic tool creation and C3A, it creates a verifier-first loop that is far more robust than typical agent frameworks that treat verification as an afterthought.
+Inside the inner loop, **every Sub-Arbos worker** performs continuous verifier-first self-checks on every candidate output. Guided diversity candidates are generated only if they pass the current criteria. Dynamic tool creation is explicitly gated: when a novel subtask appears, the worker proposes a tool via `llm_generate_tool_proposal`, executes it in the sandbox, runs the full critique loop, and submits the result to the ValidationOracle’s **replay test**. Only if the replay passes **and** `critique_delta.c_increase > 0` is the new tool curated into ByteRover.
+
+When symbolic, mathematical, or quantum claims are made, ToolHunter/Onyx sub-swarms intelligently fetch or generate grounding data. The oracle then recomputes C3A confidence using optional **SimulationHunter / The Well** physics simulations, feeding the updated `c` directly back into the annealing multiplier `m = exp(-k·d) × c^β`. This creates a smooth, progress-and-confidence-aware tightening that replaces brittle binary exploit locks with a biologically plausible convergence dynamic.
+
+High-signal Sub-Arbos outputs trigger immediate stigmergy writes to the wiki, which the integrated **WikiHealthOracle** scores via the MAU Pyramid reinforcement formula. These wiki contributions are added to the ValidationOracle’s final score, creating a closed reinforcement loop: better verification → richer wiki → higher future confidence → sharper convergence.
+
+The outer loop closes the circuit: Grail RL only reinforces trajectories that survive the ValidationOracle’s full replay suite. `evolve_principles_post_run` and ByteRover promotions occur exclusively on runs that demonstrate verifiable, high-fidelity progress. Low-score paths trigger `re_adapt` with compressed deltas that are themselves validated before acceptance. The entire system — principles, prompts, memory, swarm behavior — is therefore shaped and hardened by verification intelligence at every layer.
+
+**Why this is huge on Enigma**  
+In Bittensor SN63’s prize-pool reality, sponsor challenges are deliberately frontier-level: quantum, cryptographic, or symbolic problems where “almost correct” is worthless and only rigorously verifiable solutions win. Most agent frameworks treat verification as a post-hoc check or optional evaluator, leading to massive wasted compute on plausible-but-false solutions. Enigma’s verifier-first architecture — with deterministic-first snippets, propagated criteria, C3A-gated annealing, dynamic-tool replay testing, SimulationHunter grounding, and WikiHealthOracle reinforcement — creates a converging, self-hardening organism that eliminates drift early, maximizes every joule of compute, and turns verification itself into the primary evolutionary pressure. This is where the living second brain becomes decisive: the system does not merely attempt solutions — it relentlessly converges on provably correct, compounding intelligence that is purpose-built for the hardest, highest-stakes challenges on the subnet.
 
 ### Miner Actions
 
