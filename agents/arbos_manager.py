@@ -84,7 +84,7 @@ class ArbosManager:
         self.compute_source = "local_gpu"
         self.custom_endpoint = None
 
-        self.validator = ValidationOracle(goal_file, compute=self.compute)
+        self.validator = ValidationOracle(goal_file, compute=self.compute, arbos=self)  # ← Now passing self
         self.analyzer = VerificationAnalyzer(goal_file)
         self.reach_tool = AgentReachTool()
         
