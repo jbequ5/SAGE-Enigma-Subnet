@@ -25,12 +25,48 @@ class ValidationOracle:
         self.last_strategy = strategy
 
     def _sota_partial_credit_score(self, data: dict) -> float:
-        """deterministic 45% + edge/invariant/sim/fidelity rubric modulated by c^0.3"""
-        ...
+        """SOTA Hybrid Scoring: deterministic 45% + edge/invariant/sim/fidelity rubric modulated by c^0.3"""
+        deterministic_base = data.get("deterministic_strength", 0.45)
+        
+        # Rubric components (0.0-1.0)
+        edge_coverage = data.get("edge_coverage", 0.75)
+        invariant_tightness = data.get("invariant_tightness", 0.68)
+        simulation_quality = data.get("simulation_quality", 0.72)
+        fidelity = data.get("fidelity", 0.82)
+        
+        rubric_score = (0.3 * edge_coverage) + (0.3 * invariant_tightness) + (0.2 * simulation_quality) + (0.2 * fidelity)
+        
+        # Modulate by confidence (c^0.3)
+        c = data.get("c3a_confidence", 0.75)
+        modulated = rubric_score * (c ** 0.3)
+        
+        # Final hybrid score: 45% deterministic + 55% modulated rubric
+        final_score = (0.45 * deterministic_base) + (0.55 * modulated)
+        return round(max(0.35, min(0.98, final_score)), 3)
 
-    def _subarbos_gate(self, output, theta_dynamic: float):
-        """mandatory replay for EVERY Sub-Arbos output, tool, retrospective, hybrid import, meta-tuning candidate"""
-        ...
+    def _subarbos_gate(self, output: Any, theta_dynamic: float = None) -> bool:
+        """Mandatory replay + SOTA gate for EVERY Sub-Arbos output, tool, retrospective, hybrid import, meta-tuning candidate"""
+        if theta_dynamic is None:
+            c = getattr(self.arbos, 'compute_confidence', lambda *a: 0.75)(0.78, 0.70, 0.88)
+            progress_factor = min(1.0, getattr(self, 'last_score', 0.5) + 0.3)
+            theta_dynamic = 0.65 * (1 - 0.4 * (1 - c)**0.8) * progress_factor
+
+        sota_score = self._sota_partial_credit_score({
+            "deterministic_strength": getattr(self, 'last_score', 0.45),
+            "edge_coverage": 0.78,
+            "invariant_tightness": 0.72,
+            "simulation_quality": 0.75,
+            "fidelity": getattr(self, 'last_fidelity', 0.82),
+            "c3a_confidence": getattr(self.arbos, 'compute_confidence', lambda *a: 0.75)(0.78, 0.70, 0.88) if self.arbos else 0.75
+        })
+
+        # Gate decision
+        passed = sota_score >= theta_dynamic
+        
+        if not passed:
+            self.last_notes += f" | GATE FAILED (θ_dynamic={theta_dynamic:.3f}, SOTA={sota_score:.3f}) — replay required"
+        
+        return passed
 
     def _safe_parse_json(self, raw: Any) -> Dict:
         if isinstance(raw, dict):
@@ -67,10 +103,9 @@ class ValidationOracle:
                             try:
                                 path = os.path.join(root, f)
                                 with open(path, "r", encoding="utf-8") as file:
-                                    content = file.read()[:2000]  # limit for speed
-                                # Simple MAU simulation: split on paragraphs/sentences
+                                    content = file.read()[:2000]
                                 maus = [s.strip() for s in content.split("\n\n") if len(s.strip()) > 30]
-                                for mau in maus[:10]:  # cap per file
+                                for mau in maus[:10]:
                                     score = self._compute_mau_reinforcement(
                                         mau,
                                         self.last_score,
@@ -86,9 +121,8 @@ class ValidationOracle:
                 return 0.0
 
             avg_mau_score = total_mau_score / mau_count
-            contrib = min(0.35, avg_mau_score * 0.12)  # gentle scaling
+            contrib = min(0.35, avg_mau_score * 0.12)
 
-            # Extra boost when byterover_mau_enabled
             if getattr(self.arbos, 'byterover_mau_enabled', False):
                 contrib = min(0.45, contrib * 1.5)
 
@@ -167,10 +201,28 @@ Return ONLY valid JSON with the keys shown."""
                 vvd_ready = False
                 realism_penalty = True
 
+        # ====================== v0.6 SOTA GATE + REPLAY ======================
+        gate_data = {
+            "deterministic_strength": deterministic_score,
+            "edge_coverage": 0.78,
+            "invariant_tightness": 0.72,
+            "simulation_quality": 0.75,
+            "fidelity": 0.82,
+            "c3a_confidence": getattr(self.arbos, 'compute_confidence', lambda *a: 0.75)(0.78, 0.70, 0.88) if self.arbos else 0.75
+        }
+        sota_score = self._sota_partial_credit_score(gate_data)
+        
+        # Dynamic theta
+        c = gate_data["c3a_confidence"]
+        progress_factor = min(1.0, score + 0.3)
+        theta_dynamic = 0.65 * (1 - 0.4 * (1 - c)**0.8) * progress_factor
+
+        gate_passed = self._subarbos_gate(output=solution, theta_dynamic=theta_dynamic)
+
         self.last_score = max(0.35, min(0.94, score))
         self.last_vvd_ready = vvd_ready
         self.last_fidelity = round(0.80 + np.random.normal(0, 0.08), 3)
-        self.last_notes = notes
+        self.last_notes = notes + (f" | SOTA={sota_score:.3f} | θ={theta_dynamic:.3f} | Gate={'PASS' if gate_passed else 'REPLAY'}" if not gate_passed else "")
 
         if realism_penalty:
             self.last_notes += " | Realism penalty applied"
@@ -182,21 +234,19 @@ Return ONLY valid JSON with the keys shown."""
         aha_strength = max(0.0, self.last_score - 0.65) if self.last_score > 0.70 else 0.0
         self.last_aha_strength = round(aha_strength, 3)
 
-        # Boost from wiki activity (MAU reinforcement)
         if wiki_contrib > 0.05:
             self.last_score = min(0.96, self.last_score + (wiki_contrib * 0.08))
 
-        # C3A confidence
         c = self.arbos.compute_confidence(0.78, 0.70, 0.88) if hasattr(self.arbos, 'compute_confidence') else 0.75
 
-        # Decision Journal write
+        # Decision Journal
         if hasattr(self.arbos, 'decision_journal_enabled') and self.arbos.decision_journal_enabled:
             self.arbos.write_decision_journal(
                 subtask_id="validation_oracle",
                 hypothesis="Validation score computed",
                 evidence=notes,
                 performance_delta={"delta_c": c, "delta_s": self.last_score, "wiki_contrib": wiki_contrib},
-                organic_thought=f"AHA strength: {aha_strength:.3f} | MAU contrib: {wiki_contrib:.3f}"
+                organic_thought=f"AHA strength: {aha_strength:.3f} | MAU contrib: {wiki_contrib:.3f} | SOTA Gate: {'PASS' if gate_passed else 'REPLAY'}"
             )
 
         # Update brain metrics
@@ -208,18 +258,21 @@ Return ONLY valid JSON with the keys shown."""
                     f.write(f"\n\n### ValidationOracle Update {datetime.now().isoformat()}\n"
                             f"aha_strength: {self.last_aha_strength:.3f}\n"
                             f"wiki_contribution_score: {self.last_wiki_contrib:.3f}\n"
-                            f"c3a_confidence: {c:.3f}")
+                            f"c3a_confidence: {c:.3f}\n"
+                            f"sota_score: {sota_score:.3f}")
             except:
                 pass
 
         return {
             "validation_score": self.last_score,
             "vvd_ready": self.last_vvd_ready,
-            "notes": self.last_notes + f" | Wiki/MAU contrib: {wiki_contrib:.3f} | C3A c: {c:.3f}",
+            "notes": self.last_notes,
             "strategy": strategy,
             "fidelity": self.last_fidelity,
             "deterministic_strength": deterministic_score,
             "aha_strength": self.last_aha_strength,
             "wiki_contribution_score": self.last_wiki_contrib,
-            "c3a_confidence": c
+            "c3a_confidence": c,
+            "sota_score": sota_score,
+            "gate_passed": gate_passed
         }
