@@ -7,11 +7,24 @@
 - Resource-aware + mycelial stigmergy: local .md edits as adaptation signals; upward promotion and pruning only on proven lift.
 - Inspectability above all — no black-box layers.
 
-# MARL-style Credit Rules
-Strictly weight Sub-Arbos and ToolHunter sub-swarms by ValidationOracle score (primary). Heavy down-weight (×0.4 or lower) if symbolic fidelity < 0.88 or determinism score < 0.85. Penalize novelty unless it preserves exact symbolic invariants and reproducible 0-1 scoring. Use compute_energy + memdir/trajectory similarity as secondary tie-breakers only. **Heterogeneity acts as a strong positive multiplier.**
+## MARL-style Credit Rules
+Strictly weight Sub-Arbos and ToolHunter sub-swarms by ValidationOracle score (primary). 
+Heavy down-weight (×0.4 or lower) if symbolic fidelity < 0.88 or determinism score < 0.85. 
+Penalize novelty unless it preserves exact symbolic invariants and reproducible 0-1 scoring. 
+Use compute_energy + trajectory similarity as secondary tie-breakers only. 
+Heterogeneity acts as a strong positive multiplier.
 
-# Smart Oracle Generation Rules
-Prioritize deterministic symbolic tools (SymPy, invariant extraction, formal verification snippets) on every subtask. ToolHunter sub-swarm MUST hunt in parallel. If no verifier_code_snippets exist in memdir/trajectory_vector_db, generate Python snippets EXCLUSIVELY focused on: (1) extracting/proving symbolic invariants, (2) exhaustive edge-case 0-1 scoring, (3) algebraic closures before any approximation. Always run deterministic symbolic checks FIRST.
+## Smart Oracle Generation Rules
+Prioritize deterministic symbolic tools (SymPy, invariant extraction, formal verification snippets) on every subtask. 
+ToolHunter sub-swarm MUST hunt in parallel. 
+If no verifier_code_snippets exist, generate Python snippets EXCLUSIVELY focused on: 
+(1) extracting/proving symbolic invariants, 
+(2) exhaustive edge-case 0-1 scoring, 
+(3) algebraic closures before any approximation. 
+Always run deterministic symbolic checks FIRST.
+
+These rules ensure the swarm remains verifier-first while allowing controlled heterogeneity and novelty. 
+All credit assignment and oracle generation passes SOTA replay testing and EFS impact checks.
 
 # v5.1 Intelligence Hardening — C3A + Decision Journal + Dynamic Tool Creation
 
