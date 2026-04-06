@@ -6,6 +6,8 @@ psutil==5.9.0
 PyYAML==6.0.1
 requests==2.32.0
 python-dotenv==1.0.1
+memvid>=0.4.2          # Smart Frame .mv2 encoding for MAU/wiki/C3A/trajectory archival
+opencv-python-headless          # Video frame synthesis (Memvid dependency)
 
 # Memory & Embeddings
 chromadb==0.5.0
