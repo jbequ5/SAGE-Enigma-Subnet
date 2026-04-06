@@ -16,6 +16,10 @@ from agents.arbos_manager import ArbosManager
 from agents.tools.compute import compute_router
 from code_editor import code_editor
 
+# ====================== NEW IMPORTS FOR v1.0 PRUNING ADVISOR ======================
+from goals.brain_loader import load_brain_component          # (fixes existing missing import)
+from tools.pruning_advisor import generate_pruning_recommendations, update_module_toggle
+
 # ====================== CINEMATIC ENIGMA BUNKER THEME ======================
 st.markdown("""
 <style>
@@ -61,7 +65,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Sound effects
+# Sound effects (unchanged)
 st.markdown("""
 <audio id="click" src="https://freesound.org/data/previews/276/276951_5123854-lq.mp3" preload="auto"></audio>
 <audio id="rotor" src="https://freesound.org/data/previews/202/202113_3720023-lq.mp3" preload="auto"></audio>
@@ -128,10 +132,11 @@ tab_command, tab_brain, tab_recon, tab_organism = st.tabs([
     "📡 COMMAND BRIDGE", 
     "🧠 BRAIN VAULT", 
     "🛰️ RECON & INTEL", 
-    "🔬 ORGANISM CORE (v0.6)"
+    "🔬 ORGANISM CORE (v1.0)"
 ])
 
 with tab_command:
+    # (unchanged - your original COMMAND BRIDGE code)
     st.subheader("🎯 MISSION TARGET")
     challenge = st.text_area(
         "SN63 Challenge Description (Quantum Innovate task)",
@@ -174,6 +179,7 @@ with tab_command:
                 st.rerun()
 
 with tab_brain:
+    # (unchanged - your original BRAIN VAULT code)
     st.header("🧠 BRAIN VAULT — Living Second Brain")
     st.caption("Mycelial + wiki + bio heuristics. Edit live.")
 
@@ -207,6 +213,7 @@ with tab_brain:
             st.rerun()
 
 with tab_recon:
+    # (unchanged - your original RECON & INTEL code)
     st.subheader("🛰️ RECON SWARM — ToolHunter & Expert Input")
     hunter_gap = st.text_area("Current Gap or Subtask", height=100, placeholder="e.g. Need better quantum circuit simulator...")
     if st.button("🚀 LAUNCH RECON SWARM"):
@@ -247,7 +254,7 @@ with tab_recon:
                 st.success("✅ Strategy suggestion saved")
 
 with tab_organism:
-    st.header("🔬 ORGANISM CORE — v0.6 Self-Optimizing Embodied Organism")
+    st.header("🔬 ORGANISM CORE — v1.0 Self-Optimizing Embodied Organism")
     st.caption("All features are toggleable, replay-tested, and EFS-gated.")
 
     col1, col2 = st.columns(2)
@@ -282,6 +289,30 @@ with tab_organism:
     if st.button("Apply All v0.6 Toggles"):
         manager.update_toggles(manager.toggles)
         st.success("✅ Toggles applied — organism updated")
+
+    # ====================== NEW: PRUNING ADVISOR (v1.0) ======================
+    st.subheader("🧬 Pruning Advisor — Module Health & Recommendations")
+    st.caption("Data-driven • purely advisory • uses EFS, replay rates & grail signals")
+
+    recommendations = generate_pruning_recommendations(last_n_runs=10)
+
+    for module, info in recommendations.items():
+        with st.expander(f"**{module.capitalize()}** — {info['recommendation']}", expanded=True):
+            st.write(info["reason"])
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("EFS Contribution", f"{info['efs_contrib']}%")
+            with col2:
+                st.metric("Replay Pass Rate", f"{info['replay_pass_rate']*100:.1f}%")
+            with col3:
+                st.metric("Overhead (tokens)", f"{info['overhead']}")
+            
+            st.caption(f"Promoted: {info['promoted']} | Discarded: {info['discarded']}")
+            
+            if st.button(f"Apply Recommendation for {module}", key=f"apply_{module}"):
+                update_module_toggle(module, info["recommendation"])
+                st.success(f"✅ Toggle for **{module}** updated and logged to grail.")
+                st.rerun()
 
 # ====================== SIDEBAR ======================
 with st.sidebar:
