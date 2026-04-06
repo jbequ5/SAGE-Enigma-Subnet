@@ -23,15 +23,18 @@ class VerificationAnalyzer:
                 "symbolic": 0.40,
                 "deterministic": 0.35,
                 "novelty": 0.15,
-                "realism": 0.10,      # Added realism weight
+                "realism": 0.10,      # realism weight — feeds into SOTA rubric
                 "speed": 0.0
             },
             "self_check_commands": [],
             "recommended_tools": [],
             "verification_type": "custom",
             "verifier_code_snippets": [],
-            "difficulty_level": "medium",   # New: auto-detected
-            "requires_deterministic_first": True
+            "difficulty_level": "medium",
+            "requires_deterministic_first": True,
+            # v0.6 additions for hybrid ingestion & pattern surfacing awareness
+            "hybrid_ingestion_hints": [],
+            "pattern_surfacing_hints": []
         }
 
         # 1. Extract verifier code blocks (highest priority)
@@ -58,10 +61,10 @@ class VerificationAnalyzer:
 
         strategy["recommended_tools"] = list(dict.fromkeys(strategy["recommended_tools"]))  # dedup
 
-        # 4. Auto-detect difficulty level (smart, no hardcoding specific challenges)
+        # 4. Auto-detect difficulty level
         difficulty_keywords = {
-            "high": ["break", "crack", "decrypt", "bitcoin", "btc", "rsa", "private key", "collision", "preimage", "invert", "solve for"],
-            "medium": ["optimize", "quantum", "circuit", "simulation", "large scale", "complex"],
+            "high": ["break", "crack", "decrypt", "bitcoin", "btc", "rsa", "private key", "collision", "preimage", "invert", "solve for", "quantum", "shor", "grover", "post-quantum"],
+            "medium": ["optimize", "quantum", "circuit", "simulation", "large scale", "complex", "cryptographic", "hash"],
             "low": ["simple", "basic", "hello", "example", "demo"]
         }
 
@@ -85,5 +88,11 @@ class VerificationAnalyzer:
             strategy["requires_deterministic_first"] = True
         else:
             strategy["requires_deterministic_first"] = False
+
+        # 6. v0.6 hybrid ingestion & pattern surfacing hints (lightweight)
+        if any(k in text_lower for k in ["evoagent", "sakana", "genome", "paper", "archive"]):
+            strategy["hybrid_ingestion_hints"].append("external_genome_detected")
+        if any(k in text_lower for k in ["resonance", "photoelectric", "microtubule", "kruse", "pattern", "invariant cluster"]):
+            strategy["pattern_surfacing_hints"].append("multi_scale_pattern_opportunity")
 
         return strategy
