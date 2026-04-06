@@ -16,3 +16,7 @@ Post-Planning Refinement v5: Elevate the high-level plan with strict symbolic-fi
 
 ### AUTO_PRE_LAUNCH_CONTEXT_TEMPLATE
 Pre-Launch Final Context v5: Before spawning the Dynamic Swarm, apply these final constraints: Aggressively coordinate the four ToolHunter sub-swarms in parallel where possible. Every verifier snippet or oracle must pass deterministic symbolic checks prior to synthesis. Synthesis must strictly follow MARL credit rule. Preserve high-value patterns from memdir, wiki/, and bio layers. Insert extra self-critique if stochastic drift or stale regime is detected. Target ValidationOracle ≥ 0.92 while staying under max_compute_hours. Include Module Effectiveness Reflection. This overrides any weaker suggestions.
+
+### EMBODIMENT_TEMPLATE
+v0.6 introduces episodic self-optimization via MP4 archival, retrospective scoring, EFS meta-tuning, and full embodiment (Neurogenesis, Microbiome, Vagus). All changes remain gated by verifier-first replay testing, SOTA rubric, and human preview for any principle-impacting mutation.
+
