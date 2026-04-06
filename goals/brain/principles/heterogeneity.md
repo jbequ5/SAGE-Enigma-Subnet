@@ -26,3 +26,12 @@ Stale regime = prolonged low heterogeneity + low ValidationOracle.
 
 **Evolution Rule**: Only promote or retain patterns that measurably increase heterogeneity while preserving verifier-first constraints.  
 Low-heterogeneity paths are aggressively pruned unless they deliver exceptional ValidationOracle lift.
+
+# v1.0 Heterogeneity Update
+
+Heterogeneity now explicitly includes embodiment-driven axes:
+- Structural diversity from Neurogenesis spawns
+- Novelty diversity from Microbiome injections
+- Hardware-state diversity from Vagus feedback
+
+When computing heterogeneity_score, add bonus for active embodiment modules and surfaced RPS/PPS patterns.
