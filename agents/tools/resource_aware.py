@@ -1,17 +1,21 @@
 # agents/tools/resource_aware.py
 # Real H100 runtime monitoring + auto-compression + guardrails
-# Hardened version: Clean, focused, supports dynamic swarm
+# v1.0 hardened: Clean, focused, supports dynamic swarm + EFS awareness
 
 import time
 import psutil
+import logging
 from pathlib import Path
+from typing import Optional, Dict
+
+logger = logging.getLogger(__name__)
 
 class ResourceMonitor:
     def __init__(self, max_hours: float = 3.8):
         self.max_seconds = max_hours * 3600
         self.start_time = time.time()
         self.max_hours = max_hours
-        print(f"⏱️  Resource Monitor initialized — hard limit {max_hours}h")
+        logger.info(f"⏱️  Resource Monitor initialized — hard limit {max_hours}h")
 
     def elapsed_seconds(self) -> float:
         return time.time() - self.start_time
@@ -24,30 +28,34 @@ class ResourceMonitor:
         try:
             import torch
             if torch.cuda.is_available():
-                # Get free memory on GPU 0
                 free = torch.cuda.mem_get_info(0)[0] / (1024 ** 3)
                 return round(free, 2)
             else:
-                # Fallback for CPU-only or unknown
+                # CPU-only or unknown fallback
                 return 48.0
         except:
             return 48.0  # safe default for Chutes/H100 assumptions
 
-    def check_and_compress(self, output: str) -> str:
+    def check_and_compress(self, output: str, context: dict = None) -> str:
         """Check runtime and compress output if approaching limit"""
+        if context is None:
+            context = {}
+
         elapsed = self.elapsed_hours()
 
-        if elapsed > self.max_hours - 0.1:   # last 6 minutes = danger zone
-            print(f"⚠️  Approaching hard limit ({elapsed:.2f}h / {self.max_hours}h) — compressing output")
+        # Last 6 minutes = danger zone
+        if elapsed > self.max_hours - 0.1:
+            logger.warning(f"⚠️  Approaching hard limit ({elapsed:.2f}h / {self.max_hours}h) — compressing output")
             # Aggressive but safe compression
             compressed = output[:len(output)//3] + "\n\n[AUTO-COMPRESSED due to time limit — high-value content preserved]"
             return compressed
 
-        elif elapsed > self.max_hours - 0.5:   # last 30 minutes = warning
-            print(f"⚠️  Warning: {elapsed:.2f}h / {self.max_hours}h elapsed")
+        # Last 30 minutes = warning
+        elif elapsed > self.max_hours - 0.5:
+            logger.warning(f"⚠️  Warning: {elapsed:.2f}h / {self.max_hours}h elapsed")
 
         else:
-            print(f"⏱️  Safe runtime: {elapsed:.2f}h / {self.max_hours}h")
+            logger.info(f"⏱️  Safe runtime: {elapsed:.2f}h / {self.max_hours}h")
 
         return output
 
