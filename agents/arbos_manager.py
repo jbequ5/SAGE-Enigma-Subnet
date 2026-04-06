@@ -78,14 +78,14 @@ class ArbosManager:
         
         self.compute = compute_router
         self.compute.set_mode("local_gpu")
-        self.quasar_enabled = True
-        logger.info("Quasar Long-Context Attention: Enabled")
+
 
         self.config = self._load_config()
         self.extra_context = self._load_extra_context()
         self._setup_real_arbos()
         
         # ====================== v0.6 FULLY WIRED: New feature instances ======================
+        self.validator = ValidationOracle(goal_file, compute=self.compute, arbos=self)
         self.video_archiver = VideoArchiver()
         self.history_hunter = HistoryParseHunter(self.validation_oracle)  # oracle wired later
         self.meta_tuner = MetaTuningArbos(self.validation_oracle)
@@ -113,7 +113,6 @@ class ArbosManager:
         self.compute_source = "local_gpu"
         self.custom_endpoint = None
 
-        self.validator = ValidationOracle(goal_file, compute=self.compute, arbos=self)
         self.analyzer = VerificationAnalyzer(goal_file)
         self.reach_tool = AgentReachTool()
         
