@@ -35,3 +35,13 @@ decision_journal_enabled: true
 dynamic_tool_creation_enabled: false   # conservative default
 model_compute_capability_enabled: true
 allow_per_subarbos_breakthrough: true
+
+# v0.6 / v1.0 Toggles
+
+embodiment_enabled: true
+rps_pps_enabled: true
+hybrid_ingestion_enabled: true
+retrospective_enabled: true
+meta_tuning_enabled: true
+audit_enabled: true
+
