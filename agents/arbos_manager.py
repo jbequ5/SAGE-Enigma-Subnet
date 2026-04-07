@@ -2496,7 +2496,14 @@ Return ONLY valid JSON:
                 logger.debug(f"Meta-tuning skipped: {e}")
 
         logger.info("✅ _end_of_run complete — outer-loop evolution executed")
-
+        
+        # Video archival with full metrics
+        try:
+            mp4_path = self.video_archiver.archive_run_to_mp4(run_data, str(self.current_run_id))
+            run_data["mp4_archive"] = mp4_path
+        except Exception as e:
+            logger.debug(f"Video archival skipped: {e}")
+            
     # ====================== v0.6 helper for wiki snapshot (used in run_data) ======================
     def _get_wiki_snapshot(self) -> dict:
         """Minimal wiki snapshot for MP4 archival"""
