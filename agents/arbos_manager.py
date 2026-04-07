@@ -2474,13 +2474,16 @@ Return ONLY valid JSON:
             except Exception as e:
                 logger.debug(f"Pattern surfacers skipped: {e}")
 
-        # 5. Meta-tuning on stall or high-signal
-        if self.toggles.get("meta_tuning_enabled", True):
-            stall_detected = self._is_stale_regime(self.recent_scores)
+        # === META-TUNING INTEGRATION (high-signal or periodic) ===
+        if score > 0.78 or (self.loop_count % 4 == 0):
             try:
-                self.meta_tuner.run_meta_tuning_cycle(stall_detected=stall_detected, oracle_result=run_data)
+                meta_result = self.run_meta_tuning_cycle(
+                    stall_detected=self._is_stale_regime(self.recent_scores),
+                    oracle_result=run_data
+                )
+                logger.info(f"Meta-tuning cycle completed in _end_of_run (score trigger)")
             except Exception as e:
-                logger.debug(f"Meta-tuning skipped: {e}")
+                logger.debug(f"Meta-tuning skipped in _end_of_run: {e}")
                 
  # Meta-tuning on strong runs or periodic
         if score > 0.78 or (self.loop_count % 4 == 0):
