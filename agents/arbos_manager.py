@@ -2288,16 +2288,6 @@ Return ONLY valid JSON:
         logger.info(f"✅ Re-Adaptation completed — Strategy: {adaptation.get('adaptation_strategy', 'balanced')} | Confidence: {adaptation.get('confidence', 0.0):.2f}")
         
         return adaptation
-
-This version is clean, complete, and integrates the meta-tuning cycle nicely.Next:Tell me “next” when you're ready and we'll move to Embodiment + Pattern Surfacers.
-
-Explain meta-tuning principles deeply
-
-Explore pattern surfacers integration
-
-Revise re_adapt prompt structure
-
-
         
     def run_meta_tuning_cycle(self, stall_detected: bool = False, oracle_result: Dict = None):
         """Top-tier Meta-Tuning Arbos — evolutionary genome tournament, principle evolution, 
@@ -2460,7 +2450,15 @@ Return ONLY valid JSON:
                 threading.Thread(target=self.vagus.monitor_hardware_state, daemon=True, args=(run_data,)).start()
             except Exception as e:
                 logger.debug(f"Embodiment skipped: {e}")
-
+                
+        # Advanced Pattern Surfacers (high-signal detection)
+        if self.toggles.get("rps_pps_enabled", True):
+            try:
+                self.rps.surface_resonance(run_data)
+                self.pps.surface_photoelectric(run_data)
+            except Exception as e:
+                logger.debug(f"Pattern surfacers skipped: {e}")
+                
         if self.toggles.get("rps_pps_enabled", True):
             try:
                 self.rps.surface_resonance(run_data)
