@@ -17,7 +17,7 @@ from agents.tools.compute import compute_router
 from code_editor import code_editor
 
 # ====================== NEW IMPORTS FOR v1.0 PRUNING ADVISOR ======================
-from goals.brain_loader import load_brain_component          # (fixes existing missing import)
+from goals.brain_loader import load_brain_component
 from tools.pruning_advisor import generate_pruning_recommendations, update_module_toggle
 
 # ====================== CINEMATIC ENIGMA BUNKER THEME ======================
@@ -65,7 +65,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Sound effects (unchanged)
+# Sound effects
 st.markdown("""
 <audio id="click" src="https://freesound.org/data/previews/276/276951_5123854-lq.mp3" preload="auto"></audio>
 <audio id="rotor" src="https://freesound.org/data/previews/202/202113_3720023-lq.mp3" preload="auto"></audio>
@@ -119,7 +119,8 @@ with col1:
 with col2:
     score = getattr(manager.validator, 'last_score', 0.0)
     efs = getattr(manager, 'last_efs', 0.0)
-    st.metric("VALIDATION ORACLE SCORE", f"{score:.3f}", delta=f"EFS {efs:.3f}")
+    c = getattr(manager.validator, 'last_c', 0.75) if hasattr(manager.validator, 'last_c') else 0.75
+    st.metric("VALIDATION ORACLE SCORE", f"{score:.3f}", delta=f"EFS {efs:.3f} | c {c:.3f}")
 with col3:
     if st.button("🧹 ABORT MISSION"):
         for k in list(st.session_state.keys()):
@@ -128,15 +129,15 @@ with col3:
         st.rerun()
 
 # ====================== MISSION TABS ======================
-tab_command, tab_brain, tab_recon, tab_organism = st.tabs([
+tab_command, tab_brain, tab_recon, tab_organism, tab_dvr = st.tabs([
     "📡 COMMAND BRIDGE", 
     "🧠 BRAIN VAULT", 
     "🛰️ RECON & INTEL", 
-    "🔬 ORGANISM CORE (v1.0)"
+    "🔬 ORGANISM CORE (v1.0)",
+    "📜 DVR CONTRACT MONITOR"
 ])
 
 with tab_command:
-    # (unchanged - your original COMMAND BRIDGE code)
     st.subheader("🎯 MISSION TARGET")
     challenge = st.text_area(
         "SN63 Challenge Description (Quantum Innovate task)",
@@ -165,7 +166,7 @@ with tab_command:
         verification_instructions = str(verification_response) if verification_response else default_verification
 
     if st.button("🚀 LAUNCH FULL MISSION", type="primary", use_container_width=True):
-        with st.spinner("Planning Arbos → Orchestrator → Dynamic Swarm..."):
+        with st.spinner("Planning Arbos → Dry-Run Gate → Orchestrator → Dynamic Swarm..."):
             plan = manager.plan_challenge(
                 goal_md=load_brain_component("core_strategy"),
                 challenge=challenge,
@@ -175,11 +176,10 @@ with tab_command:
             if "error" not in plan:
                 final_solution = manager.execute_full_cycle(plan, challenge, verification_instructions)
                 st.session_state.final_solution = final_solution
-                st.success("✅ Mission executed — view results in ORGANISM CORE tab")
+                st.success("✅ Mission executed — view results in ORGANISM CORE + DVR MONITOR tabs")
                 st.rerun()
 
 with tab_brain:
-    # (unchanged - your original BRAIN VAULT code)
     st.header("🧠 BRAIN VAULT — Living Second Brain")
     st.caption("Mycelial + wiki + bio heuristics. Edit live.")
 
@@ -213,7 +213,6 @@ with tab_brain:
             st.rerun()
 
 with tab_recon:
-    # (unchanged - your original RECON & INTEL code)
     st.subheader("🛰️ RECON SWARM — ToolHunter & Expert Input")
     hunter_gap = st.text_area("Current Gap or Subtask", height=100, placeholder="e.g. Need better quantum circuit simulator...")
     if st.button("🚀 LAUNCH RECON SWARM"):
@@ -290,7 +289,7 @@ with tab_organism:
         manager.update_toggles(manager.toggles)
         st.success("✅ Toggles applied — organism updated")
 
-    # ====================== NEW: PRUNING ADVISOR (v1.0) ======================
+    # ====================== PRUNING ADVISOR ======================
     st.subheader("🧬 Pruning Advisor — Module Health & Recommendations")
     st.caption("Data-driven • purely advisory • uses EFS, replay rates & grail signals")
 
@@ -313,6 +312,42 @@ with tab_organism:
                 update_module_toggle(module, info["recommendation"])
                 st.success(f"✅ Toggle for **{module}** updated and logged to grail.")
                 st.rerun()
+
+with tab_dvr:
+    st.header("📜 DVR CONTRACT MONITOR — Live Verifier-First Pipeline")
+    st.caption("Dry-run gate • Verifiability spec • Full deterministic trace")
+
+    if hasattr(manager, "simulator") and hasattr(manager.validator, "last_strategy"):
+        strategy = manager.validator.last_strategy or {}
+        dry_run = strategy.get("dry_run_result", {})
+        spec = strategy.get("verifiability_spec", {})
+
+        colA, colB, colC = st.columns(3)
+        with colA:
+            st.metric("Dry-Run Gate", "✅ PASSED" if dry_run.get("dry_run_passed") else "❌ ITERATE", 
+                      delta=f"EFS {dry_run.get('best_case_efs', 0.0):.3f}")
+        with colB:
+            st.metric("C3A Confidence", f"{dry_run.get('best_case_c', 0.75):.3f}")
+        with colC:
+            st.metric("θ Dynamic", f"{dry_run.get('theta_dynamic', 0.65):.3f}")
+
+        st.subheader("Verifiability Spec (Contract)")
+        st.json(spec)
+
+        st.subheader("Full DVR Trace")
+        trace = {
+            "edge_coverage": getattr(manager.validator, "_compute_edge_coverage", lambda *a: 0.0)({}, []),
+            "invariant_tightness": getattr(manager.validator, "_compute_invariant_tightness", lambda *a: 0.0)({}, []),
+            "fidelity": getattr(manager.validator, "last_fidelity", 0.0),
+            "heterogeneity_score": manager._compute_heterogeneity_score().get("heterogeneity_score", 0.72) if hasattr(manager, "_compute_heterogeneity_score") else 0.72,
+            "c": dry_run.get("best_case_c", 0.75),
+            "efs": dry_run.get("best_case_efs", 0.0),
+            "recommendation": dry_run.get("recommendation", "N/A")
+        }
+        st.json(trace)
+
+    else:
+        st.info("Run a mission to see live DVR contract data")
 
 # ====================== SIDEBAR ======================
 with st.sidebar:
