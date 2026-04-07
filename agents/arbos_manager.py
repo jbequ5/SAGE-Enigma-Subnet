@@ -321,7 +321,6 @@ class ArbosManager:
 
     def _analyze_swarm_stall(self, subtask_outputs: List[Dict], validation_result: Dict, 
                              dry_run_result: Dict) -> Dict:
-        """Analyzes why a real swarm stalled despite a passed dry-run."""
         real_efs = validation_result.get("efs", 0.0)
         dry_run_efs = dry_run_result.get("best_case_efs", 0.0)
         
@@ -331,12 +330,8 @@ class ArbosManager:
             "delta": round(real_efs - dry_run_efs, 4),
             "is_severe_stall": (real_efs < dry_run_efs - 0.15) or self._is_stale_regime(self.recent_scores),
             "low_performing_subtasks": [
-                {
-                    "subtask": out.get("subtask", "unknown"),
-                    "local_score": out.get("local_score", 0.0)
-                }
-                for out in subtask_outputs 
-                if out.get("local_score", 0.0) < 0.65
+                {"subtask": out.get("subtask", "unknown"), "local_score": out.get("local_score", 0.0)}
+                for out in subtask_outputs if out.get("local_score", 0.0) < 0.65
             ],
             "heterogeneity_drop": self._compute_heterogeneity_score([out.get("solution", "") for out in subtask_outputs]) < 0.6,
             "failure_modes": []
@@ -782,7 +777,7 @@ Return ONLY valid JSON with these keys:
         strategy["orchestrator_dialogue"] = dialogue_result["self_dialogue_output"]
         strategy["hardening_dialogue"] = self.dvr.hardening_conversation_template()
 
-        # 3. Dry-run
+        # 3. Dry-run test-plan validation
         full_verifier_snippets = strategy.get("verifier_code_snippets", [])
         dry_run = self.simulator.run_dry_run(
             decomposed_subtasks=strategy["verifiability_spec"].get("artifacts_required", []),
@@ -792,22 +787,27 @@ Return ONLY valid JSON with these keys:
         strategy["dry_run_result"] = dry_run
 
         if dry_run.get("recommendation") == "ITERATE_DECOMP":
-            # Intelligent analysis + reflection on dry-run failure
+            # === INTELLIGENT REPLAN ON DRY-RUN FAILURE ===
             failure_context = self._build_failure_context(
-                "dry_run_failed", task, goal_md, strategy, dry_run=dry_run
+                failure_type="dry_run_failed",
+                task=task,
+                goal_md=goal_md,
+                strategy=strategy,
+                dry_run=dry_run
             )
             replan_decision = self._intelligent_replan(failure_context)
             
             if replan_decision.get("decision") == "new_strategy_needed":
-                logger.info("Replan decided new strategy needed — escalating")
-                return self.orchestrate_subarbos(task + " [NEW STRATEGY AFTER FAILURE]", goal_md)
+                logger.info("Replan decided NEW STRATEGY needed after dry-run failure")
+                return self.orchestrate_subarbos(
+                    task=f"{task} [NEW STRATEGY AFTER DRY-RUN FAILURE]", 
+                    goal_md=goal_md
+                )
             else:
-                # Fix current plan
-                logger.info("Replan decided fixable — refining spec")
-                # Apply spec_fixes if any
+                logger.info("Replan decided fixable — applying targeted fixes")
+                # Optional: apply spec fixes
                 if replan_decision.get("spec_fixes"):
                     strategy["verifiability_spec"]["fixes_applied"] = replan_decision["spec_fixes"]
-                # Continue with refined spec (you can add more refinement logic here)
 
         # 4. Proceed to swarm only if dry-run passes or we chose to continue
         subtask_outputs = self._launch_hyphal_workers(task, strategy)
