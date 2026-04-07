@@ -119,8 +119,11 @@ with col1:
 with col2:
     score = getattr(manager.validator, 'last_score', 0.0)
     efs = getattr(manager, 'last_efs', 0.0)
-    c = getattr(manager.validator, 'last_c', 0.75) if hasattr(manager.validator, 'last_c') else 0.75
-    st.metric("VALIDATION ORACLE SCORE", f"{score:.3f}", delta=f"EFS {efs:.3f} | c {c:.3f}")
+    c_val = getattr(manager.validator, 'last_c', None)
+    if c_val is None:
+        # Compute on the fly if missing
+        c_val = manager.validator._compute_c3a_confidence(0.8, 0.75, 0.6) if hasattr(manager.validator, '_compute_c3a_confidence') else 0.75
+    st.metric("VALIDATION ORACLE SCORE", f"{score:.3f}", delta=f"EFS {efs:.3f} | c {c_val:.3f}")
 with col3:
     if st.button("🧹 ABORT MISSION"):
         for k in list(st.session_state.keys()):
