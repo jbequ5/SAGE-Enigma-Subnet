@@ -133,6 +133,7 @@ class ArbosManager:
         
         # ====================== v0.6 FULLY WIRED: New feature instances ======================
         self.validator = ValidationOracle(goal_file, compute=self.compute, arbos=self)
+        self.memory_layers.arbos = self   # wire for SOTA gating access
         self.dvr = DVRPipeline()
         self.simulator = DVRDryRunSimulator(self.validator)
         self.video_archiver = VideoArchiver()
