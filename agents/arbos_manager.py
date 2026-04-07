@@ -2191,14 +2191,17 @@ Return ONLY JSON with key 'deltas': list of strings, each ready to append to a .
         aha_detected = self.is_aha_detected(self.recent_scores)
         global_stagnant = self.is_stagnant_subarbos("global")
 
-        # === META-TUNING CYCLE ===
+              # === META-TUNING CYCLE (core intelligence upgrade) ===
         meta_result = None
-        if is_stale or global_stagnant or aha_detected or (self.loop_count % 5 == 0):
+        if is_stale or global_stagnant or aha_detected or (self.loop_count % 4 == 0):
             logger.info("Running full meta-tuning evolutionary cycle")
             meta_result = self.run_meta_tuning_cycle(
                 stall_detected=is_stale or global_stagnant,
-                oracle_result={"score": getattr(self.validator, "last_score", 0.0), 
-                              "efs": getattr(self, "last_efs", 0.0)}
+                oracle_result={
+                    "score": getattr(self.validator, "last_score", 0.0),
+                    "efs": getattr(self, "last_efs", 0.0),
+                    "validation_score": getattr(self.validator, "last_score", 0.0)
+                }
             )
 
         # Build rich adaptation context
