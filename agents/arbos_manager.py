@@ -857,100 +857,111 @@ After creating the contract, critique it internally for completeness and feasibi
         return list(dict.fromkeys(gaps))
         
     def _intelligent_replan(self, failure_context: Dict) -> Dict:
-        """v0.8 Intelligent Replanner — analyzes failure packet and decides fix vs new strategy.
-        Handles DOUBLE_CLICK, contract weaknesses, and swarm stalls."""
+        """v0.8+ Intelligent Replanner — richer analysis before deciding fix vs full redo."""
         
-        logger.info("🔄 Running intelligent replan analysis")
-
-        score = failure_context.get("validation_score", 0.0)
-        efs = failure_context.get("efs", 0.0)
-        gap = failure_context.get("gap", "unknown")
-        tags = failure_context.get("tags", [])
+        score = failure_context.get("oracle_metrics", {}).get("EFS", 0.0)
+        is_severe_stall = failure_context.get("is_severe_stall", False)
+        failure_modes = failure_context.get("failure_modes", [])
+        double_click = any("DOUBLE_CLICK" in str(m).upper() for m in failure_modes)
 
         decision = {
             "decision": "fix_current_plan",
-            "confidence": 0.75,
+            "confidence": 0.65,
             "spec_fixes": [],
             "next_action": "targeted_repair",
             "reasoning": ""
         }
 
-        # DOUBLE_CLICK handling (Deep-Dive Point 9)
-        if any("DOUBLE_CLICK" in str(t) for t in tags) or "DOUBLE_CLICK" in gap:
-            decision["decision"] = "run_double_click_experiment"
-            decision["next_action"] = "scientist_mode_narrow_experiment"
-            decision["reasoning"] = f"DOUBLE_CLICK tag detected on gap: {gap}"
-            decision["confidence"] = 0.92
-            logger.info(f"🔥 DOUBLE_CLICK triggered — queuing narrow experiment on {gap}")
+        # 1. Highest priority: DOUBLE_CLICK or severe stall
+        if double_click or is_severe_stall or score < 0.52:
+            decision.update({
+                "decision": "new_strategy_needed",
+                "next_action": "full_replan_or_scientist_mode",
+                "confidence": 0.92,
+                "reasoning": "DOUBLE_CLICK or severe stall detected — full replan or narrow experiment required"
+            })
             return decision
 
-        # Severe stall or very low metrics
-        if failure_context.get("is_severe_stall", False) or score < 0.55 or efs < 0.50:
-            decision["decision"] = "new_strategy_needed"
-            decision["next_action"] = "full_replan"
-            decision["reasoning"] = "Severe stall or critically low metrics — new strategy required"
-            decision["confidence"] = 0.88
+        # 2. Contract / composability / verifier quality issues → targeted fixes
+        if any(k in str(failure_modes).lower() for k in ["composability", "verifier_quality", "invariant", "contract"]):
+            decision.update({
+                "spec_fixes": [
+                    "Add more symbolic verifier snippets",
+                    "Strengthen composability_rules in contract",
+                    "Increase adversarial mocks in dry-run"
+                ],
+                "reasoning": "Contract or verification gap — applying targeted fixes"
+            })
             return decision
 
-        # Contract or composability weaknesses
-        if "composability" in gap.lower() or "verifier_quality" in gap.lower():
-            decision["spec_fixes"] = [
-                "Increase symbolic verifier snippets",
-                "Tighten composability_rules in contract",
-                "Add more adversarial mocks in dry-run"
-            ]
-            decision["reasoning"] = "Contract or composability gap detected — applying targeted fixes"
-            decision["confidence"] = 0.80
+        # 3. Tool or capability gaps
+        if any("tool" in str(m).lower() for m in failure_modes):
+            decision.update({
+                "next_action": "tool_hunter_escalation",
+                "reasoning": "Tool/capability gap detected"
+            })
 
-        # Default safe repair
-        if not decision["spec_fixes"]:
-            decision["spec_fixes"] = ["Strengthen verifier snippets", "Increase heterogeneity in decomposition"]
+        # 4. Default safe repair
+        decision["spec_fixes"] = ["Increase heterogeneity", "Strengthen verifier snippets"]
+        decision["reasoning"] = "Moderate issues — applying safe targeted repairs"
 
-        logger.info(f"Replan decision: {decision['decision']} | Confidence: {decision['confidence']:.2f}")
+        logger.info(f"Replan decision: {decision['decision']} | Confidence: {decision['confidence']:.2f} | Reason: {decision['reasoning']}")
         return decision
         
-    def _analyze_swarm_stall(self, subtask_outputs: List[Dict], validation_result: Dict, dry_run_result: Dict) -> Dict:
-        """Analyzes real swarm stall despite passed dry-run — v0.8 hardened with DOUBLE_CLICK detection."""
-        real_efs = validation_result.get("efs", 0.0)
-        dry_run_efs = dry_run_result.get("best_case_efs", 0.0)
+    def _analyze_swarm_stall(self, subtask_outputs: List[Dict], 
+                             validation_result: Dict = None, 
+                             dry_run_result: Dict = None) -> Dict:
+        """SOTA Swarm Stall Detection — distinguishes between local subtask issues and systemic failure."""
         
+        if not subtask_outputs:
+            return {"is_severe_stall": True, "reason": "no_outputs"}
+
+        scores = [o.get("local_score", 0.0) for o in subtask_outputs if isinstance(o, dict)]
+        if not scores:
+            return {"is_severe_stall": True, "reason": "no_scores"}
+
+        avg_score = np.mean(scores)
+        min_score = min(scores)
+        low_performers = sum(1 for s in scores if s < 0.55)
+        severe_low = low_performers / len(scores) > 0.5
+
+        real_efs = validation_result.get("efs", 0.0) if validation_result else 0.0
+        dry_efs = dry_run_result.get("best_case_efs", 0.0) if dry_run_result else 0.0
+        delta = real_efs - dry_efs
+
+        hetero = self._compute_heterogeneity_score().get("heterogeneity_score", 0.72)
+
         stall_context = {
-            "real_efs": round(real_efs, 4),
-            "dry_run_efs": round(dry_run_efs, 4),
-            "delta": round(real_efs - dry_run_efs, 4),
-            "is_severe_stall": (real_efs < dry_run_efs - 0.15) or self._is_stale_regime(self.recent_scores),
-            "low_performing_subtasks": [{"subtask": out.get("subtask", "unknown"), "local_score": out.get("local_score", 0.0)} for out in subtask_outputs if out.get("local_score", 0.0) < 0.65],
-            "heterogeneity_drop": self._compute_heterogeneity_score().get("heterogeneity_score", 0.72) < 0.6,
-            "failure_modes": []
+            "is_severe_stall": False,
+            "avg_score": round(avg_score, 3),
+            "min_score": round(min_score, 3),
+            "low_performer_ratio": round(low_performers / len(scores), 3),
+            "efs_delta": round(delta, 3),
+            "heterogeneity": round(hetero, 3),
+            "reason": "",
+            "recommendation": "continue"
         }
 
-        if stall_context["delta"] < -0.15:
-            stall_context["failure_modes"].append("large_efs_drop_from_dry_run")
-        if len(stall_context["low_performing_subtasks"]) > len(subtask_outputs) / 2:
-            stall_context["failure_modes"].append("majority_subtasks_underperformed")
-        if stall_context["heterogeneity_drop"]:
-            stall_context["failure_modes"].append("heterogeneity_collapse_in_real_execution")
+        # 1. Severe systemic failure → full replan
+        if delta < -0.18 or (avg_score < 0.48 and severe_low):
+            stall_context.update({
+                "is_severe_stall": True,
+                "reason": "severe_efs_drop_or_systemic_failure",
+                "recommendation": "full_replan"
+            })
+            return stall_context
 
-        # v0.8 Additions (only added):
-        # DOUBLE_CLICK detection for intelligent escalation
-        if stall_context["is_severe_stall"] or len(stall_context["failure_modes"]) >= 2:
-            stall_context["failure_modes"].append("DOUBLE_CLICK_eligible")
-            stall_context["double_click_recommended"] = True
-            stall_context["suggested_gap"] = "real_execution_gap_vs_dry_run" if stall_context["delta"] < -0.12 else "subtask_inconsistency"
-        else:
-            stall_context["double_click_recommended"] = False
+        # 2. Moderate stall — try local adjustment first
+        if (delta < -0.10 or min_score < 0.45 or hetero < 0.58):
+            stall_context.update({
+                "is_severe_stall": False,
+                "reason": "moderate_stall_local_adjustment_recommended",
+                "recommendation": "local_repair_or_diversity_boost"
+            })
+            return stall_context
 
-        # Richer diagnostics for replanner
-        stall_context["oracle_summary"] = {
-            "validation_score": validation_result.get("validation_score", 0.0),
-            "c3a_confidence": validation_result.get("c3a_confidence", 0.75),
-            "verifier_quality": validation_result.get("verifier_quality", 0.0)
-        }
-        stall_context["recommendation"] = "new_strategy_needed" if stall_context["is_severe_stall"] else "targeted_fix"
-
-        logger.info(f"Swarm stall analysis — Severe: {stall_context['is_severe_stall']} | Delta: {stall_context['delta']:.3f} | "
-                   f"DOUBLE_CLICK eligible: {stall_context['double_click_recommended']} | Modes: {stall_context['failure_modes']}")
-
+        # 3. Healthy enough — continue
+        stall_context["reason"] = "no_significant_stall"
         return stall_context
         
     def compute_confidence(self, edge_coverage: float, invariant_tightness: float, historical_reliability: float) -> float:
@@ -1244,14 +1255,18 @@ After creating the contract, critique it internally for completeness and feasibi
         )
         strategy["dry_run_result"] = dry_run
 
+        # Handle DOUBLE_CLICK from dry-run
         if dry_run.get("double_click_info"):
             self._emit_double_click_tag(
                 gap=dry_run["double_click_info"]["gap"],
                 details=dry_run["double_click_info"]["details"],
-                severity=dry_run["double_click_info"]["severity"]
+                severity=dry_run["double_click_info"].get("severity", "high")
             )
 
+        # Dry-run intelligent replan
         if dry_run.get("recommendation") == "ITERATE_DECOMP" or any(tag in task for tag in ["[DOUBLE_CLICK]", "[ESCALATE_TO_TOOL]"]):
+            logger.warning("Dry-run failed or failure tag detected — triggering intelligent replan")
+            
             failure_context = self._build_failure_context(
                 failure_type="dry_run_failed", 
                 task=task, 
@@ -1261,16 +1276,60 @@ After creating the contract, critique it internally for completeness and feasibi
             )
             replan_decision = self._intelligent_replan(failure_context)
             
+            logger.info(f"Replan decision: {replan_decision.get('decision')} | Reason: {replan_decision.get('reasoning', 'none')}")
+
             if replan_decision.get("decision") == "new_strategy_needed":
+                logger.info("→ Triggering full new strategy")
                 return self.orchestrate_subarbos(
                     task=f"{task} [NEW STRATEGY AFTER DRY-RUN FAILURE]",
                     goal_md=goal_md,
                     orchestrator_input=orchestrator_input
                 )
+            else:
+                if replan_decision.get("spec_fixes"):
+                    verifiability_contract.setdefault("fixes_applied", []).extend(replan_decision["spec_fixes"])
+                    logger.info(f"Applied {len(replan_decision['spec_fixes'])} spec fixes")
 
-        # 6. Swarm + Synthesis + Symbiosis + Validation (core flow)
+        # 6. Swarm Execution
         subtask_outputs = self._launch_hyphal_workers(task, strategy)
 
+        # === EARLY SWARM STALL DETECTION (SOTA safety net) ===
+        stall_analysis = self._analyze_swarm_stall(
+            subtask_outputs=subtask_outputs,
+            validation_result=None,   # not yet validated
+            dry_run=dry_run
+        )
+
+        if stall_analysis.get("is_severe_stall", False):
+            logger.warning(f"🚨 Early severe swarm stall detected in Orchestrator | Reason: {stall_analysis.get('reason')}")
+            
+            failure_context = self._build_failure_context(
+                failure_type="early_swarm_stall",
+                task=task,
+                goal_md=goal_md,
+                strategy=strategy,
+                dry_run=dry_run,
+                swarm_results=subtask_outputs
+            )
+            replan_decision = self._intelligent_replan(failure_context)
+            
+            logger.info(f"Replan decision: {replan_decision.get('decision')} | Reason: {replan_decision.get('reasoning', 'none')}")
+
+            if replan_decision.get("decision") == "new_strategy_needed":
+                logger.info("Early severe stall → triggering full replan")
+                new_task = f"{task} [EARLY SEVERE STALL RECOVERY]"
+                return self.orchestrate_subarbos(new_task, goal_md, orchestrator_input=orchestrator_input)
+            else:
+                logger.info("Early stall deemed fixable — continuing with targeted fixes")
+                if replan_decision.get("spec_fixes"):
+                    verifiability_contract.setdefault("fixes_applied", []).extend(replan_decision["spec_fixes"])
+
+        elif stall_analysis.get("recommendation") == "local_repair_or_diversity_boost":
+            logger.info(f"⚠️ Moderate early stall detected — applying local repair. Reason: {stall_analysis.get('reason')}")
+            self._apply_local_repair(subtask_outputs, strategy)
+            # Continue normally after local repair
+
+        # 7. Advanced Synthesis Arbos
         raw_merged = self._recompose(subtask_outputs, {})
         synthesis_result = self.synthesis_arbos(
             subtask_outputs=subtask_outputs,
@@ -1280,12 +1339,14 @@ After creating the contract, critique it internally for completeness and feasibi
 
         final_candidate = synthesis_result.get("final_candidate", raw_merged)
 
+        # 8. Symbiosis Arbos
         symbiosis_patterns = self._run_symbiosis_arbos(
             aggregated_outputs=subtask_outputs,
             message_bus=self.message_bus,
             synthesis_result=synthesis_result
         )
 
+        # 9. Final ValidationOracle
         validation_result = self.validator.run(
             candidate=final_candidate,
             verification_instructions="",
@@ -1294,7 +1355,80 @@ After creating the contract, critique it internally for completeness and feasibi
             subtask_outputs=subtask_outputs
         )
 
-        # ... (rest of scoring, stall detection, learning, _end_of_run stays as you had it — already cleaned in previous rounds)
+        score = validation_result.get("validation_score", 0.0)
+        efs = validation_result.get("efs", 0.0)
+
+        # Compute deterministic metrics
+        edge = self.validator._compute_edge_coverage(final_candidate, full_verifier_snippets)
+        invariant = self.validator._compute_invariant_tightness(final_candidate, full_verifier_snippets)
+        fidelity = self.validator._compute_fidelity(final_candidate, full_verifier_snippets)
+        hetero = self.validator._compute_heterogeneity_score(subtask_outputs) if subtask_outputs else 0.0
+
+        c = self.validator._compute_c3a_confidence(edge, invariant, getattr(self, 'historical_reliability', 0.85))
+        theta = self.validator._compute_theta_dynamic(c, self.loop_count / 10.0)
+
+        # Late swarm stall detection (after full validation)
+        stall_analysis = self._analyze_swarm_stall(subtask_outputs, validation_result, dry_run)
+        if stall_analysis.get("is_severe_stall", False):
+            logger.warning("Severe swarm stall detected despite passed dry-run")
+            failure_context = self._build_failure_context(
+                failure_type="swarm_stall_on_passed_spec",
+                task=task,
+                goal_md=goal_md,
+                strategy=strategy,
+                dry_run=dry_run,
+                swarm_results=subtask_outputs,
+                validation_result=validation_result
+            )
+            replan_decision = self._intelligent_replan(failure_context)
+            
+            logger.info(f"Replan decision: {replan_decision.get('decision')} | Reason: {replan_decision.get('reasoning', 'none')}")
+
+            if replan_decision.get("decision") == "new_strategy_needed":
+                logger.info("Severe stall → full replan")
+                new_task = f"{task} [STALL RECOVERY]"
+                return self.orchestrate_subarbos(new_task, goal_md, orchestrator_input=orchestrator_input)
+
+        # Success path & learning
+        if score > 0.70:
+            self.memory_layers.promote_high_signal(str(final_candidate), {
+                "local_score": score,
+                "fidelity": fidelity,
+                "heterogeneity_score": hetero
+            })
+
+        if score > 0.85:
+            self.evolve_principles_post_run(str(final_candidate), score, validation_result)
+
+        if score > 0.92 and getattr(self, "enable_grail", False):
+            self.consolidate_grail(str(final_candidate), score, validation_result)
+
+        # Stigmergic trace
+        self._write_stigmergic_trace({
+            "task": task,
+            "verifiability_contract": verifiability_contract,
+            "dry_run": dry_run,
+            "real": {
+                "edge": round(edge, 4),
+                "invariant": round(invariant, 4),
+                "fidelity": round(fidelity, 4),
+                "hetero": round(hetero, 4),
+                "c": round(c, 4),
+                "theta": round(theta, 4),
+                "EFS": round(efs, 4),
+                "score": round(score, 4)
+            },
+            "loop": self.loop_count,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        # Final embodiment & outer loop processing
+        self._end_of_run({
+            "final_score": score,
+            "efs": efs,
+            "best_solution": final_candidate,
+            "diagnostics": validation_result
+        })
 
         return {
             "merged_candidate": final_candidate,
@@ -1304,11 +1438,42 @@ After creating the contract, critique it internally for completeness and feasibi
             "human_refinement": human_refinement,
             "recommended_tools": strategy.get("recommended_tools", []),
             "metrics": {
-                "score": validation_result.get("validation_score", 0.0),
-                "efs": validation_result.get("efs", 0.0)
+                "score": score,
+                "efs": efs
             }
         }
                                  
+       def _apply_local_repair(self, subtask_outputs: List[Dict], strategy: Dict) -> None:
+        """SOTA Local Repair — intelligently helps struggling subtasks without full replan."""
+        logger.info("🔧 Applying local repair to moderate stall")
+
+        low_performers = [o for o in subtask_outputs 
+                         if isinstance(o, dict) and o.get("local_score", 0.0) < 0.55]
+
+        if not low_performers:
+            return
+
+        logger.info(f"Targeting {len(low_performers)} low-performing subtasks for repair")
+
+        for output in low_performers:
+            subtask_id = output.get("subtask_id") or output.get("subtask", "unknown")
+            
+            # 1. Increase repair attempts for this subtask
+            output["repair_attempts"] = output.get("repair_attempts", 0) + 1
+            
+            # 2. Boost diversity on next run for this subtask
+            if "hypothesis_diversity" not in strategy:
+                strategy["hypothesis_diversity"] = ["standard"]
+            strategy["hypothesis_diversity"].append("creative_variant")
+            
+            # 3. Optional: Switch to higher-creativity model for this subtask
+            if hasattr(self, "model_registry"):
+                strategy.setdefault("model_override", {})[subtask_id] = "Claude-Opus-4.6"  # or Kimi for exploration
+
+            logger.info(f"Local repair applied to subtask {subtask_id} — repair attempt {output.get('repair_attempts')}")
+        
+        # 4. Global mild diversity boost
+        strategy["diversity_boost"] = strategy.get("diversity_boost", 0) + 0.15                              
     def _orchestrator_self_dialogue(self, task: str, goal_md: str) -> Dict[str, Any]:
         """Explicit inner self-dialogue for Orchestrator Arbos.
         Forces the entire plan to be built around required artifacts and the verifiability spec."""
@@ -1772,33 +1937,36 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
         return self._swarm_evolutionary_tournament(outputs, [], contract)  # reuse the better version
         
     def execute_full_cycle(self, blueprint: Dict, challenge: str, verification_instructions: str = ""):
-        """v0.8 Full inner loop execution with advanced swarm, synthesis, symbiosis, 
-        intelligent replanning, and per-subtask contract support."""
+        """v0.8 Full inner loop execution with the exact flow you requested:
+        Swarm → Raw Recompose → Symbiosis Arbos (pattern discovery) → 
+        Synthesis Arbos (enriched debate + contract enforcement) → Final Validation."""
+
         dynamic_size = blueprint.get("dynamic_swarm_size", 
                                     blueprint.get("swarm_config", {}).get("total_instances", 6))
         
         # 1. Advanced Swarm Execution (with per-subtask contract slices)
         results = self._execute_swarm(blueprint, dynamic_size)
         
-        # 2. Raw recompose
+        # 2. Raw merge (simple fidelity-ordered merge)
         raw_merged = self._recompose(results, {}) if results else {"solution": str(results)}
 
-        # 3. Advanced Synthesis Arbos (intelligent recombination with debate + contract enforcement)
+        # 3. Symbiosis Arbos — runs on FULL raw swarm outputs (including partial ones)
+        symbiosis_patterns = self._run_symbiosis_arbos(
+            aggregated_outputs=results,
+            message_bus=self.message_bus,
+            synthesis_result=None  # not yet synthesized
+        )
+
+        # 4. Synthesis Arbos — receives symbiosis findings as enriched context
         synthesis_result = self.synthesis_arbos(
             subtask_outputs=list(results.values()) if isinstance(results, dict) else [],
             recomposition_plan=blueprint.get("recomposition_plan", {}),
             verifiability_contract=blueprint.get("verifiability_contract", blueprint.get("verifiability_spec", {})),
-            failure_context=None
+            failure_context=None,
+            symbiosis_patterns=symbiosis_patterns   # ← enriched input
         )
 
         final_candidate = synthesis_result.get("final_candidate", raw_merged)
-
-        # 4. Symbiosis Arbos (emergent pattern detection)
-        symbiosis_patterns = self._run_symbiosis_arbos(
-            aggregated_outputs=results,
-            message_bus=self.message_bus,
-            synthesis_result=synthesis_result
-        )
 
         # 5. Final ValidationOracle (source of truth)
         validation_result = self.validator.run(
@@ -1825,7 +1993,7 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
 
         self.memory_layers.compress_low_value(current_score=score)
 
-        # 6. Intelligent stall detection & replan
+        # SOTA Swarm Stall Detection & Intelligent Replan
         dry_run_result = blueprint.get("dry_run_result", {})
         stall_analysis = self._analyze_swarm_stall(
             list(results.values()) if isinstance(results, dict) else [],
@@ -1847,38 +2015,26 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
             )
 
             replan_decision = self._intelligent_replan(failure_context)
+            
+            logger.info(f"Replan decision: {replan_decision.get('decision')} | Reason: {replan_decision.get('reasoning', 'none')}")
 
             if replan_decision.get("decision") == "new_strategy_needed":
                 logger.info("Stall reflection decided NEW STRATEGY needed — triggering full replan")
                 new_task = f"{challenge} [STALL RECOVERY - previous spec failed in practice]"
                 return self.orchestrate_subarbos(new_task, self.extra_context)
-            else:
-                logger.info("Stall reflection decided fixable — applying targeted fixes")
-                if replan_decision.get("spec_fixes") and self._current_strategy:
-                    if "verifiability_contract" in self._current_strategy:
-                        self._current_strategy["verifiability_contract"]["fixes_applied"] = replan_decision["spec_fixes"]
 
-        # v0.8 Additions (only added, nothing removed):
-
-        # Experiment summary capture for Scientist Mode / Meta-Tuning
-        if hasattr(self, '_current_scientist_summary') or "scientist_summary" in blueprint:
-            run_data_for_end = {
-                "final_score": score,
-                "efs": efs,
-                "best_solution": final_candidate,
-                "diagnostics": validation_result,
-                "scientist_summary": blueprint.get("scientist_summary") or getattr(self, '_current_scientist_summary', {})
-            }
-        else:
-            run_data_for_end = {
-                "final_score": score,
-                "efs": efs,
-                "best_solution": final_candidate,
-                "diagnostics": validation_result
-            }
+        # v0.8: Experiment summary capture for Scientist Mode / Meta-Tuning
+        run_data_for_end = {
+            "final_score": score,
+            "efs": efs,
+            "best_solution": final_candidate,
+            "diagnostics": validation_result,
+            "symbiosis_patterns": symbiosis_patterns,
+            "scientist_summary": blueprint.get("scientist_summary") or getattr(self, '_current_scientist_summary', {})
+        }
 
         # Success path
-        if score > 0.92 and self.enable_grail:
+        if score > 0.92 and getattr(self, "enable_grail", False):
             self.consolidate_grail(str(final_candidate), score, validation_result)
 
         if score > 0.85:
@@ -3095,7 +3251,9 @@ Do not include explanations or extra text."""
                              message_bus: List = None, 
                              synthesis_result: Dict = None) -> List[Dict]:
         """Top-tier Symbiosis Arbos — discovers emergent cross-field mutualisms, 
-        patterns, and high-signal insights for grail feeding and meta-learning."""
+        patterns, and high-signal insights for grail feeding and meta-learning.
+        
+        Runs between raw swarm outputs and final synthesis to find hidden connections."""
         
         if not aggregated_outputs or len(aggregated_outputs) < 2:
             logger.debug("Symbiosis Arbos skipped — fewer than 2 outputs")
@@ -3103,6 +3261,14 @@ Do not include explanations or extra text."""
 
         if message_bus is None:
             message_bus = []
+
+        # Filter to viable outputs only (prevents noise from very weak subtasks)
+        viable_outputs = [o for o in aggregated_outputs 
+                         if isinstance(o, dict) and o.get("local_score", 0.0) > 0.35]
+
+        if len(viable_outputs) < 2:
+            logger.debug("Symbiosis Arbos skipped — insufficient viable outputs after filtering")
+            return []
 
         # Safe contract access
         contract_context = ""
@@ -3116,14 +3282,14 @@ Do not include explanations or extra text."""
             "role": o.get("role", "unknown"),
             "solution_snippet": str(o.get("solution", ""))[:550],
             "score": round(o.get("local_score", 0.5), 3)
-        } for o in aggregated_outputs]
+        } for o in viable_outputs]
 
         symbiosis_prompt = f"""You are Symbiosis Arbos — specialist in detecting emergent mutualisms and cross-field patterns.
 
-SYNTHESIS RESULT:
+SYNTHESIS RESULT (if available):
 {json.dumps(synthesis_result or {}, indent=2)[:900]}
 
-SUBTASK OUTPUTS:
+SUBTASK OUTPUTS (viable only):
 {json.dumps(subtask_summary, indent=2)}
 
 RECENT MESSAGE BUS SIGNALS:
@@ -3165,8 +3331,10 @@ Return ONLY a valid JSON array (max 6 patterns). Each pattern must follow this e
             # Filter to high-value patterns only
             high_value_patterns = [
                 p for p in patterns 
-                if isinstance(p, dict) and p.get("insight_strength", 0) > 0.62 
-                or p.get("grail_worthiness") == "high"
+                if isinstance(p, dict) and (
+                    p.get("insight_strength", 0) > 0.62 or 
+                    p.get("grail_worthiness") == "high"
+                )
             ]
 
             if high_value_patterns:
