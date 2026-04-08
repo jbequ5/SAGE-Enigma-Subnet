@@ -488,7 +488,7 @@ After creating the contract, critique it internally for completeness and feasibi
         }
                                    
     def _detect_gaps_from_previous_outputs(self, previous_outputs: List) -> List[str]:
-        """Lightweight gap detection for proactive ToolHunter."""
+        """v0.8 Lightweight gap detection for proactive ToolHunter."""
         gaps = []
         if not previous_outputs:
             return gaps
@@ -497,39 +497,36 @@ After creating the contract, critique it internally for completeness and feasibi
                 gaps.append("low_score_subtask")
             if "invariant" in str(out.get("solution", "")).lower():
                 gaps.append("invariant_tightness_gap")
-        return list(dict.fromkeys(gaps))  # deduplicate
+        return list(dict.fromkeys(gaps))
         
     def _intelligent_replan(self, failure_context: Dict) -> Dict:
-        """Structured, contract-respecting reflection that decides fix vs new strategy."""
+        """v0.8 Structured replan with DOUBLE_CLICK and ESCALATE tag awareness."""
         prompt = f"""You are Replanning Arbos for SN63 Enigma Miner.
 
-FAILURE CONTEXT (full packet):
+FAILURE CONTEXT:
 {json.dumps(failure_context, indent=2)}
 
-VERIFIABILITY CONTRACT (must respect as invariant unless explicitly justified):
+VERIFIABILITY CONTRACT (must respect):
 {json.dumps(failure_context.get("original_verifiability_contract", {}), indent=2)}
 
-Your job:
-- Diagnose why the current plan failed
-- Decide whether to fix the current plan or trigger a new strategy
-- Respect the verifiability contract unless you have strong justification to change it
+Look for DOUBLE_CLICK or ESCALATE_TO_TOOL tags in the task description.
+If present, prioritize targeted contract evolution or tool creation.
 
 Return ONLY valid JSON:
 {{
   "reflection_summary": "short diagnosis",
   "decision": "fix_current_plan" | "new_strategy_needed",
   "rationale": "detailed reasoning",
-  "spec_fixes": [list of specific changes to the contract] | null,
-  "new_strategy_directives": "guidance for next self-dialogue if new strategy" | null,
+  "spec_fixes": [list of specific changes] | null,
+  "new_strategy_directives": "guidance if new strategy" | null,
   "confidence_in_decision": 0.0-1.0,
-  "recommended_next_action": "refine_decomp" | "escalate_meta_tuner" | "full_replan"
+  "recommended_next_action": "refine_decomp" | "escalate_meta_tuner" | "full_replan" | "run_double_click_experiment"
 }}"""
 
         model_config = self.load_model_registry(role="planner")
         raw = self.harness.call_llm(prompt, temperature=0.25, max_tokens=900, model_config=model_config)
         decision = self._safe_parse_json(raw)
 
-        # Save reflection for stigmergic learning
         self.save_to_memdir(f"replan_reflection_{int(time.time())}", decision)
 
         logger.info(f"Intelligent replan decision: {decision.get('decision')} | confidence {decision.get('confidence_in_decision', 0.0):.2f}")
