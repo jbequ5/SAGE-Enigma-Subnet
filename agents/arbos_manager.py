@@ -324,24 +324,64 @@ class DVRDryRunSimulator:
             logger.warning(f"Failed to apply contract delta: {e}")
 
     def _simple_merge(self, placeholders: List[Any]) -> Any:
-        """Improved simple merge that respects scores and structure."""
-        if not placeholders:
-            return {}
+        """Improved simple merge that respects scores, structure, and contract context.
+        Used primarily in dry-run for mock solution merging."""
         
-        merged = {}
-        # Sort by score descending if available
+        if not placeholders:
+            return {"solution": "", "merged_from": 0, "success": False}
+
+        # Sort by score descending (highest fidelity first)
         sorted_placeholders = sorted(
             placeholders, 
-            key=lambda x: x.get("score", 0) if isinstance(x, dict) else 0, 
+            key=lambda x: x.get("score", 0.0) if isinstance(x, dict) else 0.0, 
             reverse=True
         )
-        
+
+        merged = {
+            "solution": "",
+            "merged_from": len(sorted_placeholders),
+            "sources": [],
+            "success": True
+        }
+
         for p in sorted_placeholders:
-            if isinstance(p, dict):
-                merged.update(p)
-            else:
-                merged[str(p)] = p  # fallback for non-dict
+            if not p:
+                continue
                 
+            if isinstance(p, dict):
+                # Merge structured data
+                for key, value in p.items():
+                    if key == "solution" or key == "merged_solution":
+                        if merged["solution"]:
+                            merged["solution"] += "\n\n"
+                        merged["solution"] += str(value)
+                    else:
+                        # Avoid overwriting important keys
+                        if key not in ["score", "type", "adversarial"]:
+                            merged[key] = value
+                
+                merged["sources"].append(p.get("subtask", "unknown"))
+                
+            elif isinstance(p, str):
+                # Plain text solution
+                if merged["solution"]:
+                    merged["solution"] += "\n\n"
+                merged["solution"] += p.strip()
+                merged["sources"].append("text_fallback")
+            else:
+                # Other types
+                if merged["solution"]:
+                    merged["solution"] += "\n\n"
+                merged["solution"] += str(p)
+
+        # Final cleanup
+        merged["solution"] = merged["solution"].strip()
+        merged["source_count"] = len(merged["sources"])
+
+        if not merged["solution"]:
+            merged["success"] = False
+            merged["solution"] = "[Merge produced empty result]"
+
         return merged
         
 class ToolEnvManager:
@@ -1389,21 +1429,68 @@ Return ONLY valid JSON with these keys:
         }
         
     def _run_orchestrator_debate(self, task: str, contract: Dict, rich_context: Dict) -> Dict:
-        """Simple 2-round critique-first debate for Orchestrator Phase 2."""
-        debate_prompt = f"""You are Orchestrator Arbos running a 2-round critique-first debate.
+        """v0.8 2-Round Critique-First Debate for Orchestrator Phase 2.
+        Forces structured output and includes safety guards."""
+        
+        if not contract:
+            contract = {}
+        if not rich_context:
+            rich_context = {}
 
-Task: {task}
-Contract: {json.dumps(contract, indent=2)[:800]}
-Context: {json.dumps(rich_context, indent=2)[:600]}
+        debate_prompt = f"""You are Orchestrator Arbos running a strict 2-round critique-first debate.
 
-Round 1: Critique weaknesses in decomposition, composability, and verifier coverage.
-Round 2: Propose refinements and converge on improved contract slices.
+TASK: {task}
 
-Return ONLY JSON with "refined_contract" and "debate_summary"."""
+VERIFIABILITY CONTRACT:
+{json.dumps(contract, indent=2)[:900]}
 
-        model_config = self.load_model_registry(role="planner")
-        raw = self.harness.call_llm(debate_prompt, temperature=0.35, max_tokens=1400, model_config=model_config)
-        return self._safe_parse_json(raw)
+RICH CONTEXT:
+{json.dumps(rich_context, indent=2)[:700]}
+
+INSTRUCTIONS:
+Round 1: Harshly critique weaknesses in decomposition, composability rules, verifier coverage, and missing artifacts.
+Round 2: Propose concrete refinements and converge on an improved contract with better slices.
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "refined_contract": {{ ... improved version of the contract ... }},
+  "debate_summary": "brief summary of critiques and decisions",
+  "key_improvements": ["list of specific changes made"],
+  "confidence": 0.0-1.0
+}}"""
+
+        try:
+            model_config = self.load_model_registry(role="planner")
+            raw = self.harness.call_llm(
+                debate_prompt, 
+                temperature=0.38, 
+                max_tokens=1600, 
+                model_config=model_config
+            )
+            
+            result = self._safe_parse_json(raw)
+
+            # Safety fallback
+            if not isinstance(result, dict) or "refined_contract" not in result:
+                logger.warning("Orchestrator debate returned invalid JSON — using original contract")
+                return {
+                    "refined_contract": contract,
+                    "debate_summary": "Debate failed — using original contract",
+                    "key_improvements": [],
+                    "confidence": 0.45
+                }
+
+            logger.info(f"Orchestrator 2-round debate completed | Confidence: {result.get('confidence', 0.0):.2f}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Orchestrator debate failed: {e}")
+            return {
+                "refined_contract": contract,
+                "debate_summary": f"Debate crashed: {str(e)[:200]}",
+                "key_improvements": [],
+                "confidence": 0.3
+            }
         
     def _execute_swarm(self, blueprint: Dict, dynamic_size: int):
         """Updated swarm executor — now routes through the advanced _launch_hyphal_workers."""
@@ -2201,13 +2288,17 @@ Return ONLY valid JSON with the same structure as the input plan, plus:
 
     def _generate_new_avenue_plan(self, challenge: str, recent_feedback: str, diagnostics: Dict = None) -> str:
         """Generates a radically different new strategy when the current path is stalled."""
-        prompt = f"""You are Deep Replan Arbos for SN63 Quantum Innovate.
+        if diagnostics is None:
+            diagnostics = {}
+
+        prompt = f"""You are Deep Replan Arbos for SN63.
 
 Current challenge: {challenge}
 Recent feedback: {recent_feedback[:1500]}
-Diagnostics: {json.dumps(diagnostics or {}, indent=2)[:800]}
+Diagnostics: {json.dumps(diagnostics, indent=2)[:800]}
 
-The current strategy has stalled. Generate a completely new, high-heterogeneity avenue that respects the verifiability contract but approaches the problem from a fresh angle (different decomposition, new tools, new symbolic framing, etc.).
+The current strategy has stalled. Generate a completely new, high-heterogeneity avenue 
+that respects the verifiability contract but approaches the problem from a fresh angle.
 
 Return ONLY valid JSON:
 {{
@@ -2220,7 +2311,7 @@ Return ONLY valid JSON:
 }}"""
 
         model_config = self.load_model_registry(role="planner")
-        response = self.harness.call_llm(prompt, temperature=0.7, max_tokens=1400, model_config=model_config)
+        response = self.harness.call_llm(prompt, temperature=0.72, max_tokens=1400, model_config=model_config)
         new_plan = self._safe_parse_json(response)
 
         self._pending_new_avenue_plan = json.dumps(new_plan, indent=2)
@@ -2230,26 +2321,35 @@ Return ONLY valid JSON:
         return json.dumps(new_plan, indent=2)
 
     def _init_memdir(self):
-        self.memdir_path = "memdir/grail"
-        os.makedirs(self.memdir_path, exist_ok=True)
-        os.makedirs(os.path.join(self.memdir_path, "snapshots"), exist_ok=True)
-        os.makedirs(os.path.join(self.memdir_path, "compression"), exist_ok=True)
+        """Initialize memdir/grail structure."""
+        self.memdir_path = Path("memdir/grail")
+        self.memdir_path.mkdir(parents=True, exist_ok=True)
+        (self.memdir_path / "snapshots").mkdir(exist_ok=True)
+        (self.memdir_path / "compression").mkdir(exist_ok=True)
         logger.info(f"✅ Memdir/Grail initialized at {self.memdir_path}")
 
-    def save_to_memdir(self, key: str, data: dict):
-        path = f"{self.memdir_path}/{key}.json"
-        with open(path, "w") as f:
-            json.dump(data, f, indent=2)
+    def save_to_memdir(self, key: str, data: Any):
+        """Save any serializable data to memdir."""
+        try:
+            path = self.memdir_path / f"{key}.json"
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, default=str)
+        except Exception as e:
+            logger.warning(f"Failed to save to memdir {key}: {e}")
 
     def load_from_memdir(self, key: str) -> dict:
-        path = f"{self.memdir_path}/{key}.json"
-        if os.path.exists(path):
-            with open(path, "r") as f:
-                return json.load(f)
+        """Load data from memdir."""
+        try:
+            path = self.memdir_path / f"{key}.json"
+            if path.exists():
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.debug(f"Failed to load from memdir {key}: {e}")
         return {}
-
     def post_message(self, sender: str, content: str, msg_type: str = "general", 
                      importance: float = 0.5, validation_score: float = None, fidelity: float = None):
+        """Post a message to the stigmergic message bus."""
         message = {
             "sender": sender,
             "content": content,
@@ -2260,15 +2360,20 @@ Return ONLY valid JSON:
             "timestamp": datetime.now().isoformat(),
             "loop": self.loop_count
         }
+        
+        # Deduplicate same type in current loop
         self.message_bus = [m for m in self.message_bus 
                            if not (m.get("type") == msg_type and m.get("loop") == self.loop_count)]
         self.message_bus.append(message)
+
         if importance > 0.6 or (validation_score and validation_score > 0.85):
             self.save_to_memdir(f"message_{msg_type}_{int(time.time())}", message)
-        logger.debug(f"Message posted by {sender} | type={msg_type} | score={validation_score:.2f} | fidelity={fidelity:.2f}")
+
+        logger.debug(f"Message posted by {sender} | type={msg_type} | score={validation_score or 0:.2f}")
 
     def get_recent_messages(self, min_importance: float = 0.4, limit: int = 12, msg_type: str = None) -> list:
-        recent = [m for m in self.message_bus if m["importance"] >= min_importance]
+        """Get recent high-importance messages."""
+        recent = [m for m in self.message_bus if m.get("importance", 0) >= min_importance]
         if msg_type:
             recent = [m for m in recent if m.get("type") == msg_type]
         recent.sort(key=lambda m: (m.get("validation_score", 0), m.get("fidelity", 0)), reverse=True)
@@ -2280,14 +2385,8 @@ Return ONLY valid JSON:
             with open(self.history_file, "w") as f:
                 json.dump([], f, indent=2)
 
-    def _setup_real_arbos(self):
-        if not os.path.exists(self.arbos_path):
-            try:
-                subprocess.run(["git", "clone", "https://github.com/unarbos/arbos.git", self.arbos_path], check=True)
-            except:
-                logger.warning("Arbos repo already present or clone skipped")
-
     def _load_config(self):
+        """Load configuration from goal file with safe defaults."""
         config = {
             "miner_review_after_loop": False,
             "max_loops": 5,
@@ -2300,11 +2399,11 @@ Return ONLY valid JSON:
             "compute_source": "local_gpu"
         }
         try:
-            with open(self.goal_file, "r") as f:
+            with open(self.goal_file, "r", encoding="utf-8") as f:
                 for line in f:
                     if ":" not in line:
                         continue
-                    key = line.split(":")[0].strip().lower()
+                    key = line.split(":", 1)[0].strip().lower()
                     value = line.split(":", 1)[1].strip()
                     if key in config:
                         if isinstance(config[key], bool):
@@ -2316,36 +2415,50 @@ Return ONLY valid JSON:
                         else:
                             config[key] = value
         except Exception as e:
-            logger.warning(f"Config loading issue: {e}")
+            logger.warning(f"Config loading issue from {self.goal_file}: {e}")
         return config
 
     def _load_extra_context(self) -> str:
+        """Load full goal/context file."""
         try:
-            with open(self.goal_file, "r") as f:
+            with open(self.goal_file, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception:
+            logger.warning(f"Could not read extra context from {self.goal_file}")
             return ""
 
     def update_toggles(self, toggles: dict):
-        self.enable_grail = toggles.get("Grail on winning runs", False)
+        """Update toggles from UI or external input."""
+        if not toggles:
+            return
+            
+        self.enable_grail = toggles.get("Grail on winning runs", self.enable_grail)
+        
+        # Update main config
         self.config["toolhunter_escalation"] = toggles.get("ToolHunter + ReadyAI", True)
         self.config["resource_aware"] = toggles.get("Light Compression", True)
-        # v0.6: extend with new toggles (backward compatible)
+
+        # Update internal toggles dict
         for k, v in toggles.items():
             if k in self.toggles:
                 self.toggles[k] = bool(v)
-        logger.info(f"Toggles updated: Grail={self.enable_grail}, v0.6={self.toggles}")
 
-
+        logger.info(f"Toggles updated — Grail: {self.enable_grail}, Total toggles: {len(self.toggles)}")
+        
     def set_compute_source(self, source: str, custom_endpoint: str = None):
+        """Set compute backend safely."""
         self.compute_source = source
         self.custom_endpoint = custom_endpoint
+        
         if source in ["local_gpu", "local"]:
             self.compute.set_mode("local_gpu")
         else:
             self.compute.set_mode(source)
+        
+        logger.info(f"Compute source set to: {source}")
 
     def _safe_parse_json(self, raw: Any) -> Dict:
+        """Safe JSON parsing with multiple fallback strategies."""
         if isinstance(raw, dict):
             return raw
         if not isinstance(raw, str):
@@ -2361,33 +2474,31 @@ Return ONLY valid JSON:
 
     def _default_compression_prompt(self) -> str:
         return """## COMPRESSION_PROMPT v1.0 (Intelligence Delta Summarizer)
-You are the Intelligence Compressor for Enigma-Machine-Miner (SN63). Your sole job is to distill the highest-signal intelligence deltas from the provided raw context so that the next re_adapt loop evolves the solver faster per compute unit.
+You are the Intelligence Compressor for Enigma-Machine-Miner (SN63). 
+Distill the highest-signal intelligence deltas so the next re_adapt loop evolves faster.
 
-INPUT CONTEXT (raw trajectories, recent_messages, memdir/grail artifacts, diagnostic_card):
+INPUT CONTEXT:
 {RAW_CONTEXT_HERE}
 
-COMPRESSION RULES (never violate):
-1. Only keep patterns that moved ValidationOracle score upward.
-2. Weight every insight by reinforcement_score = validation_score × fidelity^1.5 × symbolic_coverage.
-3. Extract explicit deltas: "Pattern X increased score by +0.18 because Y".
-4. Include meta-lessons: "On high-difficulty symbolic challenges, force Z before LLM".
-5. Identify policy updates for memory_policy_weights and killer_base.md.
-6. Flag failure modes to add to known_failure_modes.
-7. End with a single "Next-Loop Recommendation" that Adaptation Arbos can act on immediately.
+COMPRESSION RULES:
+1. Only keep patterns that improved ValidationOracle score.
+2. Weight insights by reinforcement_score = validation_score × fidelity^1.5 × symbolic_coverage.
+3. Extract explicit deltas with impact.
+4. Include meta-lessons and policy updates.
+5. End with one clear Next-Loop Recommendation.
 
-OUTPUT EXACT SCHEMA (JSON only, no extra text):
+Return ONLY valid JSON with exact schema:
 {
-  "deltas": ["list of 3-6 highest-reinforcement deltas with exact score/fidelity impact"],
-  "meta_lessons": ["2-3 generalizable rules for future challenges"],
-  "policy_updates": ["specific prompt / routing / tool changes to append to killer_base.md or memory_policy_weights"],
+  "deltas": ["list of high-signal deltas"],
+  "meta_lessons": ["2-3 generalizable rules"],
+  "policy_updates": ["prompt/routing/tool changes"],
   "failure_modes": ["new failure modes to avoid"],
-  "next_loop_recommendation": "one concrete action for re_adapt",
+  "next_loop_recommendation": "one concrete action",
   "compression_score": 0.0-1.0
-}
-
-Return ONLY the JSON. No explanations."""
+}"""
 
     def load_compression_prompt(self) -> str:
+        """Load latest compression prompt from goal file or memdir."""
         try:
             with open(self.goal_file, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -2397,9 +2508,10 @@ Return ONLY the JSON. No explanations."""
                 if end == -1:
                     end = len(content)
                 return content[start:end].strip()
-        except Exception as e:
-            logger.warning(f"Failed to load compression prompt from killer_base.md: {e}")
+        except Exception:
+            pass
 
+        # Fallback to latest saved version
         versions = list(Path(self.memdir_path).glob("compression_prompt_v*.json"))
         if versions:
             versions.sort(key=lambda p: float(p.stem.split("_v")[-1]), reverse=True)
@@ -2412,6 +2524,7 @@ Return ONLY the JSON. No explanations."""
         return self._default_compression_prompt()
 
     def compress_intelligence_delta(self, raw_context: str) -> str:
+        """Compress raw context into high-signal deltas."""
         prompt_template = self.load_compression_prompt()
         safe_context = raw_context[:12000] if len(raw_context) > 12000 else raw_context
         full_prompt = prompt_template.replace("{RAW_CONTEXT_HERE}", safe_context)
@@ -2464,6 +2577,7 @@ Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{vers
                 logger.error(f"Compression prompt evolution failed: {e}")
 
     def run_diagnostics(self, solution: str, challenge: str, verification_instructions: str) -> Dict:
+        """Run full diagnostics using real ValidationOracle."""
         diagnostics = {
             "timestamp": datetime.now().isoformat(),
             "loop": self.loop_count,
@@ -2471,7 +2585,7 @@ Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{vers
             "detectors": {}
         }
 
-        # Use real oracle validation instead of legacy symbolic_module
+        # Real oracle validation
         validation = self.validator.run(
             candidate=solution,
             verification_instructions=verification_instructions,
@@ -2495,6 +2609,7 @@ Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{vers
             "details": "No obvious parsing errors detected"
         }
 
+        # Keep history bounded
         self.diagnostic_history.append(diagnostics)
         if len(self.diagnostic_history) > 20:
             self.diagnostic_history.pop(0)
@@ -2503,6 +2618,30 @@ Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{vers
                           diagnostics["overall_score"], 0.85)
 
         return diagnostics
+
+    def generate_fix_recommendations(self, diagnostics: Dict, solution: str) -> List[Dict]:
+        """Generate prioritized fix recommendations based on diagnostics."""
+        fixes = []
+        detectors = diagnostics.get("detectors", {})
+
+        if not detectors.get("symbolic_invariant", {}).get("passed", False):
+            fixes.append({
+                "type": "verifier",
+                "priority": 1.0,
+                "description": "Add stronger symbolic invariant check",
+                "action": "Insert new verifier_code_snippet into strategy"
+            })
+
+        if not detectors.get("prompt_coherence", {}).get("passed", False):
+            fixes.append({
+                "type": "prompt",
+                "priority": 0.9,
+                "description": "Strengthen prompt with explicit feasibility and determinism constraints",
+                "action": "Add to enhancement_prompt or GOAL.md"
+            })
+
+        fixes.sort(key=lambda x: x["priority"], reverse=True)
+        return fixes[:5]
         
     def _verifier_self_check_layer(self, candidate: str, contract: Dict, verifier_snippets: List[str]) -> Dict:
         """v0.8 Verifier Self-Check Layer — 5-dimensional quality score applied before any use."""
@@ -2535,11 +2674,13 @@ Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{vers
         }
     def memory_reinforcement_signal(self, pattern: Dict, score: float, fidelity: float, 
                                     symbolic_coverage: float = 0.8, heterogeneity_score: float = 0.0) -> float:
+        """Calculate reinforcement signal for ByteRover / MAU promotion."""
         base = score * (fidelity ** 1.5) * symbolic_coverage
         hetero_bonus = 0.3 * heterogeneity_score * (score ** 1.2) * (fidelity ** 1.5)
         return base + hetero_bonus
 
     def grail_extract_and_score(self, solution: str, validation_score: float, fidelity: float, diagnostics: Dict = None):
+        """Extract and reinforce a high-signal pattern into the Grail."""
         pattern_key = f"grail_pattern_{int(time.time())}"
         hetero = self._compute_heterogeneity_score()
 
@@ -2548,22 +2689,33 @@ Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{vers
             "validation_score": validation_score,
             "fidelity": fidelity,
             "symbolic_coverage": 0.9 if diagnostics and diagnostics.get("detectors", {}).get("symbolic_invariant", {}).get("passed", False) else 0.6,
-            "heterogeneity_score": hetero["heterogeneity_score"],
-            "heterogeneity_breakdown": hetero["breakdown"],
-            "diagnostics_summary": diagnostics.get("detectors", {}) if diagnostics else {},
+            "heterogeneity_score": hetero.get("heterogeneity_score", 0.72) if isinstance(hetero, dict) else 0.72,
             "timestamp": datetime.now().isoformat()
         }
 
-        reinforcement = self.memory_reinforcement_signal(pattern, validation_score, fidelity, pattern["symbolic_coverage"], pattern["heterogeneity_score"])
-        self.grail_reinforcement[pattern_key] = reinforcement
+        reinforcement = self.memory_reinforcement_signal(
+            pattern, validation_score, fidelity, 
+            pattern["symbolic_coverage"], pattern["heterogeneity_score"]
+        )
 
+        self.grail_reinforcement[pattern_key] = reinforcement
         self.save_to_memdir(pattern_key, pattern)
         self.sync_grail_to_memory_layers()
-        self.post_message("grail_extraction", f"Extracted & reinforced pattern {pattern_key} (signal: {reinforcement:.3f})", validation_score, fidelity)
+
+        self.post_message(
+            sender="Grail",
+            content=f"Extracted & reinforced pattern {pattern_key} (signal: {reinforcement:.3f})",
+            msg_type="grail",
+            importance=0.88,
+            validation_score=validation_score,
+            fidelity=fidelity
+        )
+
         logger.info(f"✅ Grail reinforced — pattern {pattern_key} | signal {reinforcement:.3f}")
         return pattern_key
 
     def sync_grail_to_memory_layers(self):
+        """Sync high-value grail patterns to long-term memory layers."""
         try:
             for f in Path(self.memdir_path).glob("*.json"):
                 if "grail_pattern" in f.name or "compression" in f.name:
@@ -2579,135 +2731,121 @@ Return ONLY the new full prompt block starting with ## COMPRESSION_PROMPT v{vers
                             }
                         )
         except Exception as e:
-            logger.debug(f"Grail sync skipped: {e}")
+            logger.debug(f"Grail sync skipped (safe): {e}")
 
     def consolidate_grail(self, best_solution: str, best_score: float, diagnostics: Dict = None):
-        if best_score > 0.92 and self.enable_grail:
+        """Consolidate winning solution into Grail on very high scores."""
+        if best_score > 0.92 and getattr(self, "enable_grail", False):
             key = self.grail_extract_and_score(best_solution, best_score, 0.95, diagnostics)
             logger.info(f"✅ Grail consolidated on winning run (score {best_score:.3f}) — pattern {key}")
 
-    def generate_fix_recommendations(self, diagnostics: Dict, solution: str) -> List[Dict]:
-        fixes = []
-        detectors = diagnostics.get("detectors", {})
-
-        if not detectors.get("symbolic_invariant", {}).get("passed", False):
-            fixes.append({
-                "type": "verifier",
-                "priority": 1.0,
-                "description": "Add stronger symbolic invariant check",
-                "action": "Insert new verifier_code_snippet into strategy"
-            })
-
-        if not detectors.get("prompt_coherence", {}).get("passed", False):
-            fixes.append({
-                "type": "prompt",
-                "priority": 0.9,
-                "description": "Strengthen prompt with explicit feasibility and determinism constraints",
-                "action": "Add to enhancement_prompt or GOAL.md Core Strategy"
-            })
-
-        if not detectors.get("parsing_schema", {}).get("passed", False):
-            fixes.append({
-                "type": "parsing",
-                "priority": 0.85,
-                "description": "Add explicit output schema validation",
-                "action": "Insert schema guard in _run_swarm"
-            })
-
-        fixes.sort(key=lambda x: x["priority"], reverse=True)
-        return fixes[:5]
 
     def apply_fix(self, fix: Dict, current_solution: str, challenge: str, verification_instructions: str) -> Tuple[bool, str, float]:
-        logger.info(f"Applying fix: {fix['description']}")
+        """Apply a recommended fix and evaluate improvement."""
+        if not fix or not isinstance(fix, dict):
+            return False, current_solution, 0.0
 
-        improved_solution = current_solution + f"\n[Applied fix: {fix['action']}]"
+        logger.info(f"Applying fix: {fix.get('description', 'unknown')}")
+
+        improved_solution = current_solution + f"\n\n[Applied Fix: {fix.get('action', 'unspecified')}]"
+
         new_diagnostics = self.run_diagnostics(improved_solution, challenge, verification_instructions)
-        new_score = new_diagnostics["overall_score"] + 0.05
+        new_score = new_diagnostics.get("overall_score", 0.0)
 
-        success = new_score > getattr(self.validator, "last_score", 0.0)
+        success = new_score > getattr(self.validator, "last_score", 0.0) + 0.02
+
+        if success:
+            logger.info(f"✅ Fix applied successfully — score improved to {new_score:.3f}")
+        else:
+            logger.info(f"Fix applied but no significant improvement (score: {new_score:.3f})")
+
         return success, improved_solution, new_score
 
     def meta_reflect(self, best_solution: str, best_score: float, diagnostics: Dict):
-        reflection_prompt = f"""You are Meta-Arbos for SN63. Analyze this run:
+        """Meta-level reflection on a high-signal run."""
+        if best_score < 0.75:
+            return []
+
+        reflection_prompt = f"""You are Meta-Arbos for SN63 Enigma Miner. Analyze this high-signal run:
 
 Best score: {best_score:.3f}
-Diagnostics: {json.dumps(diagnostics.get("detectors", {}), indent=2)[:600]}
-Solution snippet: {best_solution[:600]}
+Diagnostics: {json.dumps(diagnostics.get("detectors", {}), indent=2)[:700]}
+Solution snippet: {best_solution[:700]}
 
-Suggest 2-3 concrete architecture-level improvements."""
+Suggest 2-4 concrete, actionable architecture-level or strategy improvements."""
 
-        response = self.harness.call_llm(reflection_prompt, temperature=0.4, max_tokens=800)
         try:
+            model_config = self.load_model_registry(role="planner")
+            response = self.harness.call_llm(reflection_prompt, temperature=0.4, max_tokens=900, model_config=model_config)
             parsed = self._safe_parse_json(response)
-            improvements = parsed.get("improvements", [])
+            improvements = parsed.get("improvements", []) if isinstance(parsed, dict) else []
+
             for imp in improvements:
-                self.save_to_memdir(f"meta_improvement_{int(time.time())}", imp)
-                self.meta_reflection_history.append(imp)
+                if isinstance(imp, str):
+                    self.save_to_memdir(f"meta_improvement_{int(time.time())}", {"improvement": imp})
+                    self.meta_reflection_history.append(imp)
+
             logger.info(f"✅ Meta-reflection completed — {len(improvements)} improvements proposed")
             return improvements
-        except:
+        except Exception as e:
+            logger.warning(f"Meta-reflection failed: {e}")
             return []
 
     def update_memory_policy(self, pattern_key: str, outcome_score: float):
+        """Update memory policy weights based on outcome."""
         current_weight = self.memory_policy_weights.get(pattern_key, 1.0)
-        self.memory_policy_weights[pattern_key] = current_weight * (1.0 + 0.2 * outcome_score)
+        self.memory_policy_weights[pattern_key] = current_weight * (1.0 + 0.22 * outcome_score)
         logger.debug(f"Memory policy updated for {pattern_key}: {self.memory_policy_weights[pattern_key]:.3f}")
 
-        # v0.8 Tool & Scientist Mode Infrastructure
-        self.tool_env_manager = ToolEnvManager()
-        self.scientist_log = []
-        self.scientist_log_path = Path("scientist_log.json")
-        self.scientist_log_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        if self.scientist_log_path.exists():
-            try:
-                with open(self.scientist_log_path) as f:
-                    self.scientist_log = json.load(f)
-            except:
-                self.scientist_log = []
-
-
     def save_challenge_state(self, challenge_id: str):
-        state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
-        os.makedirs(state_dir, exist_ok=True)
+        """Save full challenge state for reproducibility and recovery."""
+        state_dir = Path("trajectories") / f"challenge_{challenge_id}"
+        state_dir.mkdir(parents=True, exist_ok=True)
 
-        base_path = os.path.join("goals", "killer_base.md")
-        if os.path.exists(base_path):
-            shutil.copy(base_path, os.path.join(state_dir, "killer_base.md"))
+        # Save killer_base.md if it exists
+        base_path = Path("goals/killer_base.md")
+        if base_path.exists():
+            shutil.copy(base_path, state_dir / "killer_base.md")
 
-        with open(os.path.join(state_dir, "heterogeneity_weights.json"), "w") as f:
+        # Save key runtime state
+        with open(state_dir / "heterogeneity_weights.json", "w") as f:
             json.dump(self.current_heterogeneity_weights, f, indent=2)
 
-        with open(os.path.join(state_dir, "recent_scores.json"), "w") as f:
-            json.dump(self.recent_scores, f)
+        with open(state_dir / "recent_scores.json", "w") as f:
+            json.dump(self.recent_scores, f, indent=2)
 
-        if self._pending_new_avenue_plan:
-            with open(os.path.join(state_dir, "pending_avenue_plan.md"), "w") as f:
+        if getattr(self, "_pending_new_avenue_plan", None):
+            with open(state_dir / "pending_avenue_plan.md", "w") as f:
                 f.write(self._pending_new_avenue_plan)
 
         self.save_to_memdir(f"grail_snapshot_{challenge_id}", {"timestamp": datetime.now().isoformat()})
         logger.info(f"[STATE SAVED] Challenge {challenge_id} — including evolved killer_base.md")
 
     def load_challenge_state(self, challenge_id: str) -> bool:
-        state_dir = os.path.join("trajectories", f"challenge_{challenge_id}")
-        if not os.path.exists(state_dir):
-            logger.warning(f"No saved state for {challenge_id}")
+        """Load previous challenge state for continuity."""
+        state_dir = Path("trajectories") / f"challenge_{challenge_id}"
+        if not state_dir.exists():
+            logger.warning(f"No saved state found for challenge {challenge_id}")
             return False
 
-        saved_base = os.path.join(state_dir, "killer_base.md")
-        if os.path.exists(saved_base):
-            shutil.copy(saved_base, os.path.join("goals", "killer_base.md"))
-            logger.info("✅ Evolved killer_base.md restored")
+        # Restore killer_base.md
+        saved_base = state_dir / "killer_base.md"
+        if saved_base.exists():
+            shutil.copy(saved_base, Path("goals/killer_base.md"))
+            logger.info("✅ Evolved killer_base.md restored from previous state")
 
-        with open(os.path.join(state_dir, "heterogeneity_weights.json")) as f:
-            self.current_heterogeneity_weights = json.load(f)
+        # Restore weights and scores
+        if (state_dir / "heterogeneity_weights.json").exists():
+            with open(state_dir / "heterogeneity_weights.json") as f:
+                self.current_heterogeneity_weights = json.load(f)
 
-        if os.path.exists(os.path.join(state_dir, "recent_scores.json")):
-            with open(os.path.join(state_dir, "recent_scores.json")) as f:
+        if (state_dir / "recent_scores.json").exists():
+            with open(state_dir / "recent_scores.json") as f:
                 self.recent_scores = json.load(f)
 
-        plan_path = os.path.join(state_dir, "pending_avenue_plan.md")
-        if os.path.exists(plan_path):
+        # Restore pending plan if exists
+        plan_path = state_dir / "pending_avenue_plan.md"
+        if plan_path.exists():
             with open(plan_path) as f:
                 self._pending_new_avenue_plan = f.read()
 
@@ -2715,7 +2853,8 @@ Suggest 2-3 concrete architecture-level improvements."""
         return True
 
     def onyx_hunter_query(self, gap_description: str, subtask: str) -> dict:
-        if not self.use_onyx_rag:
+        """Query Onyx RAG or fallback to ToolHunter."""
+        if not getattr(self, "use_onyx_rag", True):
             return tool_hunter.hunt_and_integrate(gap_description, subtask)
 
         prompt = f"""Act as ToolHunter sub-swarm for SN63.
@@ -2726,14 +2865,18 @@ Follow ToolHunter philosophy + MAXIMUM HETEROGENEITY.
 Return structured recommendation."""
 
         try:
-            resp = requests.post(f"{self.onyx_url}/api/query", json={
-                "query": prompt, "agentic": True, "num_results": 10
-            }, timeout=40)
+            resp = requests.post(
+                f"{self.onyx_url}/api/query", 
+                json={"query": prompt, "agentic": True, "num_results": 10}, 
+                timeout=40
+            )
             return resp.json().get("results", {})
-        except:
+        except Exception:
+            logger.debug("Onyx query failed — falling back to ToolHunter")
             return tool_hunter.hunt_and_integrate(gap_description, subtask)
 
     def process_tool_proposals(self):
+        """Process pending tool proposals from memdir."""
         proposal_files = list(Path(self.memdir_path).glob("tool_proposal_*.json"))
         if not proposal_files:
             return
@@ -2743,8 +2886,11 @@ Return structured recommendation."""
         for pfile in proposal_files:
             try:
                 proposal = self.load_from_memdir(pfile.stem)
-                
-                if proposal.get("code") == "AUTO_GENERATE" or not proposal.get("code"):
+                if not proposal:
+                    continue
+
+                # Auto-generate code if requested
+                if proposal.get("code") in [None, "AUTO_GENERATE"]:
                     gen_prompt = f"""Generate clean, safe, well-commented Python code for this tool:
 
 Name: {proposal.get('name')}
@@ -2756,6 +2902,7 @@ Return ONLY the complete function code."""
                     generated_code = self.harness.call_llm(gen_prompt, temperature=0.3, max_tokens=900)
                     proposal["code"] = generated_code
 
+                # Save tool to runtime directory
                 tool_path = Path("tools/runtime") / f"{proposal['name']}.py"
                 tool_path.parent.mkdir(exist_ok=True)
                 tool_path.write_text(proposal["code"])
@@ -2763,7 +2910,7 @@ Return ONLY the complete function code."""
                 self.save_to_memdir(f"approved_tool_{proposal['name']}", proposal)
                 logger.info(f"✅ New tool approved and saved: {proposal['name']}")
 
-                # v0.6: Hybrid ingestion opportunity (episodic)
+                # Hybrid ingestion opportunity
                 if self.toggles.get("hybrid_ingestion_enabled", True):
                     self.archive_hunter.ingest_genome_or_paper({"type": "tool_proposal", "data": proposal})
 
@@ -2875,30 +3022,60 @@ Return ONLY the complete function code."""
         return self.orchestrate_subarbos(task=narrow_task, goal_md=self.extra_context) if hasattr(self, 'orchestrate_subarbos') else {}
 
     def _evolve_verification_contract_from_synthetic(self, summary: dict) -> dict | None:
-        """Extract high-signal contract improvements from synthetic run."""
-        if summary["score"] < 0.75 and summary["efs"] < 0.68:
+        """Extract high-signal contract improvements from Scientist Mode synthetic runs
+        and append them to the living verification contract templates."""
+        
+        if not isinstance(summary, dict):
             return None
 
-        prompt = f"""High-signal synthetic run (score {summary['score']:.3f}, EFS {summary['efs']:.3f}).
+        score = summary.get("score", 0.0)
+        efs = summary.get("efs", 0.0)
 
-Extract reusable contract improvements (new artifacts, stronger composability rules, better dry-run criteria).
-Return ONLY JSON with:
+        # Only evolve on reasonably strong synthetic runs
+        if score < 0.75 and efs < 0.68:
+            return None
+
+        prompt = f"""High-signal synthetic run (score {score:.3f}, EFS {efs:.3f}).
+
+Extract reusable, high-value improvements to the verifiability contract:
+- New artifacts that should be required
+- Stronger composability rules
+- Better dry-run success criteria
+- Any other structural improvements
+
+Return ONLY valid JSON:
 {{
-  "delta_type": "artifact | rule | criteria",
-  "content": "exact text to add",
-  "provenance": "Scientist Mode synthetic run — score {summary['score']:.3f}"
+  "delta_type": "artifact | rule | criteria | guidance",
+  "content": "exact markdown text to append to the contract template",
+  "provenance": "Scientist Mode synthetic run — score {score:.3f} | EFS {efs:.3f}"
 }}"""
 
-        raw = self.harness.call_llm(prompt, temperature=0.3, max_tokens=600)
-        delta = self._safe_parse_json(raw)
+        try:
+            model_config = self.load_model_registry(role="planner")
+            raw = self.harness.call_llm(prompt, temperature=0.32, max_tokens=800, model_config=model_config)
+            delta = self._safe_parse_json(raw)
 
-        if delta and "content" in delta:
-            # Append to living contract templates
-            with open("goals/brain/verification_contract_templates.md", "a", encoding="utf-8") as f:
-                f.write(f"\n\n# EVOLVED DELTA from Scientist Mode (score {summary['score']:.3f})\n{delta['content']}\n")
-            logger.info(f"✅ Contract delta extracted and appended: {delta.get('delta_type')}")
-            return delta
-        return None
+            if delta and isinstance(delta, dict) and delta.get("content"):
+                content = delta["content"].strip()
+                
+                # Safe file append with directory guarantee
+                contract_path = Path("goals/brain/verification_contract_templates.md")
+                contract_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                with open(contract_path, "a", encoding="utf-8") as f:
+                    f.write(f"\n\n# EVOLVED DELTA from Scientist Mode | "
+                           f"Score {score:.3f} | EFS {efs:.3f} | {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+                    f.write(f"{content}\n")
+
+                logger.info(f"✅ Contract delta extracted and appended: {delta.get('delta_type', 'general')}")
+                return delta
+
+            logger.debug("No valid contract delta extracted from synthetic run")
+            return None
+
+        except Exception as e:
+            logger.warning(f"Failed to evolve verification contract from synthetic run: {e}")
+            return None
 
     def _load_scientist_log(self) -> List:
         if self.scientist_log_path.exists():
@@ -2922,27 +3099,54 @@ Return ONLY JSON with:
         return experts
 
     def _generate_guided_diversity_candidates(self, subtask: str, hypothesis: str, current_solution: str) -> str:
-        hetero = self._compute_heterogeneity_score()
+        """Generates maximally diverse alternative solutions to increase heterogeneity.
+        Used inside Sub-Arbos workers for guided repair/diversity."""
         
-        diversity_prompt = f"""You are Diversity Arbos for SN63 Quantum Innovate.
+        # Safe heterogeneity score
+        hetero_score = 0.65
+        try:
+            hetero = self._compute_heterogeneity_score()
+            hetero_score = hetero.get("heterogeneity_score", 0.65) if isinstance(hetero, dict) else 0.65
+        except:
+            pass
+
+        diversity_prompt = f"""You are Diversity Arbos for SN63 Enigma Miner.
+
 Subtask: {subtask}
 Current hypothesis: {hypothesis}
-Current solution snippet: {current_solution[:800]}
+Current solution snippet: {current_solution[:750]}
 
-Current heterogeneity score: {hetero.get('heterogeneity_score', 0.65):.3f}
+Current swarm heterogeneity: {hetero_score:.3f}
 
-Generate 3 maximally diverse alternative approaches.
-Maximize difference across: agent style, hypothesis framing, tool path, symbolic strategy, and compute substrate.
-Return ONLY a JSON array of 3 candidate solutions (strings)."""
+Your job: Generate 3 fundamentally different, high-quality alternative approaches.
+Maximize difference across: reasoning style, hypothesis framing, tool usage, symbolic vs numeric strategy, and compute substrate.
 
-        response = self.harness.call_llm(diversity_prompt, temperature=0.78, max_tokens=1100)
+Return ONLY a valid JSON array containing exactly 3 strings (the full candidate solutions). 
+Do not include explanations or extra text."""
+
         try:
+            model_config = self.load_model_registry(role="planner")
+            response = self.harness.call_llm(
+                diversity_prompt, 
+                temperature=0.82,   # higher temperature for better diversity
+                max_tokens=1400, 
+                model_config=model_config
+            )
+            
             candidates = self._safe_parse_json(response)
-            if isinstance(candidates, list) and candidates:
-                return candidates[0]
+
+            if isinstance(candidates, list) and len(candidates) >= 1:
+                # Return the best-looking one (first non-empty)
+                for cand in candidates:
+                    if isinstance(cand, str) and len(cand.strip()) > 50:
+                        return cand.strip()
+                return candidates[0]  # fallback
+
+            logger.warning("Diversity generation returned invalid format")
             return current_solution
-        except Exception:
-            logger.warning("Guided diversity fallback to current solution")
+
+        except Exception as e:
+            logger.warning(f"Guided diversity generation failed: {e} — falling back to current solution")
             return current_solution
 
     def _run_symbiosis_arbos(self, aggregated_outputs: List[Dict], 
@@ -3043,65 +3247,139 @@ Return ONLY a valid JSON array (max 6 patterns). Each pattern must follow this e
             return []
 
     def post_high_signal_finding(self, subtask: str, content: str, local_score: float):
+        """Post a high-signal finding from a Sub-Arbos worker to the message bus 
+        and optionally trigger wiki strategy ingestion."""
+        
+        if not content or not isinstance(content, str):
+            logger.debug("post_high_signal_finding skipped — empty content")
+            return
+
+        # Safe score handling
+        score = float(local_score) if isinstance(local_score, (int, float)) else 0.0
+
         self.post_message(
-            sender="SubArbos",
-            content=content,
+            sender=f"SubArbos-{subtask}",
+            content=content.strip(),
             msg_type="high_signal_finding",
             importance=0.9,
-            validation_score=local_score,
+            validation_score=score,
             fidelity=0.85
         )
-        if self.aha_adaptation_enabled and local_score > 0.78:
-            self._apply_wiki_strategy(content, getattr(self, "_current_challenge_id", "current"))
+
+        # Trigger wiki strategy on strong AHA signals
+        if (getattr(self, "aha_adaptation_enabled", False) and 
+            score > 0.78 and 
+            len(content) > 50):
+            
+            try:
+                challenge_id = getattr(self, "_current_challenge_id", "current")
+                self._apply_wiki_strategy(content, challenge_id)
+                logger.info(f"High-signal finding from {subtask} → wiki strategy triggered")
+            except Exception as e:
+                logger.debug(f"Wiki strategy ingestion skipped (safe): {e}")
+        else:
+            logger.debug(f"High-signal finding from {subtask} posted (score: {score:.3f})")
 
     # ====================== BRAIN EVOLUTION ======================
     def evolve_principles_post_run(self, best_solution: str, best_score: float, best_diagnostics: Dict = None):
+        """High-signal principle evolution — appends targeted deltas to the living brain."""
         if best_score < 0.85:
-            return
+            logger.debug("Score too low for principle evolution")
+            return 0
 
-        prompt = f"""High-signal run (score {best_score:.3f}).
+        if best_diagnostics is None:
+            best_diagnostics = {}
 
-Best solution snippet: {best_solution[:1500]}
+        prompt = f"""High-signal run detected (score {best_score:.3f}).
 
-Diagnostics: {json.dumps(best_diagnostics or {}, indent=2)[:800]}
+Best solution snippet:
+{best_solution[:1400]}
 
-Generate targeted, concise deltas to append to the relevant principle files 
-(shared_core.md, heterogeneity.md, bio_strategy.md, english_evolution.md, etc.).
-Include any new Symbiosis Arbos patterns or mycelial heuristics.
+Diagnostics summary:
+{json.dumps(best_diagnostics, indent=2)[:800]}
 
-Return ONLY JSON with key 'deltas': list of strings, each ready to append to a .md file."""
+Generate targeted, concise, high-value evolutionary deltas to permanently improve the system.
 
-        response = self.harness.call_llm(prompt, temperature=0.3, max_tokens=800, model_config=self.load_model_registry(role="planner"))
-        deltas = self._safe_parse_json(response).get("deltas", [])
+Focus on:
+- Core principles (shared_core.md)
+- Heterogeneity strategy
+- Bio/mycelial heuristics
+- English evolution / prompt clarity
+- Symbiosis patterns or new stigmergic rules
 
-        for delta in deltas:
-            try:
-                with open("goals/brain/principles/bio_strategy.md", "a", encoding="utf-8") as f:
-                    f.write(f"\n\n# EVOLVED_DELTA from high-signal run (score {best_score:.3f})\n{delta}\n")
-                logger.info(f"Principle evolved with high-signal delta: {delta[:80]}...")
-            except Exception as e:
-                logger.warning(f"Failed to append principle delta: {e}")
+Return ONLY valid JSON:
+{{
+  "deltas": [
+    {{"file": "shared_core.md", "content": "exact markdown text to append"}},
+    {{"file": "heterogeneity.md", "content": "exact markdown text to append"}},
+    ...
+  ]
+}}"""
 
-        logger.info(f"✅ evolve_principles_post_run completed — {len(deltas)} deltas appended to brain principles")
+        try:
+            model_config = self.load_model_registry(role="planner")
+            response = self.harness.call_llm(
+                prompt, 
+                temperature=0.32, 
+                max_tokens=1200, 
+                model_config=model_config
+            )
+            
+            data = self._safe_parse_json(response)
+            deltas = data.get("deltas", [])
+
+            applied_count = 0
+            for delta in deltas:
+                if not isinstance(delta, dict):
+                    continue
+                    
+                filename = delta.get("file", "shared_core.md")
+                content = delta.get("content", "").strip()
+                
+                if not content:
+                    continue
+
+                # Safe path handling
+                file_path = f"goals/brain/principles/{filename}"
+                try:
+                    Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+                    with open(file_path, "a", encoding="utf-8") as f:
+                        f.write(f"\n\n# EVOLVED DELTA — High-signal run (score {best_score:.3f}) | Loop {self.loop_count}\n")
+                        f.write(f"{content}\n")
+                    logger.info(f"Principle evolved: {filename} | {content[:80]}...")
+                    applied_count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to write delta to {filename}: {e}")
+
+            logger.info(f"✅ evolve_principles_post_run completed — {applied_count}/{len(deltas)} deltas applied")
+            return applied_count
+
+        except Exception as e:
+            logger.error(f"evolve_principles_post_run failed: {e}")
+            return 0
 
     # ====================== RUN METHOD ======================
     def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
         """Main mission entry point — full top-tier DVRP pipeline with all advanced layers."""
+        
+        # Reset per-run state
         self.loop_count = 0
         self._current_challenge_id = challenge.replace(" ", "_").lower()[:60]
         self.recent_scores = []
+        
+        logger.info(f"🚀 Starting full SN63 mission: {challenge[:120]}...")
 
-        logger.info(f"🚀 Starting full SN63 mission: {challenge[:100]}...")
-
-        # 1. Planning Arbos (rich context + formal contract)
+        # 1. Planning Arbos (rich context + formal Verifiability Contract)
         plan = self.plan_challenge(
             goal_md=self.extra_context,
             challenge=challenge,
-            enhancement_prompt=enhancement_prompt or "Maximize verifier compliance, heterogeneity across five axes, deterministic/symbolic paths, and clean composability for Synthesis Arbos."
+            enhancement_prompt=enhancement_prompt or 
+                "Maximize verifier compliance, heterogeneity across five axes, "
+                "deterministic/symbolic paths first, and clean composability for Synthesis Arbos."
         )
 
         if isinstance(plan, dict) and "error" in plan:
-            logger.error(plan["error"])
+            logger.error(f"Planning failed: {plan['error']}")
             return plan["error"]
 
         max_loops = self.config.get("max_loops", 5)
@@ -3110,14 +3388,17 @@ Return ONLY JSON with key 'deltas': list of strings, each ready to append to a .
         best_diagnostics = None
 
         for loop in range(max_loops):
-            logger.info(f"Outer loop {loop+1}/{max_loops} starting")
+            self.loop_count = loop + 1
+            logger.info(f"Outer loop {self.loop_count}/{max_loops} starting")
 
             # 2. Full execution cycle (advanced swarm + synthesis + symbiosis + validation)
             result = self.execute_full_cycle(plan, challenge, verification_instructions)
 
             score = result.get("validation_score", 0.0) if isinstance(result, dict) else 0.0
-            current_solution = result.get("merged_candidate", str(result)) if isinstance(result, dict) else str(result)
+            current_solution = (result.get("merged_candidate") if isinstance(result, dict) 
+                              else str(result))
 
+            # Run diagnostics
             diagnostics = self.run_diagnostics(current_solution, challenge, verification_instructions)
             best_diagnostics = diagnostics
 
@@ -3125,7 +3406,7 @@ Return ONLY JSON with key 'deltas': list of strings, each ready to append to a .
                 best_score = score
                 best_solution = current_solution
 
-            # Early stop on strong performance
+            # Early stop on very strong performance
             if score >= 0.88:
                 logger.info(f"Early stop triggered at high score {score:.3f}")
                 break
@@ -3133,25 +3414,36 @@ Return ONLY JSON with key 'deltas': list of strings, each ready to append to a .
             # Intelligent re-adaptation on low performance
             if score < 0.72 or loop < max_loops - 1:
                 logger.info(f"Low score ({score:.3f}) → triggering re_adapt")
-                self.re_adapt({"solution": current_solution, "challenge": challenge}, f"Validation score: {score:.3f}")
+                self.re_adapt(
+                    {"solution": current_solution, "challenge": challenge}, 
+                    f"Validation score: {score:.3f}"
+                )
 
             # Refine plan for next loop
             if loop < max_loops - 1:
                 plan = self._refine_plan(plan, challenge, enhancement_prompt=enhancement_prompt)
 
         # 3. Final high-signal processing
-        if best_score > 0.85:
-            self.evolve_principles_post_run(best_solution or "", best_score, best_diagnostics)
+        if best_score > 0.85 and best_solution:
+            self.evolve_principles_post_run(best_solution, best_score, best_diagnostics)
 
-        if best_score > 0.92 and self.enable_grail:
-            self.consolidate_grail(best_solution or "", best_score, best_diagnostics)
+        if best_score > 0.92 and getattr(self, "enable_grail", False):
+            self.consolidate_grail(best_solution, best_score, best_diagnostics)
 
         # 4. Final ByteRover cleanup
         self.memory_layers.compress_low_value(current_score=best_score)
 
-        self.save_run_to_history(challenge, enhancement_prompt, best_solution or "", best_score, 0.5, best_score)
+        # 5. Save to history
+        self.save_run_to_history(
+            challenge=challenge,
+            enhancement_prompt=enhancement_prompt,
+            solution=best_solution or "",
+            score=best_score,
+            novelty=0.5,
+            verifier=best_score
+        )
 
-        # 5. Full end-of-run embodiment + meta layers
+        # 6. Final end-of-run processing
         run_data = {
             "final_score": best_score,
             "efs": getattr(self, "last_efs", 0.0),
@@ -3168,10 +3460,12 @@ Return ONLY JSON with key 'deltas': list of strings, each ready to append to a .
     def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
         """Top-tier Re-Adaptation Arbos — global meta-learning, principle evolution, 
         and strategic system-level decision making."""
+        
         self.loop_count += 1
-        self.recent_scores.append(getattr(self.validator, "last_score", 0.0))
+        current_score = getattr(self.validator, "last_score", 0.0)
+        self.recent_scores.append(current_score)
 
-        logger.info(f"🔄 Re-Adaptation Arbos triggered — Loop {self.loop_count} | Score: {getattr(self.validator, 'last_score', 0.0):.4f}")
+        logger.info(f"🔄 Re-Adaptation Arbos triggered — Loop {self.loop_count} | Score: {current_score:.4f}")
 
         # Rich diagnostics
         diagnostics = self.run_diagnostics(
@@ -3185,78 +3479,89 @@ Return ONLY JSON with key 'deltas': list of strings, each ready to append to a .
         aha_detected = self.is_aha_detected(self.recent_scores)
         global_stagnant = self.is_stagnant_subarbos("global")
 
-              # === META-TUNING CYCLE (core intelligence upgrade) ===
+        # === META-TUNING CYCLE ===
         meta_result = None
         if is_stale or global_stagnant or aha_detected or (self.loop_count % 4 == 0):
             logger.info("Running full meta-tuning evolutionary cycle")
             meta_result = self.run_meta_tuning_cycle(
                 stall_detected=is_stale or global_stagnant,
                 oracle_result={
-                    "score": getattr(self.validator, "last_score", 0.0),
+                    "score": current_score,
                     "efs": getattr(self, "last_efs", 0.0),
-                    "validation_score": getattr(self.validator, "last_score", 0.0)
+                    "validation_score": current_score
                 }
             )
 
         # Build rich adaptation context
-        adaptation_prompt = f"""You are Re-Adaptation Arbos — the global meta-cognitive layer.
+        adaptation_prompt = f"""You are Re-Adaptation Arbos — the global meta-cognitive layer of the Enigma Miner.
 
 CURRENT STATE:
-Loop: {self.loop_count}
-Score: {getattr(self.validator, "last_score", 0.0):.4f}
-EFS: {getattr(self, "last_efs", 0.0):.4f}
-Stale: {is_stale} | AHA: {aha_detected} | Global Stagnant: {global_stagnant}
+- Loop: {self.loop_count}
+- Score: {current_score:.4f}
+- EFS: {getattr(self, "last_efs", 0.0):.4f}
+- Stale regime: {is_stale}
+- AHA detected: {aha_detected}
+- Global stagnant: {global_stagnant}
 
-LATEST FEEDBACK:
-{latest_verifier_feedback[:1200]}
+LATEST VERIFIER FEEDBACK:
+{latest_verifier_feedback[:1400]}
 
 DIAGNOSTICS:
 {json.dumps(diagnostics, indent=2)[:1000]}
 
-Meta-Tuning Result: {json.dumps(meta_result, indent=2) if meta_result else "None"}
+META-TUNING RESULT:
+{json.dumps(meta_result, indent=2) if meta_result else "None"}
 
 Your mission:
-1. Deep system-level analysis.
-2. Choose optimal adaptation strategy.
-3. Generate concrete recommendations.
+1. Perform deep system-level analysis.
+2. Choose the optimal adaptation strategy.
+3. Generate concrete, actionable recommendations.
 
 Return ONLY valid JSON:
 {{
   "adaptation_strategy": "exploration_heavy | exploitation_heavy | balanced | breakthrough_mode | conservative",
-  "principle_deltas": ["specific principle changes"],
+  "principle_deltas": ["specific principle changes to append"],
   "next_loop_recommendations": ["3-6 concrete actionable items"],
   "meta_insights": ["high-level learnings"],
-  "new_avenue_plan": "optional bold new direction",
+  "new_avenue_plan": "optional bold new direction (if needed)",
   "confidence": 0.0-1.0
 }}"""
 
-        model_config = self.load_model_registry(role="planner")
-        raw = self.harness.call_llm(adaptation_prompt, temperature=0.35, max_tokens=1600, model_config=model_config)
-        adaptation = self._safe_parse_json(raw)
+        try:
+            model_config = self.load_model_registry(role="planner")
+            raw = self.harness.call_llm(adaptation_prompt, temperature=0.35, max_tokens=1600, model_config=model_config)
+            adaptation = self._safe_parse_json(raw)
+        except Exception as e:
+            logger.error(f"Re-adaptation LLM call failed: {e}")
+            adaptation = {"adaptation_strategy": "balanced", "confidence": 0.4}
 
-        # Apply strategic decisions
-        if adaptation.get("adaptation_strategy") == "breakthrough_mode":
+        # Apply strategic decisions safely
+        strategy = adaptation.get("adaptation_strategy", "balanced")
+        
+        if strategy == "breakthrough_mode":
             self.allow_per_subarbos_breakthrough = True
             logger.info("🔥 Breakthrough mode activated globally")
 
         # Update current strategy safely
         if adaptation.get("strategy"):
             self._current_strategy = adaptation["strategy"]
+        elif not self._current_strategy:
+            self._current_strategy = {}
 
         self.validator.adapt_scoring(self._current_strategy)
-        
+
+        # Apply principle deltas
         if adaptation.get("principle_deltas"):
             self._apply_principle_deltas(adaptation["principle_deltas"])
-            
-        # Intelligent replanning integration
+
+        # Intelligent replanning on stagnation
         if is_stale or global_stagnant or aha_detected:
             failure_context = self._build_failure_context(
                 failure_type="re_adapt_stall",
                 task=candidate.get("challenge", "global"),
                 goal_md=self.extra_context,
-                strategy=self._current_strategy or {},
-                validation_result={"validation_score": getattr(self.validator, "last_score", 0.0), 
-                                 "efs": getattr(self, "last_efs", 0.0)}
+                strategy=self._current_strategy,
+                validation_result={"validation_score": current_score, "efs": getattr(self, "last_efs", 0.0)}
             )
             replan_decision = self._intelligent_replan(failure_context)
             
@@ -3269,7 +3574,7 @@ Return ONLY valid JSON:
             subtask_id="global_re_adapt",
             hypothesis="Global meta-adaptation",
             evidence=latest_verifier_feedback[:800],
-            performance_delta={"delta_s": getattr(self.validator, "last_score", 0.0), "efs": getattr(self, "last_efs", 0.0)},
+            performance_delta={"delta_s": current_score, "efs": getattr(self, "last_efs", 0.0)},
             organic_thought=adaptation.get("meta_insights", ["No insights"])[0]
         )
 
@@ -3280,36 +3585,72 @@ Return ONLY valid JSON:
             "timestamp": datetime.now().isoformat()
         })
 
-        if getattr(self.validator, "last_score", 0.0) > 0.75:
+        if current_score > 0.75:
             self.memory_layers.promote_high_signal(
                 latest_verifier_feedback + "\n" + str(adaptation),
-                {"type": "re_adaptation", "loop": self.loop_count, "quality": adaptation.get("confidence", 0.7)}
+                {
+                    "type": "re_adaptation", 
+                    "loop": self.loop_count, 
+                    "quality": adaptation.get("confidence", 0.7)
+                }
             )
 
-        logger.info(f"✅ Re-Adaptation completed — Strategy: {adaptation.get('adaptation_strategy', 'balanced')} | Confidence: {adaptation.get('confidence', 0.0):.2f}")
+        logger.info(f"✅ Re-Adaptation completed — Strategy: {strategy} | Confidence: {adaptation.get('confidence', 0.0):.2f}")
         
         return adaptation
         
-    def _apply_principle_deltas(self, deltas: List[str]):
-        """Apply principle evolution deltas from re-adaptation or meta-tuning."""
+    def _apply_principle_deltas(self, deltas: List) -> int:
+        """Apply principle evolution deltas from re-adaptation or meta-tuning.
+        Supports both simple strings and structured dicts with file targeting."""
+        
         if not deltas:
-            return
+            return 0
+
+        applied_count = 0
 
         for delta in deltas:
-            if not delta or not isinstance(delta, str):
+            if not delta:
                 continue
-                
-            # Append to the core principles file
+
+            # Handle both string deltas and structured dicts
+            if isinstance(delta, dict):
+                file_name = delta.get("file", "shared_core.md")
+                content = delta.get("content", str(delta)).strip()
+            elif isinstance(delta, str):
+                file_name = "shared_core.md"
+                content = delta.strip()
+            else:
+                continue
+
+            if not content:
+                continue
+
+            # Safe file path
+            file_path = f"goals/brain/principles/{file_name}"
+            
             try:
-                with open("goals/brain/principles/shared_core.md", "a", encoding="utf-8") as f:
-                    f.write(f"\n\n# EVOLVED DELTA (Loop {self.loop_count})\n{delta.strip()}\n")
-                logger.info(f"Principle delta applied: {delta[:80]}...")
+                Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+                
+                with open(file_path, "a", encoding="utf-8") as f:
+                    f.write(f"\n\n# EVOLVED DELTA — Loop {self.loop_count} | {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+                    f.write(f"{content}\n")
+
+                logger.info(f"Principle delta applied to {file_name}: {content[:80]}...")
+                applied_count += 1
+
             except Exception as e:
-                logger.warning(f"Failed to apply principle delta: {e}")
+                logger.warning(f"Failed to apply principle delta to {file_name}: {e}")
+
+        if applied_count > 0:
+            logger.info(f"✅ Applied {applied_count} principle deltas successfully")
+        else:
+            logger.debug("No principle deltas were applied")
+
+        return applied_count
                 
     def run_meta_tuning_cycle(self, stall_detected: bool = False, oracle_result: Dict = None):
-        """v0.8 Meta-Tuning Arbos — evolutionary genome tournament using Scientist Mode experiment summaries 
-        for intelligent next-experiment selection and contract genome mutation."""
+        """v0.8 Meta-Tuning Arbos — evolutionary genome tournament using Scientist Mode 
+        experiment summaries for intelligent next-experiment selection and contract genome mutation."""
         
         logger.info("🧬 Meta-Tuning Arbos activated — evolutionary cycle with Scientist Mode integration")
 
@@ -3321,18 +3662,19 @@ Return ONLY valid JSON:
         if oracle_result:
             experiment_summary = oracle_result.get("scientist_summary") or oracle_result.get("experiment_summary")
 
+        # Current genome state
         genome = {
             "loop": self.loop_count,
             "score": current_score,
             "efs": current_efs,
             "heterogeneity": self._compute_heterogeneity_score().get("heterogeneity_score", 0.72),
             "c3a_weight": 0.65,
-            "exploration_rate": getattr(self, "exploration_rate", 0.4),
+            "exploration_rate": getattr(self, "exploration_rate", 0.42),
             "breakthrough_threshold": getattr(self, "breakthrough_threshold", 0.68),
             "active_principles": ["verifier_first", "heterogeneity_mandate", "stigmergic_learning"]
         }
 
-        # Intelligent next-experiment selection from Scientist Mode data
+        # Intelligent next-experiment guidance from Scientist Mode
         next_experiment_guidance = ""
         if experiment_summary:
             next_experiment_guidance = f"""
@@ -3340,9 +3682,8 @@ Previous Scientist Mode summary:
 - Score: {experiment_summary.get('score', 0):.3f}
 - EFS: {experiment_summary.get('efs', 0):.3f}
 - Verifier quality: {experiment_summary.get('verifier_quality', 0):.3f}
-- Escalation events: {experiment_summary.get('escalation_events', 0)}
-Focus next experiments on gaps with low verifier_quality or high escalation.
-"""
+- DOUBLE_CLICK / escalation events: {experiment_summary.get('double_click_count', 0)}
+Focus next experiments on gaps with low verifier_quality or high escalation."""
 
         tuning_prompt = f"""You are Meta-Tuning Arbos — the evolutionary optimizer for the Enigma Miner organism.
 
@@ -3355,12 +3696,12 @@ LATEST ORACLE RESULT:
 STALL DETECTED: {stall_detected}
 {next_experiment_guidance}
 
-Run an evolutionary tournament:
-1. Critique the current genome harshly.
-2. Generate 5 mutant variants (small but meaningful changes to parameters, principles, or contract templates).
-3. Score each mutant for predicted performance.
-4. Select the winner(s) and apply them.
-5. Suggest the next intelligent experiment direction based on Scientist Mode data.
+Run a full evolutionary tournament:
+1. Critique the current genome.
+2. Generate 5 meaningful mutant variants (parameters, principles, contract rules).
+3. Score each for predicted performance.
+4. Select winner(s) and list changes to apply.
+5. Suggest next intelligent experiment direction.
 
 Return ONLY valid JSON:
 {{
@@ -3376,11 +3717,15 @@ Return ONLY valid JSON:
   "confidence": 0.0-1.0
 }}"""
 
-        model_config = self.load_model_registry(role="planner")
-        raw = self.harness.call_llm(tuning_prompt, temperature=0.45, max_tokens=2200, model_config=model_config)
-        tuning_result = self._safe_parse_json(raw)
+        try:
+            model_config = self.load_model_registry(role="planner")
+            raw = self.harness.call_llm(tuning_prompt, temperature=0.45, max_tokens=2200, model_config=model_config)
+            tuning_result = self._safe_parse_json(raw)
+        except Exception as e:
+            logger.error(f"Meta-tuning LLM call failed: {e}")
+            return {"status": "failed", "reason": str(e)}
 
-        # Apply winner changes
+        # Apply winner changes safely
         if tuning_result.get("applied_changes"):
             self._apply_meta_changes(tuning_result["applied_changes"])
 
@@ -3390,9 +3735,13 @@ Return ONLY valid JSON:
         # Apply contract genome mutations
         if tuning_result.get("contract_mutations"):
             for mutation in tuning_result["contract_mutations"]:
-                self._apply_contract_delta({"content": mutation, "provenance": "Meta-Tuning contract genome mutation"})
+                if isinstance(mutation, str):
+                    self._apply_contract_delta({
+                        "content": mutation,
+                        "provenance": "Meta-Tuning contract genome mutation"
+                    })
 
-        # Save to meta-history
+        # Save history
         self.save_to_memdir("meta_tuning_history", {
             "loop": self.loop_count,
             "genome_before": genome,
@@ -3401,61 +3750,105 @@ Return ONLY valid JSON:
             "timestamp": datetime.now().isoformat()
         })
 
-        logger.info(f"Meta-Tuning completed — Winner mutant: {tuning_result.get('winner_id')} | "
+        logger.info(f"Meta-Tuning completed — Winner: {tuning_result.get('winner_id')} | "
                    f"Applied changes: {len(tuning_result.get('applied_changes', []))} | "
                    f"Contract mutations: {len(tuning_result.get('contract_mutations', []))}")
 
         return tuning_result
         
     def _apply_meta_changes(self, changes: List[str]):
-        """Apply meta-tuning changes to live parameters."""
+        """Apply meta-tuning changes to live parameters — safe and extensible."""
+        if not changes:
+            return
+
+        applied = 0
+
         for change in changes:
+            if not isinstance(change, str):
+                continue
+                
             change_lower = change.lower()
-            if "exploration" in change_lower or "diversity" in change_lower:
-                self.exploration_rate = getattr(self, "exploration_rate", 0.4) + 0.08
-                self.exploration_rate = min(0.95, self.exploration_rate)
-                logger.info(f"Meta-tuning increased exploration_rate to {self.exploration_rate:.2f}")
-            
-            elif "breakthrough" in change_lower or "stagnation" in change_lower:
+
+            if any(k in change_lower for k in ["exploration", "diversity", "heterogeneity"]):
+                # Initialize if missing
+                if not hasattr(self, "exploration_rate"):
+                    self.exploration_rate = 0.42
+                    
+                self.exploration_rate = min(0.95, self.exploration_rate + 0.09)
+                logger.info(f"Meta-tuning ↑ exploration_rate → {self.exploration_rate:.3f}")
+                applied += 1
+
+            elif any(k in change_lower for k in ["breakthrough", "stagnation", "aggressive"]):
                 self.allow_per_subarbos_breakthrough = True
-                logger.info("Meta-tuning enabled per-subarbos breakthrough mode")
-            
+                logger.info("🔥 Meta-tuning enabled per-subarbos breakthrough mode")
+                applied += 1
+
+            elif any(k in change_lower for k in ["conservative", "exploitation", "stability"]):
+                if not hasattr(self, "exploration_rate"):
+                    self.exploration_rate = 0.42
+                self.exploration_rate = max(0.18, self.exploration_rate - 0.11)
+                logger.info(f"Meta-tuning ↓ exploration_rate → {self.exploration_rate:.3f} (more exploitation)")
+                applied += 1
+
             elif "heterogeneity" in change_lower:
-                # Future: could adjust weights in self.current_heterogeneity_weights
-                logger.info("Meta-tuning flagged heterogeneity increase")
-            
-            elif "conservative" in change_lower or "exploitation" in change_lower:
-                self.exploration_rate = max(0.2, getattr(self, "exploration_rate", 0.4) - 0.1)
-                logger.info("Meta-tuning shifted toward exploitation")
+                # Future-proof hook
+                logger.info("Meta-tuning flagged need for higher heterogeneity — weights will be adjusted in next cycle")
+
+        if applied > 0:
+            logger.info(f"✅ Applied {applied} meta-tuning changes")
 
     def _evolve_principles(self, new_principles: List[str]):
-        """Permanently evolve core principles."""
+        """Permanently evolve core principles from meta-tuning or high-signal runs."""
+        if not new_principles or not isinstance(new_principles, list):
+            return 0
+
         if not hasattr(self, "evolved_principles"):
             self.evolved_principles = []
-        
+
+        applied_count = 0
+
         for principle in new_principles:
+            if not principle or not isinstance(principle, str):
+                continue
+            principle = principle.strip()
+            if not principle:
+                continue
+
             if principle not in self.evolved_principles:
                 self.evolved_principles.append(principle)
-                logger.info(f"New principle evolved: {principle}")
-        
-        # Optional: save to brain file
-        try:
-            with open("goals/brain/evolved_principles.md", "a", encoding="utf-8") as f:
-                f.write(f"\n\n### Loop {self.loop_count}\n" + "\n".join(new_principles))
-        except:
-            pass
+                applied_count += 1
+                logger.info(f"New principle evolved: {principle[:120]}...")
+
+        # Save to dedicated evolved principles file
+        if applied_count > 0:
+            try:
+                path = Path("goals/brain/evolved_principles.md")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                
+                with open(path, "a", encoding="utf-8") as f:
+                    f.write(f"\n\n### Loop {self.loop_count} — {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+                    f.write("\n".join([f"- {p}" for p in new_principles]) + "\n")
+            except Exception as e:
+                logger.warning(f"Failed to save evolved principles: {e}")
+
+        if applied_count > 0:
+            logger.info(f"✅ Evolved {applied_count} new principles")
+
+        return applied_count
             
     # ====================== v0.6 FULLY WIRED: _end_of_run (all 8 features integrated) ======================
     def _end_of_run(self, run_data: dict):
         """v0.8 Final high-signal processing — embodiment, pattern surfacing, 
         archiving (with Scientist Mode summary), retrospectives, and outer-loop evolution."""
-        logger.info(f"🔄 _end_of_run — Score: {run_data.get('final_score', 0.0):.3f} | EFS: {run_data.get('efs', 0.0):.3f}")
-
+        
         score = run_data.get("final_score", 0.0)
         efs = run_data.get("efs", 0.0)
         best_solution = run_data.get("best_solution", "")
         diagnostics = run_data.get("diagnostics", {})
 
+        logger.info(f"🔄 _end_of_run — Score: {score:.3f} | EFS: {efs:.3f} | Loop: {self.loop_count}")
+
+        # Build oracle result for downstream modules
         oracle_result = {
             "efs": efs,
             "validation_score": score,
@@ -3463,27 +3856,28 @@ Return ONLY valid JSON:
             "c3a_confidence": diagnostics.get("c3a_confidence", 0.75),
             "heterogeneity_score": self._compute_heterogeneity_score().get("heterogeneity_score", 0.72),
             "dry_run_passed": diagnostics.get("dry_run_passed", True),
-            "verifiability_contract": self._current_strategy.get("verifiability_contract", {}) if hasattr(self, "_current_strategy") else {}
+            "verifiability_contract": self._current_strategy.get("verifiability_contract", {}) 
+                if hasattr(self, "_current_strategy") else {}
         }
 
         # 1. MP4 Archival with Scientist Mode experiment summary
         try:
             archive_data = {
                 "mau_pyramid": getattr(self.memory_layers, 'get_mau_summary', lambda: {})(),
-                "wiki_snapshot": "High-signal run summary",
+                "wiki_snapshot": self._get_wiki_snapshot(),
                 "c3a_logs": diagnostics,
                 "grail": run_data,
                 "trajectories": self.recent_scores[-10:],
                 "final_score": score,
                 "efs": efs,
-                "experiment_summary": run_data.get("scientist_summary", {})   # v0.8 Scientist Mode archival
+                "experiment_summary": run_data.get("scientist_summary", {})
             }
             mp4_path = self.video_archiver.archive_run_to_mp4(archive_data, f"run_{self.loop_count}")
             logger.info(f"✅ MP4 archived: {mp4_path}")
         except Exception as e:
             logger.debug(f"Video archival skipped (safe): {e}")
 
-        # 2. Retrospective + Audit (gated)
+        # 2. Retrospective + Audit (gated on high-signal runs)
         if self.toggles.get("retrospective_enabled", True) and score > 0.75:
             try:
                 self.history_hunter.trigger_retrospective(
@@ -3510,7 +3904,7 @@ Return ONLY valid JSON:
             if hasattr(self, 'meta_reflect'):
                 self.meta_reflect(best_solution, score, diagnostics)
 
-            # v0.8: Contract evolution delta on strong runs
+            # v0.8: Contract evolution delta on very strong runs
             if score > 0.88 and hasattr(self, '_apply_contract_delta'):
                 delta = {
                     "provenance": "high_signal_end_of_run",
@@ -3523,14 +3917,25 @@ Return ONLY valid JSON:
         # 4. Advanced Embodiment + Pattern Surfacers
         if self.toggles.get("embodiment_enabled", True):
             try:
-                threading.Thread(target=neurogenesis.spawn_if_high_delta, 
-                               args=(oracle_result,), daemon=True).start()
-                threading.Thread(target=microbiome.ferment_novelty, 
-                               args=(best_solution[:2000], oracle_result), daemon=True).start()
-                threading.Thread(target=vagus.monitor_hardware_state, 
-                               args=(oracle_result,), daemon=True).start()
+                threading.Thread(
+                    target=self.neurogenesis.spawn_if_high_delta, 
+                    args=(oracle_result,), 
+                    daemon=True
+                ).start()
+                
+                threading.Thread(
+                    target=self.microbiome.ferment_novelty, 
+                    args=(best_solution[:2000], oracle_result), 
+                    daemon=True
+                ).start()
+                
+                threading.Thread(
+                    target=self.vagus.monitor_hardware_state, 
+                    args=(oracle_result,), 
+                    daemon=True
+                ).start()
             except Exception as e:
-                logger.debug(f"Embodiment skipped (safe): {e}")
+                logger.debug(f"Embodiment threads skipped (safe): {e}")
 
         if self.toggles.get("rps_pps_enabled", True):
             try:
@@ -3550,14 +3955,14 @@ Return ONLY valid JSON:
             except Exception as e:
                 logger.debug(f"Meta-tuning skipped (safe): {e}")
 
-        # v0.8: Pruning Advisor synergy
+        # 6. Pruning Advisor synergy
         if hasattr(self, 'pruning_advisor') and score > 0.75:
             try:
                 self.pruning_advisor.analyze_run(oracle_result, run_data)
             except Exception as e:
                 logger.debug(f"Pruning Advisor skipped (safe): {e}")
 
-        # 6. Stigmergic Trace + Memory Cleanup
+        # 7. Stigmergic Trace + Memory Cleanup
         trace = {
             "loop": self.loop_count,
             "final_score": round(score, 4),
@@ -3575,38 +3980,78 @@ Return ONLY valid JSON:
             
     # ====================== v0.6 helper for wiki snapshot (used in run_data) ======================
     def _get_wiki_snapshot(self) -> dict:
-        """Minimal wiki snapshot for MP4 archival"""
+        """Minimal wiki snapshot for MP4 archival and retrospectives."""
         try:
-            return {"timestamp": datetime.now().isoformat(), "challenge_id": getattr(self, "_current_challenge_id", "none")}
-        except:
-            return {}
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "challenge_id": getattr(self, "_current_challenge_id", "none"),
+                "loop": getattr(self, "loop_count", 0),
+                "recent_score": getattr(self.validator, "last_score", 0.0)
+            }
+        except Exception as e:
+            logger.debug(f"Wiki snapshot failed (safe): {e}")
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "challenge_id": "unknown",
+                "status": "snapshot_error"
+            }
 
     # ====================== MISSING METHODS FROM YOUR PASTE (added to make it complete) ======================
     def _apply_wiki_strategy(self, raw_context: str, challenge_id: str) -> Dict:
+        """Apply wiki strategy to ingest raw context into the knowledge hierarchy."""
+        if not raw_context or len(raw_context.strip()) < 50:
+            return {"status": "skipped", "reason": "context too short"}
+
         wiki_prompt = load_brain_component("principles/wiki_strategy")
         full_prompt = f"{wiki_prompt}\n\nRaw context to ingest:\n{raw_context[:8000]}"
-        response = self.harness.call_llm(full_prompt, temperature=0.2, max_tokens=1200)
-        deltas = self._safe_parse_json(response)
-        self._ensure_knowledge_hierarchy(challenge_id)
-        with open(f"goals/knowledge/{challenge_id}/raw/ingest_{int(time.time())}.json", "w") as f:
-            json.dump(deltas, f, indent=2)
-        logger.info("Wiki Strategy applied at Planning level")
-        return deltas
+
+        try:
+            response = self.harness.call_llm(full_prompt, temperature=0.25, max_tokens=1400)
+            deltas = self._safe_parse_json(response)
+
+            # Ensure directory structure
+            self._ensure_knowledge_hierarchy(challenge_id)
+
+            # Save raw ingest for traceability
+            ingest_path = f"goals/knowledge/{challenge_id}/raw/ingest_{int(time.time())}.json"
+            with open(ingest_path, "w", encoding="utf-8") as f:
+                json.dump(deltas, f, indent=2)
+
+            logger.info(f"Wiki Strategy applied successfully for challenge {challenge_id}")
+            return {"status": "success", "deltas": deltas, "ingest_file": ingest_path}
+
+        except Exception as e:
+            logger.warning(f"Wiki strategy application failed: {e}")
+            return {"status": "failed", "reason": str(e)}
 
     def _apply_bio_strategy(self, subtask: str, solution: str) -> str:
-        if not (self.mycelial_pruning or self.quantum_coherence_mode):
+        """Apply biological/mycelial strategy heuristics when enabled."""
+        if not (getattr(self, "mycelial_pruning", False) or 
+                getattr(self, "quantum_coherence_mode", False)):
             return ""
-        bio_prompt = load_brain_component("principles/bio_strategy")
-        full_prompt = f"{bio_prompt}\n\nSubtask: {subtask}\nCurrent solution snippet: {solution[:1200]}"
-        if self.quantum_coherence_mode:
-            full_prompt += "\nQuantum-bio mode active: apply tunneling/entanglement heuristics where resource_aware allows."
-        return self.harness.call_llm(full_prompt, temperature=0.3, max_tokens=600)
 
+        try:
+            bio_prompt = load_brain_component("principles/bio_strategy")
+            full_prompt = f"{bio_prompt}\n\nSubtask: {subtask}\nCurrent solution snippet: {solution[:1200]}"
+            
+            if getattr(self, "quantum_coherence_mode", False):
+                full_prompt += "\nQuantum-bio mode active: apply tunneling/entanglement heuristics where resource_aware allows."
+
+            return self.harness.call_llm(full_prompt, temperature=0.32, max_tokens=700)
+        except Exception as e:
+            logger.debug(f"Bio strategy skipped (safe): {e}")
+            return ""
+            
     def is_aha_detected(self, recent_scores: List[float], threshold: float = 0.12) -> bool:
+        """Detect sudden performance jumps (AHA moments) or strong heterogeneity spikes."""
         if len(recent_scores) < 2:
             return False
+
         jump = recent_scores[-1] - recent_scores[-2]
-        hetero_spike = self._compute_heterogeneity_score()["heterogeneity_score"] > 0.78
+        hetero = self._compute_heterogeneity_score()
+
+        hetero_spike = hetero.get("heterogeneity_score", 0.0) > 0.78 if isinstance(hetero, dict) else False
+
         return jump > threshold or hetero_spike
 
     def _update_brain_metrics(self, aha_strength: float = 0.0, wiki_contrib: float = 0.0):
