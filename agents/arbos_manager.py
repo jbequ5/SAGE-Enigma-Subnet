@@ -462,6 +462,7 @@ class ArbosManager:
         self.pruning_advisor = PruningAdvisor()
         self.pruning_advisor.arbos = self  # give it access to fragment_tracker
         self.constants = self._load_constants_tuning()
+        self.tool_env_manager = ToolEnvManager()
 
         # Safe execution (RestrictedPython)
         self.safe_exec = self.validator.safe_exec
@@ -1352,30 +1353,30 @@ After creating the contract, critique it internally for completeness and feasibi
         strategy["hardening_dialogue"] = self.dvr.hardening_conversation_template()
         self._current_strategy = strategy
 
-        # 3. Proactive ToolHunter + rich context + memory graph query
+        # 3. Proactive ToolHunter + FULL rich context packet (pre-dry-run)
         rich_context = {
             "task": task,
             "verifiability_contract": verifiability_contract,
             "human_refinement": human_refinement,
             "previous_outputs_summary": [o.get("subtask", "") for o in (previous_outputs or [])],
-            "gaps": self._detect_gaps_from_previous_outputs(previous_outputs) if previous_outputs else []
+            "gaps": self._detect_gaps_from_previous_outputs(previous_outputs) if previous_outputs else [],
+            "dependency_graph": strategy.get("dependency_graph", {}),          # from Phase 1
+            "reassembly_plan": verifiability_contract.get("recomposition_plan", {}),
+            "high_signal_fragments": self.fragment_tracker.query_relevant_fragments(task, top_k=6)
         }
 
-        # Query high-signal fragments
-        relevant_fragments = self.fragment_tracker.query_relevant_fragments(task, top_k=6)
-        rich_context["high_signal_fragments"] = relevant_fragments
-
-        if relevant_fragments:
-            logger.info(f"Retrieved {len(relevant_fragments)} high-signal fragments from graph for this task")
-
-        # Call ToolHunter with enriched context
         tool_recs = tool_hunter.hunt_and_integrate(
-            gap_description="Proactive hunt for this subtask",
+            gap_description="Proactive capability hunt for this subtask",
             subtask=task,
-            challenge_context=json.dumps(rich_context)
+            challenge_context=json.dumps(rich_context),
+            verifiability_contract=verifiability_contract,
+            arbos=self
         )
-        strategy["recommended_tools"] = tool_recs.get("tools", [])
 
+        strategy["recommended_tools"] = tool_recs.get("recommended_tools", [])
+        strategy["tool_env_paths"] = tool_recs.get("env_paths", {})  # for later one-click use
+
+        logger.info(f"ToolHunter suggested {len(strategy['recommended_tools'])} tools pre-dry-run")
         # 4. 2-Round Debate (with graph fragments)
         debate_result = self._run_orchestrator_debate(task, verifiability_contract, rich_context)
         if debate_result and debate_result.get("refined_contract"):
