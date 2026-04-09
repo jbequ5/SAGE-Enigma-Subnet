@@ -17,7 +17,20 @@ When no real backend/tool exists for a required artifact or verifier, the system
 - Use the highest-preference available approximation method
 - Log the approximation clearly in decision journal and dry-run result
 - Still aim for maximum verifier quality under approximation constraints
-  
+- 
+## Quantum Template
+{
+  "artifacts_required": ["circuit", "measurement", "error_correction"],
+  "composability_rules": ["circuit must be composable with measurement", "error rates < 0.01"],
+  "approximation_mode": "auto"
+}
+
+## Cryptographic Template
+{
+  "artifacts_required": ["key_exchange", "proof_of_security"],
+  "composability_rules": ["security proof must cover all edge cases"],
+  "approximation_mode": "disabled"
+}  
 ## Evolution Rules (Enforced by Scientist Mode + Pruning Advisor)
 - Promotion: Replay pass rate ≥ 0.90 AND EFS contribution ≥ +1.5% AND miner approval
 - Every evolved delta must include provenance (e.g., "EVOLVED FROM SCIENTIST MODE – quantum domain – Loop 47" or "DOUBLE_CLICK gap on entropy invariants")
