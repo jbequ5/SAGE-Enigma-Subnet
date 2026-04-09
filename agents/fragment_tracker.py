@@ -74,3 +74,13 @@ class FragmentTracker:
                     "subtask": data.get("subtask_id")
                 })
         return sorted(results, key=lambda x: x["impact_score"], reverse=True)[:top_k]
+
+    def update_replay_pass_rate(self, frag_id: str, pass_rate: float):
+        if self.graph.has_node(frag_id):
+            self.graph.nodes[frag_id]["replay_pass_rate"] = pass_rate
+            self._save()
+
+    def increment_contract_delta_contrib(self, frag_id: str):
+        if self.graph.has_node(frag_id):
+            self.graph.nodes[frag_id]["contract_delta_contrib"] += 1
+            self._save()
