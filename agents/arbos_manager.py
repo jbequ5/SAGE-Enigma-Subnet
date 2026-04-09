@@ -10,7 +10,8 @@ from datetime import datetime
 from typing import Tuple, List, Dict, Any
 from pathlib import Path
 import threading  # v0.6: for background embodiment threads
-
+import random
+from scipy.stats import gaussian_kde
 import numpy as np
 import logging
 import shutil
@@ -339,7 +340,6 @@ class ArbosManager:
         self.fragment_tracker = FragmentTracker()
         self.pruning_advisor = PruningAdvisor(arbos=self)
         self.constants = self._load_constants_tuning()
-        self.tool_env_manager = ToolEnvManager()
         self.compute = compute_router
         self.compute.set_model_registry(self.model_registry)  # if you have one
 
