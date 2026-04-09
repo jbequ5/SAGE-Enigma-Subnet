@@ -1147,37 +1147,38 @@ After creating the contract, critique it internally for completeness and feasibi
             pass  # safe fallback        
     # ====================== PLANNING ======================
     def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_prompt: str = "", compute_mode: str = "local_gpu") -> Dict[str, Any]:
-        """v0.8 Top-tier Planning Arbos — rich context + formal Verifiability Contract."""
+        """v0.8+ Phase 1: Planning Arbos — generates decomposition, reassembly plan, dependency graph, 
+        and initial executable verifier snippets."""
+        
         self.set_compute_source(compute_mode)
         
         if not challenge or len(challenge.strip()) < 10:
             return {"error": "Challenge too short"}
 
-        logger.info("🚀 Planning Arbos starting — v0.8 contract + proactive context preparation")
+        logger.info("🚀 Planning Arbos Phase 1 started")
 
-        # Load rich prior context
+        # Rich prior context
         recent_history = self.get_run_history(n=6)
         grail_patterns = self._load_recent_grail_patterns()
         wiki_deltas = self._apply_wiki_strategy(goal_md + "\n" + challenge, challenge.replace(" ", "_").lower())
 
-        # Generate high-quality verifiability contract
+        # Generate high-quality verifiability contract (includes initial verifier snippets)
         contract_result = self.generate_verifiability_contract(challenge, goal_md)
 
         # Strong human-in-the-loop enforcement
         if not enhancement_prompt or len(enhancement_prompt.strip()) < 30:
-            logger.warning("⚠️ Weak or missing human refinement prompt")
-            enhancement_prompt = enhancement_prompt or (
-                "Maximize verifier compliance, heterogeneity across all five axes, "
-                "deterministic/symbolic paths first, and clean composability for Synthesis Arbos. "
-                "Be brutally honest about feasibility."
-            )
+            enhancement_prompt = "Maximize verifier compliance, heterogeneity across all five axes, deterministic/symbolic paths first. Prioritize clean composability for Synthesis Arbos. Be brutally honest about feasibility."
 
         self._current_enhancement = enhancement_prompt
 
-        # Structured handoff to Orchestrator
+        # Structured handoff to Orchestrator Phase 2
         orchestrator_input = {
             "human_refinement": enhancement_prompt,
-            "verifiability_contract": contract_result.get("final_verifiability_contract", {}),
+            "verifiability_contract": contract_result["final_verifiability_contract"],
+            "decomposition": contract_result.get("decomposition", []),
+            "reassembly_plan": contract_result.get("recomposition_plan", {}),
+            "dependency_graph": contract_result.get("dependency_graph", {}),
+            "initial_verifier_snippets": contract_result.get("verifier_code_snippets", []),
             "prior_lessons": {
                 "recent_history": recent_history,
                 "grail_patterns": grail_patterns,
@@ -1185,7 +1186,7 @@ After creating the contract, critique it internally for completeness and feasibi
             }
         }
 
-        # Hand off to Orchestrator
+        # Hand off to Orchestrator Arbos (Phase 2)
         execution_result = self.orchestrate_subarbos(
             task=challenge,
             goal_md=goal_md,
@@ -1201,7 +1202,7 @@ After creating the contract, critique it internally for completeness and feasibi
             "adapted_strategy": self._current_strategy,
             "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
             "human_refinement": enhancement_prompt,
-            "verifiability_contract": contract_result.get("final_verifiability_contract", {}),
+            "verifiability_contract": contract_result["final_verifiability_contract"],
             "structured_handoff": True
         }
     # Clean handoff helper
@@ -1562,8 +1563,8 @@ Return ONLY valid JSON with these keys:
         }
         
     def _run_orchestrator_debate(self, task: str, contract: Dict, rich_context: Dict) -> Dict:
-        """v0.8 2-Round Critique-First Debate for Orchestrator Phase 2.
-        Now includes high-signal fragment injection from the memory graph."""
+        """v0.8+ Phase 2: 2-Round Critique-First Debate for Orchestrator.
+        Includes high-signal fragment injection, InfoSeeker heuristics, and strict output control."""
         
         if not contract:
             contract = {}
@@ -1577,28 +1578,33 @@ Return ONLY valid JSON with these keys:
         if relevant_fragments:
             logger.info(f"Injected {len(relevant_fragments)} high-signal fragments into Orchestrator debate")
 
-        debate_prompt = f"""You are Orchestrator Arbos running a strict 2-round critique-first debate.
+        debate_prompt = f"""You are Orchestrator Arbos — running a strict 2-round critique-first debate for a high-stakes verifiability contract.
 
 TASK: {task}
 
-VERIFIABILITY CONTRACT:
-{json.dumps(contract, indent=2)[:900]}
+VERIFIABILITY CONTRACT (must be strictly respected):
+{json.dumps(contract, indent=2)[:950]}
 
-HIGH-SIGNAL FRAGMENTS FROM LONG-TERM MEMORY GRAPH (use these where relevant for better decomposition and composability):
+HIGH-SIGNAL FRAGMENTS FROM LONG-TERM MEMORY GRAPH (use relevant insights to strengthen decomposition and composability):
 {json.dumps(relevant_fragments, indent=2)}
 
 RICH CONTEXT:
-{json.dumps(rich_context, indent=2)[:700]}
+{json.dumps(rich_context, indent=2)[:750]}
 
-INSTRUCTIONS:
-Round 1: Harshly critique weaknesses in decomposition, composability rules, verifier coverage, missing artifacts, and gaps that high-signal fragments might help close.
-Round 2: Propose concrete refinements, improved contract slices, stronger verifier snippets, and better artifact interfaces.
+MANDATORY INFOSEEKER HEURISTICS TO APPLY:
+- Near-Decomposability: Are subtasks nearly independent? Identify tight couplings.
+- Map-Reduce Aggregate: Where can parallel work be reduced efficiently?
+- Reflection Checklist: Completeness, verifier coverage, edge cases, composability risks.
 
-Return ONLY valid JSON with this exact structure:
+DEBATE STRUCTURE:
+Round 1: Harshly critique weaknesses in decomposition, composability rules, verifier coverage, missing artifacts, and any gaps that high-signal fragments could resolve.
+Round 2: Propose concrete, actionable refinements — improved contract slices, stronger verifier snippets, better artifact interfaces, and dependency graph fixes.
+
+Return ONLY valid JSON with this exact structure (no extra text):
 {{
-  "refined_contract": {{ ... improved version of the contract ... }},
-  "debate_summary": "brief summary of critiques and decisions",
-  "key_improvements": ["list of specific changes made"],
+  "refined_contract": {{ ... complete improved version of the contract ... }},
+  "debate_summary": "concise summary of key critiques and decisions",
+  "key_improvements": ["list of specific, actionable changes made"],
   "confidence": 0.0-1.0
 }}"""
 
@@ -1606,33 +1612,33 @@ Return ONLY valid JSON with this exact structure:
             model_config = self.load_model_registry(role="planner")
             raw = self.harness.call_llm(
                 debate_prompt, 
-                temperature=0.38, 
-                max_tokens=1700, 
+                temperature=0.35, 
+                max_tokens=1800, 
                 model_config=model_config
             )
             
             result = self._safe_parse_json(raw)
 
-            # Safety fallback
+            # Strong safety fallback
             if not isinstance(result, dict) or "refined_contract" not in result:
-                logger.warning("Orchestrator debate returned invalid JSON — using original contract")
+                logger.warning("Orchestrator debate returned invalid JSON — falling back to original contract")
                 return {
                     "refined_contract": contract,
-                    "debate_summary": "Debate failed — using original contract",
+                    "debate_summary": "Debate parsing failed — using original contract as fallback",
                     "key_improvements": [],
-                    "confidence": 0.45
+                    "confidence": 0.40
                 }
 
-            logger.info(f"Orchestrator 2-round debate completed with {len(relevant_fragments)} memory fragments | Confidence: {result.get('confidence', 0.0):.2f}")
+            logger.info(f"Orchestrator Phase 2 debate completed with {len(relevant_fragments)} memory fragments | Confidence: {result.get('confidence', 0.0):.2f}")
             return result
 
         except Exception as e:
             logger.error(f"Orchestrator debate failed: {e}")
             return {
                 "refined_contract": contract,
-                "debate_summary": f"Debate crashed: {str(e)[:200]}",
+                "debate_summary": f"Critical error during debate: {str(e)[:180]}",
                 "key_improvements": [],
-                "confidence": 0.3
+                "confidence": 0.30
             }
         
     def _execute_swarm(self, blueprint: Dict, dynamic_size: int):
@@ -1761,7 +1767,6 @@ Return ONLY valid JSON with this exact structure:
                           subtask_contract: Dict = None) -> dict:
         """v0.8 Top-tier Sub-Arbos Worker — now receives explicit subtask_contract slice
         for local verifier-first validation on every attempt."""
-
         if message_bus is None:
             message_bus = []
         if subtask_contract is None:
@@ -3147,8 +3152,8 @@ Return ONLY the complete function code."""
     def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 300, 
                           focus_gap: str = None, intent: Dict = None) -> Dict:
         """v0.8+ SOTA Scientist Mode — outer-loop intelligence engine.
-        Supports full intent dict for targeted memory constant tuning, novelty probes,
-        contract evolution, DOUBLE_CLICK gaps, and direct feed to Meta-Tuning."""
+        Runs synthetic experiments, evolves contracts, detects DOUBLE_CLICK gaps, 
+        tunes memory constants via intent, and feeds summaries to Meta-Tuning."""
         
         if intent is None:
             intent = {
@@ -3194,9 +3199,9 @@ Return ONLY the complete function code."""
             if focus_gap or "novelty" in synthetic_task.lower() or "edge case" in synthetic_task.lower() or intent.get("target_variable") == "novelty":
                 summary["novelty_probe"] = True
                 summary["contract_recommendation"] = (summary.get("contract_recommendation", "") + 
-                    " | Novelty probe active: emphasize approximation fallbacks, unexplored edge cases, and high-heterogeneity paths.")
+                    " | Novelty probe active: emphasize approximation fallbacks and unexplored edge cases.")
 
-            # DOUBLE_CLICK narrow follow-up
+            # DOUBLE_CLICK narrower experiment
             if summary.get("double_click_triggered", False) and focus_gap is None:
                 narrow_result = self._run_narrower_double_click_experiment(
                     summary.get("gap"), synthetic_task
@@ -3204,7 +3209,7 @@ Return ONLY the complete function code."""
                 if narrow_result:
                     experiment_summaries.append(narrow_result)
 
-        # Memory constant tuning (decay_k, thresholds, etc.)
+        # Memory constant tuning
         self._run_memory_constant_tuning(experiment_summaries, intent)
 
         # Meta-Tuning feed
@@ -3237,7 +3242,6 @@ Return ONLY the complete function code."""
             "contract_deltas": contract_deltas,
             "runtime_seconds": runtime
         }
-
     # ====================== SCIENTIST MODE HELPERS ======================
 
     def _generate_synthetic_challenge(self, focus_gap: str = None) -> str:
@@ -3313,7 +3317,7 @@ Notes from this cycle:
         
     def _evolve_verification_contract_from_synthetic(self, summary: dict) -> dict | None:
         """Extract high-signal contract improvements from Scientist Mode synthetic runs
-        and append them to the living verification contract templates."""
+        and append them to the living verification contract templates + fragment tracking."""
         
         if not isinstance(summary, dict):
             return None
@@ -3348,16 +3352,38 @@ Return ONLY valid JSON:
             if delta and isinstance(delta, dict) and delta.get("content"):
                 content = delta["content"].strip()
                 
-                # Safe file append with directory guarantee
+                # 1. Safe file append
                 contract_path = Path("goals/brain/verification_contract_templates.md")
                 contract_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 with open(contract_path, "a", encoding="utf-8") as f:
                     f.write(f"\n\n# EVOLVED DELTA from Scientist Mode | "
                            f"Score {score:.3f} | EFS {efs:.3f} | {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+                    f.write(f"Type: {delta.get('delta_type', 'general')}\n")
                     f.write(f"{content}\n")
+                    f.write("---\n")
 
-                logger.info(f"✅ Contract delta extracted and appended: {delta.get('delta_type', 'general')}")
+                # 2. Fragment the delta and track it in the memory graph
+                fragments = self._fragment_output(content)
+                for frag in fragments:
+                    frag_id = f"contract_delta_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{frag.get('id', 0)}"
+                    
+                    self.fragment_tracker.record_fragment(
+                        frag_id=frag_id,
+                        initial_mau=0.85,  # contract deltas are high-value by default
+                        challenge_id="global",
+                        subtask_id="contract",
+                        content_preview=frag["content"][:250]
+                    )
+                    
+                    # Mark as contract-related for higher future impact_score
+                    self.fragment_tracker.record_reuse(
+                        frag_id=frag_id,
+                        efs=0.88,
+                        is_contract_delta=True
+                    )
+
+                logger.info(f"✅ Contract delta extracted, appended, and fragmented: {delta.get('delta_type', 'general')}")
                 return delta
 
             logger.debug("No valid contract delta extracted from synthetic run")
@@ -3366,7 +3392,6 @@ Return ONLY valid JSON:
         except Exception as e:
             logger.warning(f"Failed to evolve verification contract from synthetic run: {e}")
             return None
-
     def _load_scientist_log(self) -> List:
         if self.scientist_log_path.exists():
             try:
@@ -3474,9 +3499,8 @@ Do not include explanations or extra text."""
     def _run_symbiosis_arbos(self, aggregated_outputs: List[Dict], 
                              message_bus: List = None, 
                              synthesis_result: Dict = None) -> List[Dict]:
-        """Top-tier Symbiosis Arbos — discovers emergent cross-field mutualisms, 
-        patterns, and high-signal insights for grail feeding and meta-learning.
-        Now enhanced with high-signal fragment injection from the memory graph."""
+        """v0.8+ Symbiosis Arbos — intermediate layer between raw swarm outputs and Synthesis Arbos.
+        Discovers emergent mutualisms and writes high-value patterns as fragments to cross_field_synthesis/."""
         
         if not aggregated_outputs or len(aggregated_outputs) < 2:
             logger.debug("Symbiosis Arbos skipped — fewer than 2 outputs")
@@ -3485,30 +3509,21 @@ Do not include explanations or extra text."""
         if message_bus is None:
             message_bus = []
 
-        # Filter to viable outputs only (prevents noise from very weak subtasks)
+        # Filter to viable outputs only
         viable_outputs = [o for o in aggregated_outputs 
                          if isinstance(o, dict) and o.get("local_score", 0.0) > 0.35]
 
         if len(viable_outputs) < 2:
-            logger.debug("Symbiosis Arbos skipped — insufficient viable outputs after filtering")
+            logger.debug("Symbiosis Arbos skipped — insufficient viable outputs")
             return []
 
-        # === QUERY HIGH-SIGNAL FRAGMENTS FROM MEMORY GRAPH ===
-        relevant_fragments = self.query_relevant_fragments(
+        # Query high-signal fragments from memory graph
+        relevant_fragments = self.fragment_tracker.query_relevant_fragments(
             query="emergent patterns mutualisms symbiosis cross-field insights", 
             top_k=5
         )
 
-        if relevant_fragments:
-            logger.info(f"Injected {len(relevant_fragments)} high-signal fragments into Symbiosis Arbos")
-
-        # Safe contract access
-        contract_context = ""
-        if hasattr(self, '_current_strategy') and self._current_strategy:
-            contract = self._current_strategy.get("verifiability_contract", {})
-            contract_context = json.dumps(contract, indent=2)[:800] if contract else ""
-
-        # Build prompt carefully with length control
+        # Build prompt
         subtask_summary = [{
             "subtask": o.get("subtask", "unknown"),
             "role": o.get("role", "unknown"),
@@ -3527,16 +3542,13 @@ SUBTASK OUTPUTS (viable only):
 RECENT MESSAGE BUS SIGNALS:
 {json.dumps(message_bus[-10:], indent=2) if message_bus else "None"}
 
-HIGH-SIGNAL FRAGMENTS FROM LONG-TERM MEMORY GRAPH (use these to inspire new connections):
+HIGH-SIGNAL FRAGMENTS FROM MEMORY GRAPH:
 {json.dumps(relevant_fragments, indent=2)}
-
-VERIFIABILITY CONTRACT CONTEXT:
-{contract_context}
 
 Your job:
 1. Identify non-obvious connections, mutualisms, and emergent patterns across subtasks.
-2. Find "entanglement-like" opportunities where one subtask dramatically improves another.
-3. Extract high-signal insights worthy of the Grail, especially those that align with or extend past successful fragments.
+2. Find entanglement-like opportunities where one subtask dramatically improves another.
+3. Extract high-signal insights worthy of the Grail.
 4. Suggest concrete, actionable improvements or new hypotheses.
 
 Return ONLY a valid JSON array (max 6 patterns). Each pattern must follow this exact schema:
@@ -3559,29 +3571,42 @@ Return ONLY a valid JSON array (max 6 patterns). Each pattern must follow this e
             )
             
             patterns = self._safe_parse_json(raw)
-
             if not isinstance(patterns, list):
                 patterns = [patterns] if isinstance(patterns, dict) else []
 
-            # Filter to high-value patterns only
+            # Filter high-value patterns
             high_value_patterns = [
                 p for p in patterns 
-                if isinstance(p, dict) and (
-                    p.get("insight_strength", 0) > 0.62 or 
-                    p.get("grail_worthiness") == "high"
-                )
+                if isinstance(p, dict) and (p.get("insight_strength", 0) > 0.62 or p.get("grail_worthiness") == "high")
             ]
 
             if high_value_patterns:
-                try:
-                    grail_path = Path("goals/brain/grail_patterns/symbiosis_patterns.json")
-                    grail_path.parent.mkdir(parents=True, exist_ok=True)
-                    with open(grail_path, "a", encoding="utf-8") as f:
-                        f.write(json.dumps(high_value_patterns, indent=2) + "\n\n")
-                except Exception as e:
-                    logger.debug(f"Failed to append symbiosis patterns to grail: {e}")
+                challenge_id = getattr(self, "_current_challenge_id", "current")
+                cross_field_dir = Path(f"goals/knowledge/{challenge_id}/wiki/cross_field_synthesis")
+                cross_field_dir.mkdir(parents=True, exist_ok=True)
 
-                logger.info(f"Symbiosis Arbos discovered {len(high_value_patterns)} high-value patterns (with {len(relevant_fragments)} memory fragments)")
+                for pattern in high_value_patterns:
+                    # Write as fragmented high-signal pattern
+                    frag_content = json.dumps(pattern, indent=2)
+                    fragments = self._fragment_output(frag_content)
+                    for frag in fragments:
+                        frag_id = f"symbiosis_pattern_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{frag.get('id', 0)}"
+                        self.fragment_tracker.record_fragment(
+                            frag_id=frag_id,
+                            initial_mau=0.92,  # symbiosis patterns are high-value
+                            challenge_id=challenge_id,
+                            subtask_id="cross_field_synthesis",
+                            content_preview=frag["content"][:250]
+                        )
+                        self._write_fragment(challenge_id, "cross_field_synthesis", frag, {"type": "symbiosis_pattern"})
+
+                # Also append to grail for easy access
+                grail_path = Path("goals/brain/grail_patterns/symbiosis_patterns.json")
+                grail_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(grail_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(high_value_patterns, indent=2) + "\n\n")
+
+                logger.info(f"Symbiosis Arbos discovered and fragmented {len(high_value_patterns)} high-value patterns")
             else:
                 logger.debug("Symbiosis Arbos found no high-value patterns this run")
 
@@ -3590,7 +3615,7 @@ Return ONLY a valid JSON array (max 6 patterns). Each pattern must follow this e
         except Exception as e:
             logger.warning(f"Symbiosis Arbos failed (safe fallback): {e}")
             return []
-
+            
     def post_high_signal_finding(self, subtask: str, content: str, local_score: float):
         """Post a high-signal finding from a Sub-Arbos worker to the message bus 
         and optionally trigger wiki strategy ingestion."""
@@ -4332,8 +4357,16 @@ Return ONLY valid JSON:
                 self.pruning_advisor.analyze_run(oracle_result, run_data)
             except Exception as e:
                 logger.debug(f"Pruning Advisor skipped (safe): {e}")
-
-        # 8. Stigmergic Trace + Memory Cleanup
+                
+        # 8. Contract Evolution
+        if score > 0.88 and hasattr(self, '_evolve_verification_contract_from_synthetic'):
+            delta = self._evolve_verification_contract_from_synthetic({
+                "score": score,
+                "efs": efs,
+                "contract_recommendation": "High-signal real run"
+            })
+            
+        # 9. Stigmergic Trace + Memory Cleanup
         trace = {
             "loop": self.loop_count,
             "final_score": round(score, 4),
