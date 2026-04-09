@@ -1084,17 +1084,28 @@ After creating the contract, critique it internally for completeness and feasibi
         self._update_wiki_index(challenge_id)
 
     def _update_wiki_index(self, challenge_id: str):
-        """Maintain automatic index.md per challenge."""
+        """Maintain automatic index.md per challenge — overwrites cleanly to prevent bloat."""
         index_path = Path(f"goals/knowledge/{challenge_id}/wiki/index.md")
         index_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Simple TOC for now — can be expanded with graph later
-        with open(index_path, "a", encoding="utf-8") as f:
-            f.write(f"\n# Index updated {datetime.now().isoformat()}\n")
+        # Clean TOC
+        toc = f"# Wiki Index — Challenge {challenge_id} | Updated {datetime.now().isoformat()}\n\n"
+        toc += "## Recent Fragments & Concepts\n"
+        
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.write(toc)
             
     def query_relevant_fragments(self, query: str, top_k: int = 5):
         """Orchestrator / ToolHunter can call this."""
-        return self.fragment_tracker.query_relevant_fragments(query, top_k)        
+        return self.fragment_tracker.query_relevant_fragments(query, top_k)    
+        
+    def _enforce_heterogeneity_veto_before_reuse(self, frag_id: str) -> bool:
+        """Prevent cross-domain reuse if heterogeneity would drop too low."""
+        hetero = self._compute_heterogeneity_score().get("heterogeneity_score", 0.0)
+        if hetero < 0.58:
+            logger.info(f"🔒 Heterogeneity veto — skipping reuse of fragment {frag_id}")
+            return False
+        return True        
         
     def _re_score_fragments(self, run_data: dict):
         """Exact v0.8+ dynamic re-evaluation with decay, reuse tracking, and promotion."""
@@ -1240,11 +1251,16 @@ After creating the contract, critique it internally for completeness and feasibi
             "human_refinement": human_refinement,
             "previous_outputs_summary": [o.get("subtask", "") for o in (previous_outputs or [])],
             "gaps": self._detect_gaps_from_previous_outputs(previous_outputs) if previous_outputs else [],
-            "dependency_graph": strategy.get("dependency_graph", {}),          # from Phase 1
+            "dependency_graph": strategy.get("dependency_graph", {}),
             "reassembly_plan": verifiability_contract.get("recomposition_plan", {}),
-            "high_signal_fragments": self.fragment_tracker.query_relevant_fragments(task, top_k=6)
+            "high_signal_fragments": self.fragment_tracker.query_relevant_fragments(task, top_k=6),
+            # Intelligent graph query example (v0.8+)
+            "graph_query_results": self.fragment_tracker.query_relevant_fragments(
+                query=f"quantum OR crypto OR symbolic OR composability OR {task[:80]}",
+                top_k=8
+            ) if hasattr(self.fragment_tracker, 'query_relevant_fragments') else []
         }
-
+                                 
         tool_recs = tool_hunter.hunt_and_integrate(
             gap_description="Proactive capability hunt for this subtask",
             subtask=task,
@@ -3170,7 +3186,13 @@ Return ONLY the complete function code."""
         start_time = time.time()
         experiment_summaries = []
         contract_deltas = []
-
+                              
+        if summary.get("double_click_triggered", False) and focus_gap is None:
+            if getattr(self, "_double_click_nest_level", 0) < 2:  # max 2 nested
+                self._double_click_nest_level = getattr(self, "_double_click_nest_level", 0) + 1
+                narrow_result = self._run_narrower_double_click_experiment(...)
+                self._double_click_nest_level -= 1
+                
         for i in range(num_synthetic):
             if time.time() - start_time > max_runtime_seconds:
                 logger.warning("Scientist Mode reached max runtime safeguard — stopping early")
@@ -3278,7 +3300,8 @@ Return ONLY the complete function code."""
             return
 
         target = intent.get("target_variable", "decay_k")
-        best_k = 0.08
+        best_k = max(0.04, min(0.15, best_k))  # clamp to safe range
+                self._update_constants_tuning_file(best_k=best_k)
 
         # Simple but effective tuning logic
         for summary in experiment_summaries:
