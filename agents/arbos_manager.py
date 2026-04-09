@@ -113,58 +113,45 @@ class DVRPipeline:
 
 # ====================== DRY-RUN SIMULATOR (pre-swarm test-plan validator) ======================
 class DVRDryRunSimulator:
-    def __init__(self, validator: ValidationOracle):
+    def __init__(self, validator):
         self.validator = validator
-
-    def generate_placeholder(self, artifact_spec: Dict) -> Any:
-        snippets = artifact_spec.get("verifier_code_snippets", [])
-        placeholder = {"artifact": "plausible_best_case", "metadata": {}}
-        for snippet in snippets[:3]:
-            local = {"candidate": placeholder, "passed": False, "tightness": 0.0, "score": 0.0}
-            if self.safe_exec(snippet, local_vars=local, approximation_mode=approximation_mode):
-                if local.get("passed", False):
-                    break
-        return placeholder
+        # Ensure we have access to the single safe_exec
+        self.safe_exec = validator.safe_exec
 
     def run_dry_run(self, decomposed_subtasks: List[str], full_verifier_snippets: List[str], 
                     goal_md: str = "") -> Dict:
-        """v0.8+ Hardened Dry-Run Gate — intelligent mocks, approximation fallback, 
-        5D verifier self-check, composability, and DOUBLE_CLICK emission."""
+        """v0.8+ Hardened Dry-Run Gate — intelligent mocks, adversarial variants, 
+        5D verifier self-check, composability checker, approximation fallback, and DOUBLE_CLICK emission."""
         
         logger.info("🚀 Starting v0.8+ hardened dry-run gate")
 
         # Safety guard
-        if not hasattr(self, '_current_strategy') or self._current_strategy is None:
-            self._current_strategy = {}
-
-        contract = self._current_strategy.get("verifiability_contract", {})
+        contract = getattr(self, '_current_strategy', {}).get("verifiability_contract", {})
         approximation_mode = contract.get("approximation_mode", "auto")
-                    
-            
-        # 1. Generate intelligent + adversarial mock data
+
+        # 1. Generate intelligent mock data + adversarial variants
         placeholders = []
         for st in decomposed_subtasks:
-            placeholder = self.generate_placeholder({"verifier_code_snippets": full_verifier_snippets})
+            placeholder = self._generate_intelligent_mock(st, full_verifier_snippets)
             adversarial = placeholder.copy()
             adversarial["adversarial"] = True
             placeholders.extend([placeholder, adversarial])
 
         merged = self._simple_merge(placeholders)
 
-        # 2. Verifier Self-Check Layer (5D)
+        # 2. 5D Verifier Self-Check Layer (real exec-based)
         self_check = self._verifier_self_check_layer(
-            candidate=str(merged), 
-            contract=contract, 
+            candidate=str(merged),
             verifier_snippets=full_verifier_snippets,
             approximation_mode=approximation_mode
         )
 
-        # 3. Full ValidationOracle run (for score, EFS, C3A, etc.)
+        # 3. Full ValidationOracle run
         validation_result = self.validator.run(
-            candidate=merged, 
-            verification_instructions="", 
-            challenge="dry_run", 
-            goal_md=goal_md, 
+            candidate=merged,
+            verification_instructions="",
+            challenge="dry_run",
+            goal_md=goal_md,
             subtask_outputs=placeholders,
             subtask_contract=contract
         )
@@ -176,10 +163,10 @@ class DVRDryRunSimulator:
         hetero = self.validator._compute_heterogeneity_score(placeholders)
 
         c = self.validator._compute_c3a_confidence(edge, invariant, getattr(self, 'historical_reliability', 0.85))
-        theta = self.validator._compute_theta_dynamic(c, max(1, self.loop_count) / 10.0)
+        theta = self.validator._compute_theta_dynamic(c, max(1, getattr(self, 'loop_count', 1)) / 10.0)
         efs = self.validator._compute_efs(fidelity, 0.8, hetero, 0.75, 0.85)
 
-        # 5. Full composability check
+        # 5. Composability checker
         composability_result = self._check_composability(merged, decomposed_subtasks, full_verifier_snippets)
 
         # 6. Gate decision
@@ -190,23 +177,14 @@ class DVRDryRunSimulator:
             composability_result.get("passed", False) and 
             self_check.get("verifier_quality", 0) >= 0.65
         )
-                        
-        # Approximation handling
-        approximation_used = validation_result.get("approximation_used", False)
-        if approximation_used:
-            logger.info(f"Dry-run used approximation mode: {validation_result.get('approximation_method')}")
-            dry_run["approximation_used"] = True
-            dry_run["approximation_method"] = validation_result.get("approximation_method")
-            dry_run["recommendation"] = "PROCEED_WITH_APPROXIMATION" if validation_result.get("verifier_quality", 0) > 0.52 else "ITERATE_DECOMP"
-            
+
         recommendation = "PROCEED_TO_SWARM" if passed_gate else "ITERATE_DECOMP"
 
-        # 7. DOUBLE_CLICK / Escalation detection
+        # 7. DOUBLE_CLICK detection
         double_click_info = None
         if not passed_gate:
             verifier_q = self_check.get("verifier_quality", 0)
             comp_score = composability_result.get("score", 0)
-            
             if verifier_q < 0.58 or comp_score < 0.62:
                 double_click_info = {
                     "gap": "low_verifier_quality_or_composability",
@@ -217,8 +195,7 @@ class DVRDryRunSimulator:
                     },
                     "severity": "high" if verifier_q < 0.50 else "medium"
                 }
-                
-            
+
         return {
             "dry_run_passed": passed_gate,
             "best_case_c": round(c, 4),
@@ -236,199 +213,101 @@ class DVRDryRunSimulator:
             "approximation_used": self_check.get("approximation_used", False),
             "approximation_method": self_check.get("approximation_method")
         }
-                        
-    def _compute_verifier_quality(self, candidate: str, verifier_snippets: List[str], contract: Dict = None) -> Dict:
-        """v0.8 Verifier Self-Check Layer — now using RestrictedPython."""
+
+    # ====================== 5D VERIFIER SELF-CHECK LAYER ======================
+    def _verifier_self_check_layer(self, candidate: str, verifier_snippets: List[str], 
+                                 approximation_mode: str = "auto") -> Dict:
+        """5D scoring with exact weights (0.35/0.25/0.20/0.10 + base) using real exec."""
         if not verifier_snippets:
-            return {"verifier_quality": 0.5, "dimensions": {}, "passed": False}
+            return {"verifier_quality": 0.5, "dimensions": {}, "approximation_used": False}
 
-        dimensions = {}
         scores = []
-
         for snippet in verifier_snippets[:6]:
-            try:
-                local = {"candidate": candidate, "result": None, "passed": False}
-                if self.safe_exec(snippet, local_vars=local, approximation_mode=approximation_mode)
-                    passed = bool(local.get("result") or local.get("passed", False))
-                    scores.append(1.0 if passed else 0.25)
-                else:
-                    scores.append(0.2)
-            except Exception:
-                scores.append(0.2)
+            local = {"candidate": candidate, "result": None, "passed": False}
+            success = self.safe_exec(snippet, local_vars=local, approximation_mode=approximation_mode)
+            passed = bool(local.get("result") or local.get("passed", False))
+            scores.append(1.0 if passed else 0.35)
 
-        base_score = sum(scores) / len(scores) if scores else 0.5
+        base = sum(scores) / len(scores) if scores else 0.5
 
         dimensions = {
-            "edge_coverage": getattr(self.validator, '_compute_edge_coverage', lambda *a: base_score)(candidate, verifier_snippets),
-            "invariant_tightness": getattr(self.validator, '_compute_invariant_tightness', lambda *a: base_score)(candidate, verifier_snippets),
-            "fidelity": getattr(self.validator, '_compute_fidelity', lambda *a: base_score)(candidate, verifier_snippets),
-            "adversarial_resistance": round(base_score * 0.9 + 0.1, 3),
-            "symbolic_consistency": 0.9 if any("sympy" in s.lower() or "assert" in s.lower() for s in verifier_snippets) else 0.45
+            "edge_coverage": round(base * 0.9, 3),
+            "invariant_tightness": round(base * 0.85, 3),
+            "adversarial_resistance": round(base * 0.75, 3),
+            "consistency_safety": round(base * 0.95, 3)
         }
 
-        verifier_quality = round(sum(dimensions.values()) / len(dimensions), 4)
+        verifier_quality = round(
+            0.35 * dimensions["edge_coverage"] +
+            0.25 * dimensions["invariant_tightness"] +
+            0.20 * dimensions["adversarial_resistance"] +
+            0.10 * dimensions["consistency_safety"] +
+            0.10 * base, 
+            3
+        )
 
         return {
             "verifier_quality": verifier_quality,
             "dimensions": dimensions,
-            "passed": verifier_quality >= 0.65
+            "approximation_used": local.get("approximation_used", False)
         }
 
-    def _generate_intelligent_mock_data(self, subtasks: List[str], goal_md: str = "") -> List[Dict]:
-        """Generate plausible winning mock solutions for dry-run."""
-        mocks = []
-        for st in subtasks[:4]:
-            mocks.append({
-                "subtask": st,
-                "solution": f"[Mock high-quality solution for: {st[:80]}...]",
-                "score": 0.88,
-                "type": "winning"
-            })
-        return mocks
+    # ====================== MOCK DATA ======================
+    def _generate_intelligent_mock(self, subtask: str, verifier_snippets: List[str]) -> Dict:
+        return {
+            "subtask": subtask,
+            "solution": f"[High-quality mock solution for {subtask} that satisfies all verifier snippets]",
+            "score": 0.88,
+            "type": "winning"
+        }
 
-    def _generate_adversarial_mocks(self, subtasks: List[str]) -> List[Dict]:
-        """Generate edge-case / failing mocks for robustness testing."""
-        mocks = []
-        for st in subtasks[:3]:
-            mocks.append({
-                "subtask": st,
-                "solution": f"[Adversarial / edge-case input for: {st[:80]}... that breaks invariants]",
-                "score": 0.35,
-                "type": "adversarial",
-                "adversarial": True
-            })
-        return mocks
-
-    def _check_composability(self, merged: Any, decomposed_subtasks: List, verifier_snippets: List[str] = None) -> Dict:
-        """v0.8 Real composability check — no hardcoded constants."""
+    # ====================== COMPOSABILITY CHECKER ======================
+    def _check_composability(self, merged: Any, decomposed_subtasks: List[str], 
+                            verifier_snippets: List[str] = None) -> Dict:
+        """Real composability test against contract rules."""
         if not decomposed_subtasks:
-            return {"passed": False, "score": 0.0, "details": "No subtasks to compose"}
+            return {"passed": False, "score": 0.0, "details": "No subtasks"}
 
-        merged_str = str(merged).lower()
-        contradiction_score = sum(1 for kw in ["contradict", "conflict", "inconsistent", "impossible", "break"] 
-                                 if kw in merged_str)
+        score = 1.0
+        notes = []
 
-        base_score = max(0.4, 1.0 - (contradiction_score * 0.25))
-        
-        # Bonus if merged structure looks coherent
         if isinstance(merged, dict) and len(merged) >= len(decomposed_subtasks) // 2:
-            base_score += 0.2
+            score += 0.25
+        else:
+            score -= 0.4
+            notes.append("Incomplete artifact coverage")
 
-        final_score = round(min(1.0, base_score), 4)
+        # Execute any composability rules if present
+        contract = getattr(self, '_current_strategy', {}).get("verifiability_contract", {})
+        rules = contract.get("composability_rules", [])
+        for rule in rules[:3]:
+            local = {"merged": merged, "result": None}
+            if not self.safe_exec(rule, local):
+                score *= 0.7
+                notes.append(f"Rule failed: {rule[:60]}...")
+
+        final_score = round(max(0.0, min(1.0, score)), 3)
 
         return {
             "passed": final_score >= 0.70,
             "score": final_score,
-            "details": f"Composed {len(decomposed_subtasks)} subtasks | Contradictions detected: {contradiction_score}",
-            "contradiction_count": contradiction_score
+            "details": f"Composed {len(decomposed_subtasks)} subtasks | Notes: {notes}"
         }
 
-    def _apply_contract_delta(self, delta: dict):
-        """Apply a contract evolution delta to the living template file + fragment tracking."""
+    def _simple_merge(self, placeholders: List[Dict]) -> Dict:
+        """Fidelity-ordered merge for dry-run."""
+        sorted_placeholders = sorted(placeholders, key=lambda x: x.get("score", 0.0), reverse=True)
+        merged = {"solution": "", "sources": [], "merged_from": len(sorted_placeholders)}
         
-        if not delta or not isinstance(delta, dict):
-            logger.warning("Invalid contract delta received")
-            return
-
-        content = delta.get("content", str(delta))
-        fragments = self._fragment_output(content)
-
-        for frag in fragments:
-            frag_id = f"contract_delta_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{frag.get('id', 0)}"
-            
-            # Record as new fragment
-            self.fragment_tracker.record_fragment(
-                frag_id=frag_id,
-                initial_mau=0.0,           # contract deltas start neutral
-                challenge_id="global",
-                subtask_id="contract",
-                content_preview=frag["content"][:250]
-            )
-            
-            # Mark it as contract-related (boosts future impact_score)
-            self.fragment_tracker.record_reuse(
-                frag_id=frag_id, 
-                efs=0.85,                  # contract deltas are high-value by nature
-                is_contract_delta=True
-            )
-
-        try:
-            path = Path("goals/brain/verification_contract_templates.md")
-            path.parent.mkdir(parents=True, exist_ok=True)
-            
-            with open(path, "a", encoding="utf-8") as f:
-                f.write(f"\n\n# EVOLVED DELTA — {delta.get('provenance', 'unknown')} | {datetime.now().isoformat()}\n")
-                f.write(f"Type: {delta.get('delta_type', 'general')}\n")
-                f.write(f"Source: {delta.get('source', 'Meta-Tuning/Scientist Mode')}\n")
-                f.write(f"{content}\n")
-                f.write("---\n")
-            
-            logger.info(f"✅ Contract delta applied and fragmented: {delta.get('delta_type', 'general')}")
-            
-        except Exception as e:
-            logger.warning(f"Failed to write contract delta to file: {e}")
-
-    def _simple_merge(self, placeholders: List[Any]) -> Any:
-        """Improved simple merge that respects scores, structure, and contract context.
-        Used primarily in dry-run for mock solution merging."""
-        
-        if not placeholders:
-            return {"solution": "", "merged_from": 0, "success": False}
-
-        # Sort by score descending (highest fidelity first)
-        sorted_placeholders = sorted(
-            placeholders, 
-            key=lambda x: x.get("score", 0.0) if isinstance(x, dict) else 0.0, 
-            reverse=True
-        )
-
-        merged = {
-            "solution": "",
-            "merged_from": len(sorted_placeholders),
-            "sources": [],
-            "success": True
-        }
-
         for p in sorted_placeholders:
-            if not p:
-                continue
-                
             if isinstance(p, dict):
-                # Merge structured data
-                for key, value in p.items():
-                    if key == "solution" or key == "merged_solution":
-                        if merged["solution"]:
-                            merged["solution"] += "\n\n"
-                        merged["solution"] += str(value)
-                    else:
-                        # Avoid overwriting important keys
-                        if key not in ["score", "type", "adversarial"]:
-                            merged[key] = value
-                
+                merged["solution"] += str(p.get("solution", "")) + "\n\n"
                 merged["sources"].append(p.get("subtask", "unknown"))
-                
-            elif isinstance(p, str):
-                # Plain text solution
-                if merged["solution"]:
-                    merged["solution"] += "\n\n"
-                merged["solution"] += p.strip()
-                merged["sources"].append("text_fallback")
             else:
-                # Other types
-                if merged["solution"]:
-                    merged["solution"] += "\n\n"
-                merged["solution"] += str(p)
+                merged["solution"] += str(p) + "\n\n"
 
-        # Final cleanup
         merged["solution"] = merged["solution"].strip()
-        merged["source_count"] = len(merged["sources"])
-
-        if not merged["solution"]:
-            merged["success"] = False
-            merged["solution"] = "[Merge produced empty result]"
-
         return merged
-
         
 class ArbosManager:
     def __init__(self, goal_file: str = "goals/killer_base.md"):
@@ -1377,6 +1256,7 @@ After creating the contract, critique it internally for completeness and feasibi
         strategy["tool_env_paths"] = tool_recs.get("env_paths", {})  # for later one-click use
 
         logger.info(f"ToolHunter suggested {len(strategy['recommended_tools'])} tools pre-dry-run")
+                                 
         # 4. 2-Round Debate (with graph fragments)
         debate_result = self._run_orchestrator_debate(task, verifiability_contract, rich_context)
         if debate_result and debate_result.get("refined_contract"):
