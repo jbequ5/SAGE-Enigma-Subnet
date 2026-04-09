@@ -33,6 +33,7 @@ from tools.archive_hunter import ArchiveHunter
 from agents.embodiment import NeurogenesisArbos, MicrobiomeLayer, VagusFeedbackLoop
 from agents.pattern_surfacer import ResonancePatternSurfacer, PhotoelectricPatternSurfacer
 
+
 from validation_oracle import ValidationOracle
 from trajectories.trajectory_vector_db import vector_db
 from tools.agent_reach_tool import AgentReachTool
@@ -41,6 +42,7 @@ from goals.brain_loader import load_brain_component, load_toggle
 from tools.pruning_advisor import generate_pruning_recommendations, update_module_toggle
 from tools.pruning_advisor import pruning_advisor  # if it's a global instance
 from agents.fragment_tracker import FragmentTracker
+from tools.tool_env_manager import ToolEnvManager
 
 
 from autoharness import AutoHarness
@@ -427,48 +429,6 @@ class DVRDryRunSimulator:
 
         return merged
 
-  
-class ToolEnvManager:
-    """v0.8 — Safe, persistent/ephemeral venv manager for one-click tool addition."""
-    def __init__(self):
-        self.base_path = Path("~/.enigma_tools").expanduser()
-        self.base_path.mkdir(parents=True, exist_ok=True)
-        self.registered_tools = {}  # in-memory registry
-
-        
-    def create_or_get_env(self, tool_name: str, install_cmd: str, persistent: bool = True) -> dict:
-        """Create or reuse a venv, run the install command, and register the tool safely."""
-        env_path = self.base_path / (tool_name if persistent else f"ephemeral_{int(time.time())}")
-        
-        if not env_path.exists():
-            logger.info(f"Creating new tool environment: {tool_name}")
-            try:
-                subprocess.run(["python", "-m", "venv", str(env_path)], check=True, capture_output=True)
-                pip_path = env_path / "bin" / "pip"
-                subprocess.run([str(pip_path), "install", "--upgrade", "pip"], check=True, capture_output=True)
-                
-                # Run the provided install command
-                if install_cmd.strip():
-                    subprocess.run([str(pip_path)] + install_cmd.strip().split(), check=True, capture_output=True)
-                
-                logger.info(f"✅ Tool environment ready: {tool_name}")
-            except Exception as e:
-                logger.error(f"Failed to create tool environment {tool_name}: {e}")
-                return {"status": "error", "error": str(e)}
-
-        # Register for runtime use
-        self.registered_tools[tool_name] = {
-            "env_path": str(env_path),
-            "persistent": persistent,
-            "installed_at": datetime.now().isoformat()
-        }
-
-        return {
-            "status": "success",
-            "tool_name": tool_name,
-            "env_path": str(env_path),
-            "persistent": persistent
-        }
         
 class ArbosManager:
     def __init__(self, goal_file: str = "goals/killer_base.md"):
