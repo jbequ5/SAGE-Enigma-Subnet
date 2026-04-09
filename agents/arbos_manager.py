@@ -122,13 +122,25 @@ class DVRDryRunSimulator:
     def run_dry_run(self, decomposed_subtasks: List[str], full_verifier_snippets: List[str], 
                     goal_md: str = "") -> Dict:
         """v0.8+ Hardened Dry-Run Gate — intelligent mocks, adversarial variants, 
-        5D verifier self-check, composability checker, approximation fallback, and DOUBLE_CLICK emission."""
+        5D verifier self-check, composability checker, approximation fallback, and DOUBLE_CLICK emission.
+        NOW INCLUDES snippet self-validation before full gate."""
         
         logger.info("🚀 Starting v0.8+ hardened dry-run gate")
 
         # Safety guard
         contract = getattr(self, '_current_strategy', {}).get("verifiability_contract", {})
         approximation_mode = contract.get("approximation_mode", "auto")
+
+        # NEW: Snippet self-validation (catches bad LLM-generated code early)
+        snippet_validation = self._self_validate_snippets(full_verifier_snippets)
+        if not snippet_validation["all_valid"]:
+            logger.warning(f"Snippet self-validation failed: {snippet_validation['errors']}")
+            return {
+                "dry_run_passed": False,
+                "recommendation": "ITERATE_DECOMP",
+                "notes": f"Snippet validation failed: {snippet_validation['errors']}",
+                "double_click_info": {"gap": "snippet_validation_failure", "severity": "high"}
+            }
 
         # 1. Generate intelligent mock data + adversarial variants
         placeholders = []
@@ -207,14 +219,33 @@ class DVRDryRunSimulator:
             "recommendation": recommendation,
             "notes": f"Dry-run complete. Structure {'sound' if passed_gate else 'needs iteration'}. "
                      f"Verifier quality: {self_check.get('verifier_quality', 0):.3f} | "
-                     f"Approx used: {self_check.get('approximation_used', False)}",
+                     f"Approx used: {self_check.get('approximation_used', False)} | "
+                     f"Snippet validation: {snippet_validation['all_valid']}",
             "self_check_details": self_check.get("dimensions", {}),
             "composability_details": composability_result,
             "double_click_info": double_click_info,
             "approximation_used": self_check.get("approximation_used", False),
-            "approximation_method": self_check.get("approximation_method")
+            "approximation_method": self_check.get("approximation_method"),
+            "snippet_validation": snippet_validation
         }
 
+    def _self_validate_snippets(self, verifier_snippets: List[str]) -> Dict:
+        """NEW: Self-validation for LLM-generated verifier snippets before dry-run."""
+        errors = []
+        for i, snippet in enumerate(verifier_snippets):
+            try:
+                local = {"candidate": "mock_candidate", "result": None, "passed": False}
+                success = self.safe_exec(snippet, local_vars=local)
+                if not success:
+                    errors.append(f"Snippet {i} execution failed")
+            except Exception as e:
+                errors.append(f"Snippet {i} syntax/runtime error: {str(e)[:100]}")
+        
+        return {
+            "all_valid": len(errors) == 0,
+            "errors": errors[:3] if errors else None,  # limit log size
+            "total_snippets": len(verifier_snippets)
+        }
     # ====================== 5D VERIFIER SELF-CHECK LAYER ======================
     def _verifier_self_check_layer(self, candidate: str, verifier_snippets: List[str], 
                                  approximation_mode: str = "auto") -> Dict:
@@ -376,6 +407,7 @@ class ArbosManager:
         self.max_repair_attempts = 3
         self.early_stop_threshold = 0.65
         self.loop_count = 0
+        self._double_click_count = 0  # global per-run counter
         self.max_swarm_size = 12
         self.enable_grail = False
         self._current_strategy = None
@@ -419,6 +451,8 @@ class ArbosManager:
         self.scientist_log_path = Path("scientist_log.json")
         self.scientist_log_path.parent.mkdir(parents=True, exist_ok=True)
         self.scientist_log = self._load_scientist_log()
+        self._double_click_count = 0
+        self._double_click_nest_level = 0   # add this line too
 
         # Brain suite
         self.brain_depth = load_toggle("brain_depth", "lean")
@@ -1132,6 +1166,52 @@ After creating the contract, critique it internally for completeness and feasibi
 
         self.fragment_tracker._save()
         logger.info("✅ Fragment re-scoring + graph update complete")
+        
+    def _export_notebook_entry(self, challenge_id: str) -> str:
+        """Automatic academic notebook export for credibility."""
+        path = Path(f"goals/knowledge/{challenge_id}/notebook_entry.md")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        content = f"# Enigma Machine Lab Notebook Entry\n\n**Challenge ID:** {challenge_id}\n**Date:** {datetime.now().isoformat()}\n\n"
+        content += "## 1. Verifiability Contract\n" + json.dumps(self._current_strategy.get("verifiability_contract", {}), indent=2) + "\n\n"
+        content += "## 2. Dry-Run Metrics\n" + str(self.simulator.run_dry_run.__self__._current_strategy.get("dry_run_result", {})) + "\n\n"
+        content += "## 3. Final ValidationOracle Results\n" + json.dumps({"efs": getattr(self, "last_efs", 0.0), "score": getattr(self.validator, "last_score", 0.0)}, indent=2) + "\n\n"
+        content += "## 4. Memory System Trace\nReused fragments and impact scores logged in provenance_audit.json\n\n"
+        content += "## 5. Proof Artifacts\nSee run folder for verifier snippets, frequency trace, dispatch schedule, and MP4.\n"
+        
+        path.write_text(content)
+        return str(path)
+    
+    def _export_provenance_audit_log(self, run_data: dict):
+        """Automatic provenance audit log for notebook reproducibility."""
+        audit = {
+            "run_id": f"run_{self.loop_count}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "timestamp": datetime.now().isoformat(),
+            "efs": run_data.get("efs", 0.0),
+            "reused_fragments": [],
+            "promoted_fragments": [],
+            "compressed_fragments": []
+        }
+
+        # Log all re-scored fragments from tracker
+        for node in list(self.fragment_tracker.graph.nodes):
+            if "current_run" in node:
+                continue
+            impact = self.fragment_tracker.get_impact_score(node)
+            if impact > 0.78:
+                audit["promoted_fragments"].append({"frag_id": node, "impact": impact})
+            elif impact < 0.42:
+                audit["compressed_fragments"].append({"frag_id": node, "impact": impact})
+
+        # Save to run folder
+        challenge_id = getattr(self, "_current_challenge_id", "current")
+        log_path = Path(f"goals/knowledge/{challenge_id}/provenance_audit_{self.loop_count}.json")
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "w") as f:
+            json.dump(audit, f, indent=2)
+
+        logger.info(f"✅ Provenance audit log exported: {log_path}")
+        return str(log_path)        
         
     def _promote_fragment(self, frag_file: Path, score: float, challenge_id: str):
         """Move high-signal fragment to concepts/ or invariants/"""
@@ -3165,12 +3245,19 @@ Return ONLY the complete function code."""
                 logger.error(f"Failed to process proposal {pfile}: {e}")
                 pfile.unlink(missing_ok=True)
                 
-    def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 300, 
+    def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 300,
                           focus_gap: str = None, intent: Dict = None) -> Dict:
         """v0.8+ SOTA Scientist Mode — outer-loop intelligence engine.
-        Runs synthetic experiments, evolves contracts, detects DOUBLE_CLICK gaps, 
+        Runs synthetic experiments, evolves contracts, detects DOUBLE_CLICK gaps,
         tunes memory constants via intent, and feeds summaries to Meta-Tuning."""
-        
+
+        # Global DOUBLE_CLICK guard (prevents cascading loops)
+        if getattr(self, "_double_click_count", 0) >= 3:
+            logger.warning("DOUBLE_CLICK limit reached for this run — skipping nested experiment")
+            return {"status": "skipped", "reason": "double_click_limit_reached"}
+
+        self._double_click_count = getattr(self, "_double_click_count", 0) + 1
+
         if intent is None:
             intent = {
                 "target_variable": "decay_k",
@@ -3186,13 +3273,7 @@ Return ONLY the complete function code."""
         start_time = time.time()
         experiment_summaries = []
         contract_deltas = []
-                              
-        if summary.get("double_click_triggered", False) and focus_gap is None:
-            if getattr(self, "_double_click_nest_level", 0) < 2:  # max 2 nested
-                self._double_click_nest_level = getattr(self, "_double_click_nest_level", 0) + 1
-                narrow_result = self._run_narrower_double_click_experiment(...)
-                self._double_click_nest_level -= 1
-                
+
         for i in range(num_synthetic):
             if time.time() - start_time > max_runtime_seconds:
                 logger.warning("Scientist Mode reached max runtime safeguard — stopping early")
@@ -3220,16 +3301,19 @@ Return ONLY the complete function code."""
             # Novelty probe intent handling
             if focus_gap or "novelty" in synthetic_task.lower() or "edge case" in synthetic_task.lower() or intent.get("target_variable") == "novelty":
                 summary["novelty_probe"] = True
-                summary["contract_recommendation"] = (summary.get("contract_recommendation", "") + 
+                summary["contract_recommendation"] = (summary.get("contract_recommendation", "") +
                     " | Novelty probe active: emphasize approximation fallbacks and unexplored edge cases.")
 
-            # DOUBLE_CLICK narrower experiment
+            # DOUBLE_CLICK narrower experiment (with nesting guard)
             if summary.get("double_click_triggered", False) and focus_gap is None:
-                narrow_result = self._run_narrower_double_click_experiment(
-                    summary.get("gap"), synthetic_task
-                )
-                if narrow_result:
-                    experiment_summaries.append(narrow_result)
+                if getattr(self, "_double_click_nest_level", 0) < 2:  # max 2 nested
+                    self._double_click_nest_level = getattr(self, "_double_click_nest_level", 0) + 1
+                    narrow_result = self._run_narrower_double_click_experiment(
+                        summary.get("gap"), synthetic_task
+                    )
+                    if narrow_result:
+                        experiment_summaries.append(narrow_result)
+                    self._double_click_nest_level -= 1
 
         # Memory constant tuning
         self._run_memory_constant_tuning(experiment_summaries, intent)
@@ -3255,6 +3339,8 @@ Return ONLY the complete function code."""
         self._current_scientist_summary = meta_summary
 
         runtime = round(time.time() - start_time, 1)
+        self._double_click_count -= 1  # reset after run
+
         logger.info(f"✅ Scientist Mode completed — {len(experiment_summaries)} experiments | Avg EFS: {meta_summary['avg_efs']:.3f} | Runtime: {runtime}s")
 
         return {
@@ -4408,7 +4494,13 @@ Return ONLY valid JSON:
         self._write_stigmergic_trace(trace)
 
         self.memory_layers.compress_low_value(current_score=score)
-
+        
+        # NEW: Automatic provenance audit for notebook
+        try:
+            self._export_provenance_audit_log(run_data)
+        except Exception as e:
+            logger.debug(f"Provenance audit export skipped (safe): {e}")
+            
         logger.info("✅ _end_of_run complete — outer-loop evolution + fragmented memory update executed")
             
     # ====================== v0.6 helper for wiki snapshot (used in run_data) ======================
