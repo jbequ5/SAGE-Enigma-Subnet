@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 from datetime import datetime
 import time
+import os
 
 # ====================== PAGE CONFIG ======================
 st.set_page_config(
@@ -17,7 +18,7 @@ from agents.arbos_manager import ArbosManager
 from goals.brain_loader import load_brain_component
 from code_editor import code_editor
 
-# ====================== CINEMATIC BUNKER THEME ======================
+# ====================== CINEMATIC BUNKER THEME (Enhanced) ======================
 st.markdown("""
 <style>
     [data-testid="stAppViewContainer"] {
@@ -31,11 +32,9 @@ st.markdown("""
         position: absolute;
         top: 0; left: 0;
         width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.92);
+        background: linear-gradient(rgba(0, 0, 0, 0.88), rgba(0, 20, 10, 0.95));
         z-index: -1;
-        animation: scanline 8s linear infinite;
     }
-    @keyframes scanline { 0% { background-position: 0 0; } 100% { background-position: 0 100%; } }
 
     h1, h2, h3 { 
         color: #00ff9d !important; 
@@ -43,8 +42,6 @@ st.markdown("""
         text-shadow: 0 0 30px #00ff9d, 0 0 60px #00aa77; 
         letter-spacing: 4px; 
     }
-    .rotor { animation: spin 12s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
     .stButton > button {
         background-color: #001a0f;
@@ -56,15 +53,38 @@ st.markdown("""
     }
     .stButton > button:hover {
         background-color: #003322;
-        box-shadow: 0 0 35px #00ff9d;
+        box-shadow: 0 0 40px #00ff9d;
         transform: scale(1.05);
     }
+
+    .metric-card {
+        background: rgba(0, 30, 15, 0.7);
+        border: 2px solid #00ff9d;
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+    }
+
+    .live-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background: #00ff9d;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center;'>🔒 ALLIED ENIGMA MINER v1.0</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center; color: #ffaa00;'>TOP SECRET • BUNKER COMMAND POST 1944 • SN63 QUANTUM INNOVATE</h3>", unsafe_allow_html=True)
-st.caption("🔴 ENIGMA ROTORS SPINNING • LIVE DECRYPTION MISSION ACTIVE • SELF-OPTIMIZING EMBODIED ORGANISM")
+
+st.caption("""
+<span class='live-dot'></span> ENIGMA ROTORS SPINNING • LIVE DECRYPTION MISSION ACTIVE • 
+SELF-OPTIMIZING EMBODIED ORGANISM • v0.8+ FULLY FRAGMENTED MEMORY SYSTEM
+""", unsafe_allow_html=True)
 
 # ====================== SESSION STATE ======================
 if "manager" not in st.session_state:
@@ -81,29 +101,32 @@ if "trace_log" not in st.session_state:
 
 manager = st.session_state.manager
 
-# ====================== LIVE HEADER ======================
-col1, col2, col3 = st.columns([1, 2, 1])
+# ====================== LIVE HEADER METRICS ======================
+col1, col2, col3, col4 = st.columns([1, 2, 2, 1])
 with col1:
     st.markdown("🔄 <span class='rotor'>⚙️⚙️⚙️</span> ROTORS ACTIVE", unsafe_allow_html=True)
 with col2:
     score = getattr(manager.validator, 'last_score', 0.0)
     efs = getattr(manager, 'last_efs', 0.0)
-    c_val = getattr(manager.validator, 'last_c', 0.75)
-    st.metric("VALIDATION ORACLE SCORE", f"{score:.3f}", delta=f"EFS {efs:.3f} | c {c_val:.3f}")
+    st.metric("VALIDATION ORACLE SCORE", f"{score:.3f}", delta=f"EFS {efs:.3f}")
 with col3:
-    if st.button("🧹 ABORT MISSION"):
+    hetero = manager._compute_heterogeneity_score().get("heterogeneity_score", 0.72) if hasattr(manager, '_compute_heterogeneity_score') else 0.72
+    st.metric("HETEROGENEITY", f"{hetero:.3f}", delta="DYNAMIC")
+with col4:
+    if st.button("🧹 ABORT MISSION", type="secondary"):
         for k in list(st.session_state.keys()):
             if k != "manager":
                 del st.session_state[k]
         st.rerun()
 
 # ====================== MAIN TABS ======================
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📡 COMMAND BRIDGE", 
     "🧠 BRAIN VAULT", 
     "🛰️ RECON & INTEL", 
     "🔬 ORGANISM CORE", 
-    "📜 DVR CONTRACT MONITOR"
+    "📜 DVR CONTRACT MONITOR",
+    "📦 PACKAGE & EXPORT"
 ])
 
 with tab1:
@@ -134,54 +157,48 @@ with tab1:
     else:
         verification_instructions = str(verification_response) if verification_response else default_verification
 
-    # ====================== v0.8 ONE-CLICK TOOL ADDITION UI ======================
-        st.subheader("🛠️ ToolHunter Recommendations (v0.8+)")
-        st.caption("Proactive tools detected from contract, memory graph, and gap analysis. Add with one click.")
+    # ====================== TOOLHUNTER RECOMMENDATIONS ======================
+    st.subheader("🛠️ ToolHunter Recommendations (v0.8+)")
+    st.caption("Proactive tools detected from contract, memory graph, and gap analysis. Add with one click.")
 
-        # Get recommendations from the latest plan
-        plan = st.session_state.get("high_level_plan", {}) or {}
-        recommended = plan.get("recommended_tools", [])
+    plan = st.session_state.get("high_level_plan", {}) or {}
+    recommended = plan.get("recommended_tools", [])
 
-        if recommended:
-            for tool in recommended:
-                # Handle both string and dict formats
-                tool_name = tool if isinstance(tool, str) else tool.get("name", "Unnamed Tool")
-                install_cmd = tool.get("install_cmd", "") if isinstance(tool, dict) else ""
+    if recommended:
+        for tool in recommended:
+            tool_name = tool if isinstance(tool, str) else tool.get("name", "Unnamed Tool")
+            install_cmd = tool.get("install_cmd", "") if isinstance(tool, dict) else ""
 
-                col1, col2, col3 = st.columns([3.5, 2, 2.5])
-                with col1:
-                    st.write(f"**{tool_name}**")
-                with col2:
-                    persistent = st.checkbox("Persistent venv", value=True, key=f"persist_{tool_name}")
-                with col3:
-                    if st.button("✅ Add & Install", key=f"add_{tool_name}", use_container_width=True):
-                        with st.spinner(f"Creating environment for {tool_name}..."):
-                            result = manager.tool_env_manager.create_or_get_env(
-                                tool_name=tool_name,
-                                persistent=persistent,
-                                requirements=tool.get("requirements", []) if isinstance(tool, dict) else None,
-                                install_cmd=install_cmd
-                            )
-                            
-                            if result.get("status") == "success":
-                                st.success(f"✅ {tool_name} environment ready!")
-                                st.caption(f"Python executable: `{result.get('python_exe', 'ready')}`")
-                            else:
-                                st.error(f"❌ Failed to create environment: {result.get('error', 'unknown error')}")
-                        
-                        st.rerun()
-        else:
-            st.info("No new tools recommended for this task yet. ToolHunter will suggest tools based on contract gaps and memory graph.")
+            col1, col2, col3 = st.columns([3.5, 2, 2.5])
+            with col1:
+                st.write(f"**{tool_name}**")
+            with col2:
+                persistent = st.checkbox("Persistent venv", value=True, key=f"persist_{tool_name}")
+            with col3:
+                if st.button("✅ Add & Install", key=f"add_{tool_name}", use_container_width=True):
+                    with st.spinner(f"Creating environment for {tool_name}..."):
+                        result = manager.tool_env_manager.create_or_get_env(
+                            tool_name=tool_name,
+                            persistent=persistent,
+                            requirements=tool.get("requirements", []) if isinstance(tool, dict) else None,
+                            install_cmd=install_cmd
+                        )
+                        if result.get("status") == "success":
+                            st.success(f"✅ {tool_name} environment ready!")
+                            st.caption(f"Python: `{result.get('python_exe', 'ready')}`")
+                        else:
+                            st.error(f"❌ Failed: {result.get('error', 'unknown error')}")
+                    st.rerun()
+    else:
+        st.info("No new tools recommended yet. ToolHunter will suggest based on contract gaps and memory graph.")
 
-        st.caption("💡 Tip: Persistent venvs are saved for future runs. Ephemeral ones are temporary.")
-
-    # ====================== LAUNCH BUTTON ======================
+    # ====================== LAUNCH MISSION ======================
     if st.button("🚀 LAUNCH FULL MISSION", type="primary", use_container_width=True):
         with st.spinner("Planning Arbos → Contract Generation → Dry-Run Gate → Advanced Swarm → Synthesis..."):
             plan = manager.plan_challenge(
                 goal_md=manager.extra_context,
                 challenge=challenge,
-                enhancement_prompt="Maximize verifier compliance, heterogeneity, and deterministic paths."
+                enhancement_prompt="Maximize verifier compliance, heterogeneity across five axes, deterministic/symbolic paths first."
             )
             st.session_state.high_level_plan = plan
             if "error" not in plan:
@@ -261,23 +278,53 @@ with tab4:
 
 with tab5:
     st.header("📜 DVR CONTRACT MONITOR — Live Verifier-First Pipeline")
-    if "last_result" in st.session_state and "verifiability_contract" in st.session_state.last_result:
+    if "last_result" in st.session_state and isinstance(st.session_state.last_result, dict) and "verifiability_contract" in st.session_state.last_result:
         st.json(st.session_state.last_result["verifiability_contract"])
     else:
         st.info("Run a mission to see live contract data")
 
-# ====================== PACKAGING ======================
-if "last_result" in st.session_state:
-    st.divider()
-    if st.button("📦 Package & Download Submission"):
-        _package_submission(
-            solution=st.session_state.last_result.get("merged_candidate", ""),
-            blueprint=st.session_state.get("high_level_plan", {}),
-            trace=st.session_state.get("trace_log", []),
-            notes="Full DVRP run with advanced synthesis and meta-tuning",
-            challenge=challenge,
-            verification=verification_instructions,
-            deterministic_tooling="SymPy + verifier snippets"
-        )
+with tab6:
+    st.header("📦 PACKAGE & EXPORT")
+    if "last_result" in st.session_state and st.session_state.last_result:
+        if st.button("📦 Package & Download Full Submission"):
+            _package_submission(
+                solution=st.session_state.last_result.get("merged_candidate", ""),
+                blueprint=st.session_state.get("high_level_plan", {}),
+                trace=st.session_state.get("trace_log", []),
+                notes="Full DVRP run with advanced synthesis and meta-tuning",
+                challenge=challenge,
+                verification=verification_instructions,
+                deterministic_tooling="SymPy + verifier snippets"
+            )
+    else:
+        st.info("Run a mission first to enable packaging.")
 
 st.caption("© 1944–2026 ALLIED ENIGMA MINER • PUSHING HUMANITY TO THE NEXT STAGE")
+
+# ====================== PACKAGE FUNCTION ======================
+def _package_submission(solution: str, blueprint: Dict, trace: list, notes: str, 
+                        challenge: str, verification: str, deterministic_tooling: str):
+    """Package the full submission for upload."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    package_name = f"enigma_submission_{timestamp}.zip"
+    
+    with zipfile.ZipFile(package_name, "w") as zipf:
+        zipf.writestr("solution.md", solution)
+        zipf.writestr("blueprint.json", json.dumps(blueprint, indent=2))
+        zipf.writestr("trace_log.json", json.dumps(trace, indent=2))
+        zipf.writestr("verification_instructions.md", verification)
+        zipf.writestr("README.txt", f"""ALLIED ENIGMA MINER SUBMISSION
+Challenge: {challenge}
+Timestamp: {timestamp}
+Notes: {notes}
+Deterministic Tooling: {deterministic_tooling}""")
+
+    with open(package_name, "rb") as f:
+        st.download_button(
+            label="📥 Download Submission Package",
+            data=f,
+            file_name=package_name,
+            mime="application/zip"
+        )
+    
+    st.success(f"✅ Package created: {package_name}")
