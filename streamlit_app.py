@@ -135,33 +135,45 @@ with tab1:
         verification_instructions = str(verification_response) if verification_response else default_verification
 
     # ====================== v0.8 ONE-CLICK TOOL ADDITION UI ======================
-    st.subheader("🛠️ ToolHunter Recommendations (v0.8)")
-    st.caption("Proactive tools detected for this mission. Add with one click.")
+        st.subheader("🛠️ ToolHunter Recommendations (v0.8+)")
+        st.caption("Proactive tools detected from contract, memory graph, and gap analysis. Add with one click.")
 
-    recommended = st.session_state.get("high_level_plan", {}).get("recommended_tools", []) if "high_level_plan" in st.session_state else []
+        # Get recommendations from the latest plan
+        plan = st.session_state.get("high_level_plan", {}) or {}
+        recommended = plan.get("recommended_tools", [])
 
-    if recommended:
-        for tool in recommended:
-            tool_name = tool if isinstance(tool, str) else tool.get("name", "Unnamed Tool")
-            col1, col2, col3 = st.columns([3, 2, 2])
-            with col1:
-                st.write(f"**{tool_name}**")
-            with col2:
-                persistent = st.checkbox("Persistent venv", value=True, key=f"persist_{tool_name}")
-            with col3:
-                if st.button("✅ Add & Install", key=f"add_{tool_name}"):
-                    result = manager.tool_env_manager.create_or_get_env(
-                        tool_name=tool_name,
-                        install_cmd=tool.get("install_cmd", "") if isinstance(tool, dict) else "",
-                        persistent=persistent
-                    )
-                    if result.get("status") == "success":
-                        st.success(f"✅ {tool_name} installed successfully!")
+        if recommended:
+            for tool in recommended:
+                # Handle both string and dict formats
+                tool_name = tool if isinstance(tool, str) else tool.get("name", "Unnamed Tool")
+                install_cmd = tool.get("install_cmd", "") if isinstance(tool, dict) else ""
+
+                col1, col2, col3 = st.columns([3.5, 2, 2.5])
+                with col1:
+                    st.write(f"**{tool_name}**")
+                with col2:
+                    persistent = st.checkbox("Persistent venv", value=True, key=f"persist_{tool_name}")
+                with col3:
+                    if st.button("✅ Add & Install", key=f"add_{tool_name}", use_container_width=True):
+                        with st.spinner(f"Creating environment for {tool_name}..."):
+                            result = manager.tool_env_manager.create_or_get_env(
+                                tool_name=tool_name,
+                                persistent=persistent,
+                                requirements=tool.get("requirements", []) if isinstance(tool, dict) else None,
+                                install_cmd=install_cmd
+                            )
+                            
+                            if result.get("status") == "success":
+                                st.success(f"✅ {tool_name} environment ready!")
+                                st.caption(f"Python executable: `{result.get('python_exe', 'ready')}`")
+                            else:
+                                st.error(f"❌ Failed to create environment: {result.get('error', 'unknown error')}")
+                        
                         st.rerun()
-                    else:
-                        st.error(f"Failed: {result.get('error', 'unknown error')}")
-    else:
-        st.caption("No new tools recommended for this task yet.")
+        else:
+            st.info("No new tools recommended for this task yet. ToolHunter will suggest tools based on contract gaps and memory graph.")
+
+        st.caption("💡 Tip: Persistent venvs are saved for future runs. Ephemeral ones are temporary.")
 
     # ====================== LAUNCH BUTTON ======================
     if st.button("🚀 LAUNCH FULL MISSION", type="primary", use_container_width=True):
