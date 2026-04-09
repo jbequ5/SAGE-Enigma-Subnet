@@ -148,13 +148,19 @@ class DVRDryRunSimulator:
 
     def run_dry_run(self, decomposed_subtasks: List[str], full_verifier_snippets: List[str], 
                     goal_md: str = "") -> Dict:
-        """v0.8 Hardened Dry-Run Gate"""
-        logger.info("🚀 Starting v0.8 hardened dry-run gate")
+        """v0.8+ Hardened Dry-Run Gate — intelligent mocks, approximation fallback, 
+        5D verifier self-check, composability, and DOUBLE_CLICK emission."""
         
-        # Safe guard
+        logger.info("🚀 Starting v0.8+ hardened dry-run gate")
+
+        # Safety guard
         if not hasattr(self, '_current_strategy') or self._current_strategy is None:
             self._current_strategy = {}
 
+        contract = self._current_strategy.get("verifiability_contract", {})
+        approximation_mode = contract.get("approximation_mode", "auto")
+
+        # 1. Generate intelligent + adversarial mock data
         placeholders = []
         for st in decomposed_subtasks:
             placeholder = self.generate_placeholder({"verifier_code_snippets": full_verifier_snippets})
@@ -164,25 +170,38 @@ class DVRDryRunSimulator:
 
         merged = self._simple_merge(placeholders)
 
+        # 2. Verifier Self-Check Layer (5D)
         self_check = self._verifier_self_check_layer(
             candidate=str(merged), 
-            contract=self._current_strategy.get("verifiability_contract", {}), 
-            verifier_snippets=full_verifier_snippets
+            contract=contract, 
+            verifier_snippets=full_verifier_snippets,
+            approximation_mode=approximation_mode
         )
 
-        # 4. Deterministic metrics (your existing + safety)
+        # 3. Full ValidationOracle run (for score, EFS, C3A, etc.)
+        validation_result = self.validator.run(
+            candidate=merged, 
+            verification_instructions="", 
+            challenge="dry_run", 
+            goal_md=goal_md, 
+            subtask_outputs=placeholders,
+            subtask_contract=contract
+        )
+
+        # 4. Deterministic metrics
         edge = self.validator._compute_edge_coverage(merged, full_verifier_snippets)
         invariant = self.validator._compute_invariant_tightness(merged, full_verifier_snippets)
         fidelity = self.validator._compute_fidelity(merged, full_verifier_snippets)
         hetero = self.validator._compute_heterogeneity_score(placeholders)
 
         c = self.validator._compute_c3a_confidence(edge, invariant, getattr(self, 'historical_reliability', 0.85))
-        theta = self.validator._compute_theta_dynamic(c, self.loop_count / max(1, self.loop_count))
+        theta = self.validator._compute_theta_dynamic(c, max(1, self.loop_count) / 10.0)
         efs = self.validator._compute_efs(fidelity, 0.8, hetero, 0.75, 0.85)
 
-        # 5. Full composability check — v0.8
+        # 5. Full composability check
         composability_result = self._check_composability(merged, decomposed_subtasks, full_verifier_snippets)
 
+        # 6. Gate decision
         passed_gate = (
             validation_result.get("validation_score", 0) >= theta and 
             efs >= 0.65 and 
@@ -193,18 +212,22 @@ class DVRDryRunSimulator:
 
         recommendation = "PROCEED_TO_SWARM" if passed_gate else "ITERATE_DECOMP"
 
-        # v0.8: DOUBLE_CLICK / escalation eligibility
+        # 7. DOUBLE_CLICK / Escalation detection
         double_click_info = None
-        if not passed_gate and (self_check.get("verifier_quality", 0) < 0.55 or 
-                               composability_result.get("score", 0) < 0.60):
-            double_click_info = {
-                "gap": "low_composability_or_verifier_quality",
-                "details": {
-                    "verifier_quality": self_check.get("verifier_quality"),
-                    "composability": composability_result.get("score")
-                },
-                "severity": "high"
-            }
+        if not passed_gate:
+            verifier_q = self_check.get("verifier_quality", 0)
+            comp_score = composability_result.get("score", 0)
+            
+            if verifier_q < 0.58 or comp_score < 0.62:
+                double_click_info = {
+                    "gap": "low_verifier_quality_or_composability",
+                    "details": {
+                        "verifier_quality": round(verifier_q, 3),
+                        "composability_score": round(comp_score, 3),
+                        "approximation_used": self_check.get("approximation_used", False)
+                    },
+                    "severity": "high" if verifier_q < 0.50 else "medium"
+                }
 
         return {
             "dry_run_passed": passed_gate,
@@ -214,12 +237,14 @@ class DVRDryRunSimulator:
             "verifier_quality": round(self_check.get("verifier_quality", 0), 4),
             "composability_pass_rate": composability_result.get("score", 0.0),
             "recommendation": recommendation,
-            "notes": f"Dry-run gate complete. Structure {'sound' if passed_gate else 'needs iteration'}. "
-                     f"Verifier quality: {self_check.get('verifier_quality', 0):.3f}",
+            "notes": f"Dry-run complete. Structure {'sound' if passed_gate else 'needs iteration'}. "
+                     f"Verifier quality: {self_check.get('verifier_quality', 0):.3f} | "
+                     f"Approx used: {self_check.get('approximation_used', False)}",
             "self_check_details": self_check.get("dimensions", {}),
             "composability_details": composability_result,
             "double_click_info": double_click_info,
-            "double_click_emitted": recommendation == "ITERATE_DECOMP" and self_check.get("verifier_quality", 0) < 0.55
+            "approximation_used": self_check.get("approximation_used", False),
+            "approximation_method": self_check.get("approximation_method")
         }
                         
     def _compute_verifier_quality(self, candidate: str, verifier_snippets: List[str], contract: Dict = None) -> Dict:
@@ -3254,6 +3279,11 @@ Return ONLY the complete function code."""
                 delta = self._evolve_verification_contract_from_synthetic(summary)
                 if delta:
                     contract_deltas.append(delta)
+                # Novelty probe intent handling
+            
+            if focus_gap or "novelty" in synthetic_task.lower():
+                summary["novelty_probe"] = True
+                summary["contract_recommendation"] += " | Novelty probe: emphasize unexplored edge cases and approximation fallbacks."
 
             # DOUBLE_CLICK narrow follow-up experiment
             if summary.get("double_click_triggered", False) and focus_gap is None:
@@ -3313,6 +3343,7 @@ Return ONLY the complete function code."""
             "c3a": val.get("c3a_confidence", 0.0),
             "double_click_triggered": val.get("verifier_quality", 0.0) < 0.62 or val.get("composability_score", 0.0) < 0.68,
             "gap": "composability" if val.get("composability_score", 0.0) < 0.68 else "verifier_strength",
+            "novelty_probe": "novelty" in task.lower() or summary.get("double_click_triggered", False),
             "contract_recommendation": "Add stronger symbolic invariants, adversarial verifier cases, and explicit merge interfaces." 
                                       if val.get("efs", 0) > 0.78 else ""
         }
