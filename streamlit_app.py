@@ -90,6 +90,8 @@ if "high_level_plan" not in st.session_state:
     st.session_state.high_level_plan = None
 if "trace_log" not in st.session_state:
     st.session_state.trace_log = []
+if "current_run_status" not in st.session_state:
+    st.session_state.current_run_status = {}
 
 manager = st.session_state.manager
 
@@ -98,7 +100,7 @@ col1, col2, col3, col4 = st.columns([1, 2, 2, 1])
 with col1:
     st.markdown("🔄 <span class='rotor'>⚙️⚙️⚙️</span> ROTORS ACTIVE", unsafe_allow_html=True)
 with col2:
-    score = getattr(manager.validator, 'last_score', 0.0) if hasattr(manager, 'validator') else 0.0
+    score = getattr(getattr(manager, 'validator', None), 'last_score', 0.0)
     efs = getattr(manager, 'last_efs', 0.0)
     st.metric("VALIDATION ORACLE SCORE", f"{score:.3f}", delta=f"EFS {efs:.3f}")
 with col3:
@@ -112,13 +114,14 @@ with col4:
         st.rerun()
 
 # ====================== MAIN TABS ======================
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📊 OVERVIEW DASHBOARD",
     "🎯 COMMAND BRIDGE",
     "🧠 BRAIN VAULT",
     "🛰️ RECON & INTEL",
     "🔬 ORGANISM CORE",
-    "📜 DVR CONTRACT MONITOR"
+    "📜 DVR CONTRACT MONITOR",
+    "🔍 MISSION TRACE & DIAGNOSTICS"
 ])
 
 # ====================== TAB 1: OVERVIEW DASHBOARD ======================
@@ -144,7 +147,6 @@ with tab1:
         st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
         st.metric("EMBODIMENT STATUS", "ACTIVE" if manager.toggles.get("embodiment_enabled", True) else "STANDBY")
         st.markdown("</div>", unsafe_allow_html=True)
-
     st.divider()
     st.subheader("📜 RECENT MISSION ACTIVITY")
     if st.session_state.last_result:
@@ -152,7 +154,6 @@ with tab1:
         st.success(f"Last Mission — Score: **{result.get('validation_score', 0):.3f}** | EFS: **{result.get('efs', 0):.3f}**")
     else:
         st.info("No missions executed yet. Launch from Command Bridge.")
-
     st.subheader("🛠️ SYSTEM HEALTH")
     health_cols = st.columns(3)
     with health_cols[0]:
@@ -171,7 +172,7 @@ with tab2:
         placeholder="Describe the full problem in detail...",
         key="challenge_input"
     )
-
+   
     st.subheader("✅ VERIFICATION PROTOCOL")
     default_verification = '''def verify_solution(solution, params=None):
     """Return (passed: bool, explanation: str, score: float)"""
@@ -184,7 +185,10 @@ with tab2:
         allow_reset=True,
         key="verification_editor_unique"
     )
-    verification_instructions = verification_response.get("text", default_verification) if isinstance(verification_response, dict) else str(verification_response) if verification_response else default_verification
+    if isinstance(verification_response, dict):
+        verification_instructions = verification_response.get("text", default_verification)
+    else:
+        verification_instructions = str(verification_response) if verification_response else default_verification
 
     # ToolHunter Recommendations
     st.subheader("🛠️ ToolHunter Recommendations (v0.8+)")
@@ -235,7 +239,7 @@ with tab2:
                     st.session_state.last_result = final_solution
                     st.success("✅ Mission executed — check ORGANISM CORE & DVR MONITOR")
                     st.rerun()
-
+               
     with col_export:
         if st.button("📓 Export Academic Notebook", type="primary"):
             if hasattr(manager, '_current_challenge_id') and st.session_state.last_result:
@@ -333,6 +337,35 @@ with tab6:
     else:
         st.info("Run a full mission to see live DVR contracts and evolution.")
 
+# ====================== TAB 7: MISSION TRACE & DIAGNOSTICS (NEW - Real Observability) ======================
+with tab7:
+    st.header("🔍 MISSION TRACE & DIAGNOSTICS — Inner Loop Visibility")
+    st.caption("Step-by-step execution • Dry-run results • DOUBLE_CLICK gaps • Fragment activity • Self-tuning decisions")
+
+    if st.session_state.trace_log:
+        for entry in reversed(st.session_state.trace_log[-20:]):  # Last 20 entries
+            with st.expander(f"[{entry.get('timestamp', '—')}] {entry.get('step', 'Unknown Step')} — EFS {entry.get('efs', 0):.3f}"):
+                st.write(entry.get('details', 'No details provided'))
+                if 'metrics' in entry and entry['metrics']:
+                    st.json(entry['metrics'])
+                if 'subtasks' in entry and entry['subtasks']:
+                    st.subheader("Subtask Breakdown")
+                    st.json(entry['subtasks'])
+                if entry.get('double_click'):
+                    st.warning(f"🔴 DOUBLE_CLICK Triggered — Gap: {entry.get('gap', 'Unknown gap')}")
+                if 'verifier_5d' in entry:
+                    st.subheader("5D Verifier Self-Check")
+                    st.json(entry['verifier_5d'])
+    else:
+        st.info("No trace data yet. Launch a full mission from Command Bridge. The ArbosManager must populate trace_log with structured step entries for full visibility.")
+
+    st.subheader("Pruning Advisor Recommendations")
+    if hasattr(manager, 'pruning_advisor') and hasattr(manager.pruning_advisor, 'get_recommendations'):
+        recs = manager.pruning_advisor.get_recommendations()
+        st.write(recs)
+    else:
+        st.info("Pruning Advisor not yet active — will show toggle ROI and module health here.")
+
 # ====================== PACKAGE & EXPORT ======================
 st.divider()
 if st.session_state.last_result:
@@ -349,8 +382,33 @@ if st.session_state.last_result:
 
 def _package_submission(solution: str, blueprint: dict, trace: list, notes: str,
                         challenge: str, verification: str, deterministic_tooling: str):
+    """Package the full submission for upload."""
     ts = datetime.now().strftime("%Y%m%d_%H%M")
     sub_dir = Path("submissions") / f"sn63_{ts}"
     sub_dir.mkdir(parents=True, exist_ok=True)
 
+    (sub_dir / "solution.md").write_text(str(solution), encoding="utf-8")
+    (sub_dir / "blueprint.json").write_text(json.dumps(blueprint, indent=2), encoding="utf-8")
+    (sub_dir / "trace.log").write_text("\n".join(str(t) for t in trace), encoding="utf-8")
+    (sub_dir / "miner_notes.txt").write_text(notes, encoding="utf-8")
+    (sub_dir / "challenge.txt").write_text(challenge, encoding="utf-8")
+    (sub_dir / "verification.txt").write_text(verification, encoding="utf-8")
+    (sub_dir / "deterministic_tooling.txt").write_text(deterministic_tooling, encoding="utf-8")
+
+    zip_path = sub_dir / "submission_package.zip"
+    with zipfile.ZipFile(zip_path, "w") as z:
+        for f in sub_dir.glob("*"):
+            if f.is_file() and f.suffix != ".zip":
+                z.write(f, f.name)
+
+    with open(zip_path, "rb") as f:
+        st.download_button(
+            label="📥 Download Submission Package",
+            data=f.read(),
+            file_name=f"sn63_{ts}.zip",
+            mime="application/zip"
+        )
    
+    st.success(f"✅ Package created: sn63_{ts}.zip")
+
+st.caption("© 1944–2026 ALLIED ENIGMA MINER • PUSHING HUMANITY TO THE NEXT STAGE")
