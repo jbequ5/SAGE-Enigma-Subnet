@@ -383,7 +383,8 @@ class DVRDryRunSimulator:
             merged["solution"] = "[Merge produced empty result]"
 
         return merged
-        
+
+  
 class ToolEnvManager:
     """v0.8 — Safe, persistent/ephemeral venv manager for one-click tool addition."""
     def __init__(self):
@@ -457,6 +458,7 @@ class ArbosManager:
         self.vector_db.arbos = self
         self.memory_layers = memory_layers
         self.memory_layers.arbos = self  # important for SOTA gating
+        self.fragment_tracker = FragmentTracker()
 
         # Safe execution (RestrictedPython)
         self._safe_exec = safe_exec
@@ -1125,19 +1127,144 @@ After creating the contract, critique it internally for completeness and feasibi
         path.mkdir(parents=True, exist_ok=True)
         return str(path)
 
-    def _write_subtask_md(self, path: str, content: str, bio_delta: str = ""):
-        """Write subtask solution with optional bio/mycelial delta."""
-        full_content = content
-        if bio_delta and getattr(self, "mycelial_pruning", False):
-            full_content += f"\n\n# BIO_MYCELIAL_DELTA (stigmergy signal)\n{bio_delta}\n# End Bio Delta"
+    def _write_subtask_md(self, path: str, content: str, bio_delta: str = "", metadata: Dict = None):
+        """v0.8+ Full fragmented write with tracking and initial scoring."""
+        if metadata is None:
+            metadata = {}
 
+        challenge_id = getattr(self, "_current_challenge_id", "current")
+        subtask_id = Path(path).name
+
+        fragments = self._fragment_output(content)
+
+        for frag in fragments:
+            initial_mau = (
+                metadata.get("local_score", 0.0) *
+                (metadata.get("fidelity", 0.82) ** 1.5) *
+                metadata.get("symbolic_coverage", 0.85) *
+                metadata.get("heterogeneity_bonus", 0.0)
+            )
+
+            frag_id = f"{subtask_id}_frag_{frag['id']}"
+            
+            # Record in tracker
+            self.fragment_tracker.record_fragment(
+                frag_id=frag_id,
+                initial_mau=initial_mau,
+                challenge_id=challenge_id,
+                subtask_id=subtask_id
+            )
+
+            # Write file
+            self._write_fragment(challenge_id, subtask_id, frag, {
+                "initial_mau": round(initial_mau, 4),
+                "fragment_id": frag_id
+            })
+
+        if bio_delta:
+            self._write_fragment(challenge_id, subtask_id, {"id": "bio_delta", "content": bio_delta, "type": "bio"}, {})
+
+        logger.info(f"✅ Fragmented stigmergy write → {len(fragments)} tracked fragments")
+            
+    def _fragment_output(self, content: str, max_kb: int = 50) -> List[Dict]:
+        """Split into logical self-contained units."""
+        if len(content) <= max_kb * 1024:
+            return [{"id": 0, "content": content.strip(), "type": "full"}]
+
+        fragments = []
+        chunks = [p.strip() for p in content.split("\n\n") if p.strip()]
+        current = ""
+        frag_id = 0
+
+        for chunk in chunks:
+            if len(current) + len(chunk) > max_kb * 1024:
+                if current:
+                    fragments.append({"id": frag_id, "content": current.strip(), "type": "chunk"})
+                    frag_id += 1
+                current = chunk + "\n\n"
+            else:
+                current += chunk + "\n\n"
+
+        if current:
+            fragments.append({"id": frag_id, "content": current.strip(), "type": "chunk"})
+
+        return fragments
+
+    def _write_fragment(self, challenge_id: str, subtask_id: str, fragment: Dict, metadata: Dict):
+        """Write single fragment with metadata header."""
+        base = Path(f"goals/knowledge/{challenge_id}/wiki/subtasks/{subtask_id}")
+        base.mkdir(parents=True, exist_ok=True)
+
+        filename = f"fragment_{fragment['id']}.md"
+        filepath = base / filename
+
+        header = f"# Fragment {fragment.get('id', 'unknown')} | Type: {fragment.get('type', 'chunk')}\n"
+        for k, v in metadata.items():
+            header += f"{k}: {v}\n"
+        header += "\n"
+
+        filepath.write_text(header + fragment["content"], encoding="utf-8")
+
+        self._update_wiki_index(challenge_id)
+
+    def _update_wiki_index(self, challenge_id: str):
+        """Maintain automatic index.md per challenge."""
+        index_path = Path(f"goals/knowledge/{challenge_id}/wiki/index.md")
+        index_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Simple TOC for now — can be expanded with graph later
+        with open(index_path, "a", encoding="utf-8") as f:
+            f.write(f"\n# Index updated {datetime.now().isoformat()}\n")
+        
+    def _re_score_fragments(self, run_data: dict):
+        """Exact v0.8+ dynamic re-evaluation with decay, reuse tracking, and promotion."""
+        logger.info("🔄 v0.8+ Dynamic fragment re-scoring + decay + graph update")
+
+        efs = run_data.get("efs", 0.0)
+        challenge_id = getattr(self, "_current_challenge_id", "current")
+
+        for node in list(self.fragment_tracker.graph.nodes):
+            if not node.startswith(challenge_id):
+                continue
+
+            # Re-evaluate using exact spec formula
+            decayed = self.fragment_tracker.get_impact_score(node)
+
+            if decayed > 0.78:
+                self._promote_fragment(node, decayed, challenge_id)
+            elif decayed < 0.42:
+                self.memory_layers.compress_low_value_fragment(node, decayed)
+
+            # Record reuse in current run
+            if efs > 0.75:
+                self.fragment_tracker.record_reuse(node, efs)
+
+        self.fragment_tracker._save()
+        logger.info("✅ Fragment re-scoring + graph update complete")
+        
+    def _promote_fragment(self, frag_file: Path, score: float, challenge_id: str):
+        """Move high-signal fragment to concepts/ or invariants/"""
+        target_dir = Path(f"goals/knowledge/{challenge_id}/wiki/concepts")
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / frag_file.name
+        if not target.exists():
+            shutil.copy(frag_file, target)
+        logger.info(f"Promoted high-signal fragment → concepts/ (score: {score:.3f})")
+
+    def _update_fragment_header(self, frag_file: Path, decayed_score: float, impact_score: float):
+        """Update the metadata header in place"""
         try:
-            with open(f"{path}/subtask.md", "w", encoding="utf-8") as f:
-                f.write(full_content)
-            logger.info(f"Stigmergy write → {path}/subtask.md")
-        except Exception as e:
-            logger.warning(f"Failed to write subtask.md: {e}")
-
+            content = frag_file.read_text(encoding="utf-8")
+            lines = content.splitlines()
+            for i, line in enumerate(lines):
+                if line.startswith("mau_score:") or "impact_score" in line:
+                    lines[i] = f"impact_score: {impact_score:.4f} | decayed: {decayed_score:.4f}"
+                    break
+            else:
+                lines.insert(1, f"impact_score: {impact_score:.4f} | decayed: {decayed_score:.4f}")
+            frag_file.write_text("\n".join(lines), encoding="utf-8")
+        except:
+            pass  # safe fallback        
     # ====================== PLANNING ======================
     def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_prompt: str = "", compute_mode: str = "local_gpu") -> Dict[str, Any]:
         """v0.8 Top-tier Planning Arbos — rich context + formal Verifiability Contract."""
@@ -1292,7 +1419,19 @@ After creating the contract, critique it internally for completeness and feasibi
 
         # 6. Swarm Execution
         subtask_outputs = self._launch_hyphal_workers(task, strategy)
-
+    
+        for output in subtask_outputs:
+            if isinstance(output, dict):
+                self._write_subtask_md(
+                    path=self._create_subtask_wiki_folder(...),
+                    content=output.get("solution", ""),
+                    metadata={
+                        "local_score": output.get("local_score", 0.0),
+                        "fidelity": output.get("fidelity", 0.8),
+                        "hetero_bonus": hetero
+                    }
+                )
+                
         # === EARLY SWARM STALL DETECTION (SOTA safety net) ===
         stall_analysis = self._analyze_swarm_stall(
             subtask_outputs=subtask_outputs,
@@ -3948,8 +4087,9 @@ Return ONLY valid JSON:
             
     # ====================== v0.6 FULLY WIRED: _end_of_run (all 8 features integrated) ======================
     def _end_of_run(self, run_data: dict):
-        """v0.8 Final high-signal processing — embodiment, pattern surfacing, 
-        archiving (with Scientist Mode summary), retrospectives, and outer-loop evolution."""
+        """v0.8+ Final high-signal processing — embodiment, pattern surfacing, 
+        MP4 archival (with Scientist Mode summary), retrospectives, 
+        fragmented memory re-scoring, and outer-loop evolution."""
         
         score = run_data.get("final_score", 0.0)
         efs = run_data.get("efs", 0.0)
@@ -3967,10 +4107,11 @@ Return ONLY valid JSON:
             "heterogeneity_score": self._compute_heterogeneity_score().get("heterogeneity_score", 0.72),
             "dry_run_passed": diagnostics.get("dry_run_passed", True),
             "verifiability_contract": self._current_strategy.get("verifiability_contract", {}) 
-                if hasattr(self, "_current_strategy") else {}
+                if hasattr(self, "_current_strategy") else {},
+            "scientist_summary": run_data.get("scientist_summary", {})
         }
 
-        # 1. MP4 Archival with Scientist Mode experiment summary
+        # 1. MP4 Archival with full context
         try:
             archive_data = {
                 "mau_pyramid": getattr(self.memory_layers, 'get_mau_summary', lambda: {})(),
@@ -3987,7 +4128,14 @@ Return ONLY valid JSON:
         except Exception as e:
             logger.debug(f"Video archival skipped (safe): {e}")
 
-        # 2. Retrospective + Audit (gated on high-signal runs)
+        # 2. Fragmented Memory Re-scoring + Dynamic Impact Update (v0.8+ Core)
+        try:
+            self._re_score_fragments(run_data)  # New fragmented utilization system
+            logger.info("✅ Fragmented memory re-scoring completed")
+        except Exception as e:
+            logger.debug(f"Fragment re-scoring skipped (safe): {e}")
+
+        # 3. Retrospective + Audit (gated)
         if self.toggles.get("retrospective_enabled", True) and score > 0.75:
             try:
                 self.history_hunter.trigger_retrospective(
@@ -3997,7 +4145,7 @@ Return ONLY valid JSON:
             except Exception as e:
                 logger.debug(f"Retrospective skipped (safe): {e}")
 
-        # 3. Automatic Outer-Loop Evolution on high-signal runs
+        # 4. Automatic Outer-Loop Evolution on high-signal runs
         if score > 0.82 or efs > 0.75:
             logger.info("High-signal run detected — triggering automatic outer-loop evolution")
             
@@ -4014,36 +4162,25 @@ Return ONLY valid JSON:
             if hasattr(self, 'meta_reflect'):
                 self.meta_reflect(best_solution, score, diagnostics)
 
-            # v0.8: Contract evolution delta on very strong runs
+            # v0.8+: Contract evolution from high-signal runs
             if score > 0.88 and hasattr(self, '_apply_contract_delta'):
                 delta = {
                     "provenance": "high_signal_end_of_run",
                     "delta_type": "contract_strengthening",
-                    "content": f"High EFS run ({efs:.3f}) → recommend tighter composability rules and more symbolic verifier snippets.",
+                    "content": f"High EFS run ({efs:.3f}) → recommend tighter composability rules, more symbolic verifier snippets, and stronger artifact merge interfaces.",
                     "source": "End-of-Run + Meta-Tuning"
                 }
                 self._apply_contract_delta(delta)
 
-        # 4. Advanced Embodiment + Pattern Surfacers
+        # 5. Advanced Embodiment + Pattern Surfacers
         if self.toggles.get("embodiment_enabled", True):
             try:
-                threading.Thread(
-                    target=self.neurogenesis.spawn_if_high_delta, 
-                    args=(oracle_result,), 
-                    daemon=True
-                ).start()
-                
-                threading.Thread(
-                    target=self.microbiome.ferment_novelty, 
-                    args=(best_solution[:2000], oracle_result), 
-                    daemon=True
-                ).start()
-                
-                threading.Thread(
-                    target=self.vagus.monitor_hardware_state, 
-                    args=(oracle_result,), 
-                    daemon=True
-                ).start()
+                threading.Thread(target=self.neurogenesis.spawn_if_high_delta, 
+                               args=(oracle_result,), daemon=True).start()
+                threading.Thread(target=self.microbiome.ferment_novelty, 
+                               args=(best_solution[:2000], oracle_result), daemon=True).start()
+                threading.Thread(target=self.vagus.monitor_hardware_state, 
+                               args=(oracle_result,), daemon=True).start()
             except Exception as e:
                 logger.debug(f"Embodiment threads skipped (safe): {e}")
 
@@ -4054,25 +4191,25 @@ Return ONLY valid JSON:
             except Exception as e:
                 logger.debug(f"Pattern surfacers skipped (safe): {e}")
 
-        # 5. Meta-Tuning Integration (high-signal or periodic)
+        # 6. Meta-Tuning Integration (high-signal or periodic)
         if score > 0.78 or (self.loop_count % 4 == 0):
             try:
                 meta_result = self.run_meta_tuning_cycle(
                     stall_detected=self._is_stale_regime(self.recent_scores),
                     oracle_result=oracle_result
                 )
-                logger.info(f"Meta-tuning cycle completed in _end_of_run")
+                logger.info("Meta-tuning cycle completed in _end_of_run")
             except Exception as e:
                 logger.debug(f"Meta-tuning skipped (safe): {e}")
 
-        # 6. Pruning Advisor synergy
+        # 7. Pruning Advisor synergy
         if hasattr(self, 'pruning_advisor') and score > 0.75:
             try:
                 self.pruning_advisor.analyze_run(oracle_result, run_data)
             except Exception as e:
                 logger.debug(f"Pruning Advisor skipped (safe): {e}")
 
-        # 7. Stigmergic Trace + Memory Cleanup
+        # 8. Stigmergic Trace + Memory Cleanup
         trace = {
             "loop": self.loop_count,
             "final_score": round(score, 4),
@@ -4086,7 +4223,7 @@ Return ONLY valid JSON:
 
         self.memory_layers.compress_low_value(current_score=score)
 
-        logger.info("✅ _end_of_run complete — outer-loop evolution executed")
+        logger.info("✅ _end_of_run complete — outer-loop evolution + fragmented memory update executed")
             
     # ====================== v0.6 helper for wiki snapshot (used in run_data) ======================
     def _get_wiki_snapshot(self) -> dict:
