@@ -1,3 +1,4 @@
+# agents/fragment_tracker.py
 import json
 import math
 from pathlib import Path
@@ -5,7 +6,8 @@ from datetime import date
 import networkx as nx
 
 class FragmentTracker:
-    """Persistent fragment metadata + NetworkX graph for v0.8+ memory system."""
+    """Persistent fragment metadata + NetworkX graph for v0.8+ Wiki Memory Strategy."""
+
     def __init__(self):
         self.graph = nx.DiGraph()
         self.metadata_path = Path("goals/knowledge/fragment_metadata.json")
@@ -33,7 +35,7 @@ class FragmentTracker:
                             last_use=date.today().isoformat(),
                             challenge_id=challenge_id,
                             subtask_id=subtask_id,
-                            content_preview=content_preview[:200])
+                            content_preview=content_preview[:300])
         self._save()
 
     def record_reuse(self, frag_id: str, efs: float, is_contract_delta: bool = False):
@@ -44,7 +46,7 @@ class FragmentTracker:
             if is_contract_delta:
                 data["contract_delta_contrib"] += 1
             data["last_use"] = date.today().isoformat()
-            self.graph.add_edge("current_run", frag_id, weight=efs, timestamp=date.today().isoformat())
+            self.graph.add_edge("current_run", frag_id, weight=efs)
             self._save()
 
     def get_impact_score(self, frag_id: str) -> float:
@@ -60,27 +62,19 @@ class FragmentTracker:
         decayed = impact * math.exp(-0.08 * days)
         return round(decayed, 4)
 
-    def query_relevant_fragments(self, query: str, top_k: int = 5) -> List[Dict]:
-        """Intelligent graph search for ToolHunter / Orchestrator."""
+    def query_relevant_fragments(self, query: str, top_k: int = 5) -> list:
+        """Intelligent graph search for Orchestrator, Synthesis, Symbiosis, ToolHunter."""
         results = []
         for node in self.graph.nodes:
             data = self.graph.nodes[node]
-            if any(word.lower() in str(data.get("content_preview", "")).lower() for word in query.lower().split()):
+            preview = data.get("content_preview", "")
+            if any(word.lower() in preview.lower() for word in query.lower().split()):
                 score = self.get_impact_score(node)
                 results.append({
                     "fragment_id": node,
                     "impact_score": score,
                     "challenge": data.get("challenge_id"),
-                    "subtask": data.get("subtask_id")
+                    "subtask": data.get("subtask_id"),
+                    "preview": preview[:150]
                 })
         return sorted(results, key=lambda x: x["impact_score"], reverse=True)[:top_k]
-
-    def update_replay_pass_rate(self, frag_id: str, pass_rate: float):
-        if self.graph.has_node(frag_id):
-            self.graph.nodes[frag_id]["replay_pass_rate"] = pass_rate
-            self._save()
-
-    def increment_contract_delta_contrib(self, frag_id: str):
-        if self.graph.has_node(frag_id):
-            self.graph.nodes[frag_id]["contract_delta_contrib"] += 1
-            self._save()
