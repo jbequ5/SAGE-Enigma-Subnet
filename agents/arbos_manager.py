@@ -622,6 +622,8 @@ class ArbosManager:
         self.compute = compute_router
         self.compute.set_model_registry(self.model_registry)  # if you have one
         self.trace_log: List[Dict] = []
+        self.compute_router.oracle = self.validator   # ← Important: wire the single sandbox
+        self.compute_router.set_tool_env_manager(self.tool_env_manager)
 
         # Safe execution (RestrictedPython)
         self.safe_exec = self.validator.safe_exec
