@@ -79,3 +79,65 @@ class FragmentTracker:
                     "preview": preview[:150]
                 })
         return sorted(results, key=lambda x: x["impact_score"], reverse=True)[:top_k]
+
+    def cosmic_compress(self, min_utilization: float = 0.35, max_age_days: int = 30, 
+                       preserve_grail: bool = True) -> Tuple[int, int]:
+        """v0.9+ Advanced Cosmic Compression with multi-criteria scoring, 
+        centrality, and community awareness."""
+        
+        if not self.graph or len(self.graph.nodes) == 0:
+            return 0, 0
+
+        to_prune = []
+        to_promote = []
+        
+        # Calculate graph metrics once
+        try:
+            degree_centrality = nx.degree_centrality(self.graph)
+            betweenness = nx.betweenness_centrality(self.graph, k=min(50, len(self.graph.nodes)))
+        except:
+            degree_centrality = {n: 0.1 for n in self.graph.nodes}
+            betweenness = {n: 0.05 for n in self.graph.nodes}
+
+        for node, data in list(self.graph.nodes(data=True)):
+            # Skip protected nodes
+            if preserve_grail and data.get('in_grail', False):
+                continue
+
+            mau = data.get('mau', 0.0)
+            impact = data.get('impact_score', 0.0)
+            reuse = data.get('reuse_count', 0)
+            age_days = data.get('age_days', 0)
+            in_high_efs = data.get('in_high_efs_run', False)
+
+            # Multi-criteria score
+            score = (
+                0.35 * mau +
+                0.25 * impact +
+                0.15 * (reuse * 0.1) +           # reuse bonus
+                0.10 * degree_centrality.get(node, 0.1) +
+                0.08 * betweenness.get(node, 0.05) +
+                0.07 * (1.0 if in_high_efs else 0.3)
+            )
+
+            # Age penalty (Ebbinghaus-style)
+            age_factor = max(0.0, 1.0 - (age_days / (max_age_days * 1.5)))
+            final_score = score * age_factor
+
+            if final_score < min_utilization and age_days > max_age_days // 2:
+                to_prune.append(node)
+            elif final_score > 0.82 and not data.get('in_grail', False):
+                to_promote.append(node)
+
+        # Execute pruning and promotion
+        if to_prune:
+            self.graph.remove_nodes_from(to_prune)
+            
+        for node in to_promote:
+            if node in self.graph:
+                self.graph.nodes[node]['in_grail'] = True
+                self.graph.nodes[node]['promoted_at'] = datetime.now().isoformat()
+
+        logger.info(f"Cosmic Compression: Removed {len(to_prune)} nodes | Promoted {len(to_promote)} invariants")
+        
+        return len(to_prune), len(to_promote)
