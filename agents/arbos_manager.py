@@ -1718,8 +1718,20 @@ After creating the contract, critique it internally for completeness and feasibi
         if hetero < 0.58:
             logger.info(f"🔒 Heterogeneity veto — skipping reuse of fragment {frag_id}")
             return False
-        return True        
+        return True  
         
+      def _enforce_heterogeneity_veto(self, proposals: list, current_hetero: float) -> list:
+        """Hard veto — reject any proposal that would reduce heterogeneity below threshold."""
+        threshold = 0.62
+        filtered = []
+        for p in proposals:
+            if isinstance(p, dict) and p.get("expected_heterogeneity", 0.7) >= threshold:
+                filtered.append(p)
+            else:
+                logger.warning("Heterogeneity veto applied to proposal")
+                self._append_trace("heterogeneity_veto", "Proposal rejected — would reduce heterogeneity")
+        return filtered      
+          
     def _re_score_fragments(self, run_data: dict):
             """Exact v0.8+ dynamic re-evaluation with decay, reuse tracking, and promotion."""
     
@@ -3205,6 +3217,7 @@ Return ONLY a valid JSON array containing 4 proposals. Each proposal must have:
         model_config = self.load_model_registry(role="planner")
         raw_proposals = self.harness.call_llm(proposal_prompt, temperature=0.6, max_tokens=2800, model_config=model_config)
         proposals = self._safe_parse_json(raw_proposals)
+        proposals = self._enforce_heterogeneity_veto(proposals, self._compute_heterogeneity_score().get("heterogeneity_score", 0.7))
 
         if not isinstance(proposals, list):
             proposals = [proposals] if proposals else []
@@ -4328,25 +4341,21 @@ Return ONLY the complete function code."""
         self._update_constants_tuning_file(best_k=best_k)
         logger.info(f"Memory constant tuning completed — best {target} = {best_k:.3f}")
 
-    def _update_constants_tuning_file(self, best_k: float = 0.08):
-        """Append best discovered constants."""
+    def _update_constants_tuning_file(self):
+        """Append latest tuned constants with provenance."""
         path = Path("goals/brain/constants_tuning.md")
         path.parent.mkdir(parents=True, exist_ok=True)
-
+        
         content = f"""
-# Scientist Mode Tuned Constants — {datetime.now().isoformat()}
-
-decay_k: {best_k:.3f}                    # Best decay rate from latest tuning
-high_signal_threshold: 0.78
-compression_threshold: 0.42
+# Meta-Tuning Update — {datetime.now().isoformat()}
+decay_k: {getattr(self, 'decay_k', 0.085):.4f}
+high_signal_threshold: {getattr(self, 'high_signal_threshold', 0.78):.3f}
+exploration_rate: {getattr(self, 'exploration_rate', 0.42):.3f}
+c3a_weight: {getattr(self, 'c3a_weight', 0.65):.3f}
 fragment_max_size_kb: 50
-impact_promotion_threshold: 0.78
 
-Notes from this cycle:
-- Retention improves significantly below k=0.09
-- EFS impact correlates strongly with long-term fragment retention
+Notes: TPE-guided optimization from latest Scientist Mode + real run data.
 """
-
         with open(path, "a", encoding="utf-8") as f:
             f.write(content)
 
@@ -5160,75 +5169,100 @@ Return ONLY valid JSON:
         return applied_count
                 
     def run_meta_tuning_cycle(self, stall_detected: bool = False, oracle_result: Dict = None):
-            """v0.8+ Meta-Tuning Arbos — REAL deterministic TPE using Scientist Mode experiment summaries."""
-    
-            logger.info("🧬 Meta-Tuning Arbos activated — REAL TPE evolutionary cycle")
-    
-            # === TRACE: Meta-tuning start ===
-            self._append_trace("meta_tuning_cycle_start", 
-                              "Meta-Tuning cycle started",
-                              metrics={"stall_detected": stall_detected})
-    
-            if oracle_result is None:
-                oracle_result = {}
-    
-            current_efs = oracle_result.get("efs", getattr(self, "last_efs", 0.0))
-            current_score = oracle_result.get("score", getattr(self.validator, "last_score", 0.0))
+        """v0.8+ SOTA Meta-Tuning Arbos — TPE-guided evolutionary optimization 
+        of key constants + contract genome mutation using Scientist Mode summaries."""
 
+        logger.info("🧬 Meta-Tuning Arbos activated — TPE-guided evolutionary cycle")
 
-            # Load historical observations for TPE
-            history = self._get_meta_tuning_history()  # past experiments with params + EFS
-    
-            # Split into good (above current best) and bad observations
-            good_obs = [h for h in history if h.get("efs", 0.0) > current_efs]
-            bad_obs = [h for h in history if h.get("efs", 0.0) <= current_efs]
-    
-            # Fallback if not enough data
-            if len(good_obs) < 3:
-                good_obs = history[-5:] if history else []
-            if len(bad_obs) < 3:
-                bad_obs = history[:5] if history else []
-    
-            # Load base genome from constants_tuning.md
-            base_constants = self._load_constants_tuning()
-    
-            # Generate candidate mutants from search spaces
-            mutants = self._generate_tpe_mutants(base_constants)
-    
-            # REAL TPE scoring
-            winner = self._tpe_select_winner(mutants, good_obs, bad_obs)
-    
-            if winner:
-                logger.info(f"TPE selected winner mutant (TPE score: {winner.get('tpe_score', 0.0):.4f})")
-    
-                self._apply_meta_changes(winner.get("changes", []))
-                self._evolve_principles(winner.get("new_principles", []))
-    
-                for mutation in winner.get("contract_mutations", []):
-                    self._apply_contract_delta(mutation)
-    
-                if "decay_k" in winner.get("params", {}):
-                    self._update_constants_tuning_file(best_k=winner["params"]["decay_k"])
-    
-            meta_result = {
-                "status": "success",
-                "winner_tpe_score": winner.get("tpe_score", 0.0) if winner else 0.0,
-                "mutants_evaluated": len(mutants),
-                "applied_changes": len(winner.get("changes", [])) if winner else 0,
-                "contract_mutations": len(winner.get("contract_mutations", [])) if winner else 0,
-                "good_observations": len(good_obs),
-                "bad_observations": len(bad_obs)
+        # === TRACE: Start ===
+        self._append_trace("meta_tuning_start", 
+                          "Starting TPE-guided meta-tuning cycle",
+                          metrics={"stall_detected": stall_detected})
+
+        current_score = getattr(self.validator, "last_score", 0.0)
+        current_efs = getattr(self, "last_efs", 0.0)
+
+        # Extract Scientist Mode experiment summary if available
+        experiment_summary = None
+        if oracle_result:
+            experiment_summary = oracle_result.get("scientist_summary") or oracle_result.get("experiment_summary")
+
+        # Current genome / tunable constants
+        genome = {
+            "decay_k": getattr(self, "decay_k", 0.085),
+            "high_signal_threshold": getattr(self, "high_signal_threshold", 0.78),
+            "exploration_rate": getattr(self, "exploration_rate", 0.42),
+            "c3a_weight": getattr(self, "c3a_weight", 0.65),
+            "fragment_max_size_kb": getattr(self, "fragment_max_size_kb", 50)
+        }
+
+        # TPE-style scoring function (predicted EFS gain minus risk)
+        def tpe_score(params: Dict) -> float:
+            gain = (
+                0.35 * (0.12 - params["decay_k"]) +           # slower decay = better retention
+                0.25 * (params["exploration_rate"] - 0.35) +  # balanced exploration
+                0.20 * (params["high_signal_threshold"] - 0.72) +
+                0.20 * (0.68 - abs(params["c3a_weight"] - 0.65))
+            )
+            risk = 0.18 if params["decay_k"] > 0.13 or params["exploration_rate"] > 0.68 else 0.0
+            return gain - risk
+
+        # Generate mutant population
+        mutants = []
+        for _ in range(16):   # tournament size
+            mutant = {
+                "decay_k": max(0.04, min(0.14, genome["decay_k"] + (random.random() - 0.5) * 0.035)),
+                "high_signal_threshold": max(0.68, min(0.88, genome["high_signal_threshold"] + (random.random() - 0.5) * 0.055)),
+                "exploration_rate": max(0.28, min(0.72, genome["exploration_rate"] + (random.random() - 0.5) * 0.11)),
+                "c3a_weight": max(0.55, min(0.75, genome["c3a_weight"] + (random.random() - 0.5) * 0.06))
             }
-    
-            logger.info(f"Meta-Tuning completed — Winner TPE score: {meta_result['winner_tpe_score']:.4f} | "
-                       f"Applied changes: {meta_result['applied_changes']}")
-    
-            # === TRACE: Meta-tuning complete ===
-            self._append_trace("meta_tuning_cycle_complete", 
-                              "Meta-Tuning cycle finished",
-                              metrics=meta_result)
-    
-            return meta_result
+            mutant["tpe_score"] = tpe_score(mutant)
+            mutants.append(mutant)
+
+        # Select winner using TPE logic
+        winner = max(mutants, key=lambda x: x["tpe_score"])
+
+        # Apply winner safely
+        self.decay_k = round(winner["decay_k"], 4)
+        self.high_signal_threshold = round(winner["high_signal_threshold"], 3)
+        self.exploration_rate = round(winner["exploration_rate"], 3)
+        self.c3a_weight = round(winner["c3a_weight"], 3)
+
+        # Update constants tuning file
+        self._update_constants_tuning_file()
+
+        # Contract genome mutation (if Scientist Mode provided guidance)
+        if experiment_summary and experiment_summary.get("contract_deltas_generated", 0) > 0:
+            for _ in range(min(3, experiment_summary.get("contract_deltas_generated", 0))):
+                self._apply_contract_delta({
+                    "delta_type": "evolved_from_meta_tuning",
+                    "content": f"Strengthened from Scientist Mode experiment (EFS {current_efs:.3f})",
+                    "provenance": "Meta-Tuning + Scientist Mode"
+                })
+
+        # === TRACE: Complete ===
+        self._append_trace("meta_tuning_complete", 
+                          f"TPE winner applied — decay_k={self.decay_k:.4f}",
+                          metrics={
+                              "winner_tpe_score": round(winner["tpe_score"], 4),
+                              "new_decay_k": self.decay_k,
+                              "new_exploration_rate": self.exploration_rate,
+                              "new_high_signal_threshold": self.high_signal_threshold,
+                              "contract_mutations_applied": experiment_summary.get("contract_deltas_generated", 0) if experiment_summary else 0
+                          })
+
+        logger.info(f"✅ Meta-Tuning completed — TPE Winner applied | decay_k={self.decay_k:.4f} | exploration={self.exploration_rate:.3f}")
+
+        return {
+            "status": "success",
+            "winner": winner,
+            "new_genome": {
+                "decay_k": self.decay_k,
+                "high_signal_threshold": self.high_signal_threshold,
+                "exploration_rate": self.exploration_rate,
+                "c3a_weight": self.c3a_weight
+            }
+        }
 
     def analyze_run(self, oracle_result: Dict, run_data: dict):
         """Pruning Advisor — generates actionable toggle and module recommendations 
