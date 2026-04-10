@@ -123,14 +123,18 @@ with col4:
         st.rerun()
 
 # ====================== MAIN TABS ======================
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs([
     "📊 OVERVIEW DASHBOARD",
     "🎯 COMMAND BRIDGE", 
     "🧠 BRAIN VAULT", 
     "🛰️ RECON & INTEL", 
     "🔬 ORGANISM CORE", 
     "📜 DVR CONTRACT MONITOR",
-    "🔍 MISSION TRACE LOG"
+    "📈 LIVE SYSTEM METRICS",
+    "🔍 MISSION TRACE LOG",
+    "🌌 COSMIC COMPRESSION — Memory Graph Pruning",
+    "🧹 PRUNING ADVISOR — Intelligent Recommendations"
+    
 ])
 
 # ====================== TAB 1: OVERVIEW DASHBOARD ======================
@@ -383,6 +387,61 @@ with tab8:
 
     if st.button("🔄 Refresh Trace Log"):
         st.rerun()
+        
+with tab9:  # NEW: COSMIC COMPRESSION
+    st.header("🌌 COSMIC COMPRESSION — Memory Graph Pruning")
+    st.caption("Intelligent pruning to keep the brain lean and high-signal")
+
+    if st.button("🚀 Run Cosmic Compression Now", type="primary", use_container_width=True):
+        with st.spinner("Performing advanced graph pruning..."):
+            compressed, promoted = manager.perform_cosmic_compression(force=True)
+            st.success(f"✅ Compression complete — Removed {compressed} low-value fragments | Promoted {promoted} invariants to Grail")
+            st.rerun()
+
+    # Live graph stats
+    if hasattr(manager, 'fragment_tracker') and hasattr(manager.fragment_tracker, 'graph'):
+        g = manager.fragment_tracker.graph
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Nodes", len(g.nodes))
+        with col2:
+            st.metric("Graph Density", f"{nx.density(g):.4f}" if 'nx' in globals() else "N/A")
+        with col3:
+            grail_count = len([n for n,d in g.nodes(data=True) if d.get('in_grail', False)])
+            st.metric("Grail Nodes", grail_count)
+        with col4:
+            avg_mau = np.mean([d.get('mau', 0) for n,d in g.nodes(data=True)]) if g.nodes else 0
+            st.metric("Avg MAU", f"{avg_mau:.3f}")
+
+with tab10:  # NEW: PRUNING ADVISOR
+    st.header("🧹 PRUNING ADVISOR — Intelligent Recommendations")
+    st.caption("Data-driven analysis of the last run with actionable recommendations")
+
+    if st.button("🔍 Analyze Current Run", type="primary", use_container_width=True):
+        with st.spinner("Analyzing run data..."):
+            if st.session_state.last_result:
+                analysis = manager._analyze_run(
+                    current_results=st.session_state.last_result.get("subtask_outputs", {}),
+                    blueprint=st.session_state.get("high_level_plan", {})
+                )
+                st.session_state.last_analysis = analysis
+                st.success("✅ Analysis complete")
+            else:
+                st.error("No recent run data available. Launch a mission first.")
+
+    if "last_analysis" in st.session_state:
+        analysis = st.session_state.last_analysis
+        st.metric("Run Health Score", f"{analysis.get('health_score', 0):.3f}", delta="Higher is better")
+
+        st.subheader("Recommendations")
+        for rec in analysis.get("recommendations", []):
+            priority_color = "🔴" if rec.get("priority") == "critical" else "🟠" if rec.get("priority") == "high" else "🟡"
+            with st.expander(f"{priority_color} {rec.get('module')} → {rec.get('action')}"):
+                st.write(rec.get("reason"))
+                st.caption(f"Priority: {rec.get('priority', 'medium').upper()}")
+
+        st.subheader("Key Signals")
+        st.json(analysis.get("signals", {}))
 
 # ====================== PACKAGE & EXPORT ======================
 st.divider()
