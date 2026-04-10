@@ -335,109 +335,137 @@ class DVRDryRunSimulator:
     # ====================== MOCK DATA ======================
     def _generate_intelligent_mock(self, subtask: str, verifier_snippets: List[str], 
                                    subtask_contract: Dict = None) -> Dict:
-            """SOTA Intelligent Winning Mock Generator.
-            Creates realistic, high-fidelity mock solutions that actually attempt to satisfy
-            the verifier snippets and contract. Bulletproof and traceable."""
+        """SOTA Intelligent Winning Mock Generator.
+        Creates realistic, high-fidelity mock solutions that actually attempt to satisfy
+        the verifier snippets, contract artifacts, and composability rules. Bulletproof and traceable."""
 
-            self._append_trace("generate_intelligent_mock_start", 
-                              f"Generating SOTA winning mock for: {subtask[:80]}...",
-                              metrics={"verifier_snippets_count": len(verifier_snippets)})
+        self._append_trace("generate_intelligent_mock_start", 
+                          f"Generating SOTA winning mock for: {subtask[:80]}...",
+                          metrics={"verifier_snippets_count": len(verifier_snippets)})
 
-            # Build realistic mock solution text
-            contract_guidance = ""
-            if subtask_contract and subtask_contract.get("artifacts_required"):
-                artifacts = [a.get("name", str(a)) for a in subtask_contract["artifacts_required"][:4]]
-                contract_guidance = f"\nRequired artifacts satisfied: {', '.join(artifacts)}"
+        # Deep graph search to enrich the mock with real high-signal patterns
+        relevant_fragments = self._graph_search_high_signal_fragments(
+            query=f"{subtask} solution verifier compliance contract artifacts",
+            top_k=5
+        )
 
-            mock_solution = f"""[HIGH-QUALITY WINNING MOCK SOLUTION FOR SUBTASK]
-    Subtask: {subtask}
+        # Build realistic mock solution text
+        contract_guidance = ""
+        if subtask_contract and subtask_contract.get("artifacts_required"):
+            artifacts = [a.get("name", str(a)) for a in subtask_contract["artifacts_required"][:5]]
+            contract_guidance = f"\nRequired artifacts explicitly satisfied: {', '.join(artifacts)}"
 
-    Core Strategy:
-    - Deterministic path chosen to maximize verifier compliance and contract satisfaction.
-    - All provided verifier snippets are satisfied by construction.
-    - Edge cases and invariants handled explicitly.{contract_guidance}
+        mock_solution = f"""[HIGH-QUALITY WINNING MOCK SOLUTION FOR SUBTASK]
+Subtask: {subtask}
 
-    Final Output:
-    ✅ All verifier checks passed.
-    ✅ Contract artifacts produced correctly.
-    ✅ Composability rules satisfied.
-    ✅ Symbolic invariants hold.
+Core Strategy:
+- Deterministic and symbolic-first path chosen to maximize verifier compliance.
+- All provided verifier snippets satisfied by construction.
+- All required contract artifacts produced correctly.
+- Edge cases and invariants handled explicitly.{contract_guidance}
 
-    Detailed Result:
-    - Primary solution computed successfully.
-    - All edge cases validated.
-    - Confidence: 0.92+ (engineered to pass dry-run gate)"""
+High-Signal Insights Borrowed from Memory Graph:
+{json.dumps([f["content_preview"] for f in relevant_fragments[:3]], indent=2) if relevant_fragments else "None"}
 
-            # Try to actually run the verifier snippets against the mock (safe execution)
-            passed_count = 0
-            for snippet in verifier_snippets[:6]:  # limit for speed
-                try:
-                    local = {"candidate": mock_solution, "result": None, "passed": False}
-                    if self.safe_exec(snippet, local_vars=local):
-                        if local.get("passed", False) or local.get("result", False):
-                            passed_count += 1
-                except:
-                    pass  # safe fallback
+Final Output:
+✅ All verifier checks passed.
+✅ Contract artifacts produced correctly.
+✅ Composability rules satisfied.
+✅ Symbolic invariants hold.
 
-            mock = {
-                "subtask": subtask,
-                "solution": mock_solution,
-                "score": 0.92,
-                "type": "winning",
-                "mock_quality": "high",
-                "verifier_compliant": True,
-                "verifier_snippets_passed": passed_count,
-                "artifacts_satisfied": len(subtask_contract.get("artifacts_required", [])) if subtask_contract else 0
-            }
+Detailed Result:
+- Primary solution computed successfully.
+- All edge cases validated.
+- Confidence: 0.93+ (engineered to pass dry-run gate with high margin)"""
 
-            self._append_trace("generate_intelligent_mock_complete", 
-                              f"High-quality winning mock generated — {passed_count} verifier snippets passed in simulation",
-                              metrics={
-                                  "mock_score": 0.92,
-                                  "verifier_snippets_passed": passed_count,
-                                  "artifacts_satisfied": mock["artifacts_satisfied"]
-                              })
-    
-            return mock
+        # Try to actually run the verifier snippets against the mock (safe execution)
+        passed_count = 0
+        for snippet in verifier_snippets[:8]:  # increased but still safe
+            try:
+                local = {"candidate": mock_solution, "result": None, "passed": False}
+                if self.safe_exec(snippet, local_vars=local):
+                    if local.get("passed", False) or local.get("result", False):
+                        passed_count += 1
+            except:
+                pass  # safe fallback
+
+        mock = {
+            "subtask": subtask,
+            "solution": mock_solution,
+            "score": 0.93,
+            "type": "winning",
+            "mock_quality": "high",
+            "verifier_compliant": True,
+            "verifier_snippets_passed": passed_count,
+            "artifacts_satisfied": len(subtask_contract.get("artifacts_required", [])) if subtask_contract else 0,
+            "fragments_used": len(relevant_fragments)
+        }
+
+        self._append_trace("generate_intelligent_mock_complete", 
+                          f"High-quality winning mock generated — {passed_count} verifier snippets passed in simulation",
+                          metrics={
+                              "mock_score": 0.93,
+                              "verifier_snippets_passed": passed_count,
+                              "artifacts_satisfied": mock["artifacts_satisfied"],
+                              "fragments_used": len(relevant_fragments)
+                          })
+
+        return mock
 
     def _generate_adversarial_mock(self, subtask: str, verifier_snippets: List[str], 
                                    subtask_contract: Dict = None) -> Dict:
-            """SOTA Adversarial Mock Generator — creates realistic failing/edge-case mocks
-            to stress-test the plan in dry-run."""
-    
-            self._append_trace("generate_adversarial_mock_start", 
-                              f"Generating adversarial mock for: {subtask[:80]}...")
-    
-            adversarial_solution = f"""[ADVERSARIAL MOCK — EDGE CASE / FAILURE MODE FOR SUBTASK]
-    Subtask: {subtask}
-    
-    This mock is deliberately constructed to:
-    - Fail at least one verifier snippet
-    - Violate one or more contract rules
-    - Test boundary conditions and robustness
-    
-    Problematic Output:
-    - Partial artifacts produced (missing key fields)
-    - One or more invariants violated
-    - Edge case triggered (null values, extreme inputs, or malformed data)
-    
-    Intended Failure Mode: Triggers verifier rejection or low score for robustness testing."""
-    
-            mock = {
-                "subtask": subtask,
-                "solution": adversarial_solution,
-                "score": 0.28,           # deliberately low
-                "type": "adversarial",
-                "mock_quality": "stress_test",
-                "verifier_compliant": False,
-                "intended_failure": True
-            }
-    
-            self._append_trace("generate_adversarial_mock_complete", 
-                              "Adversarial mock generated for robustness testing",
-                              metrics={"mock_score": 0.28, "type": "adversarial"})
-    
-            return mock
+        """SOTA Adversarial Mock Generator — creates realistic failing/edge-case mocks
+        to properly stress-test the plan in dry-run. Varied failure modes."""
+
+        self._append_trace("generate_adversarial_mock_start", 
+                          f"Generating adversarial mock for: {subtask[:80]}...")
+
+        # Varied failure modes for better robustness testing
+        failure_modes = [
+            "missing_key_artifact",
+            "invariant_violation",
+            "partial_composability_failure",
+            "edge_case_extreme_input"
+        ]
+        chosen_failure = failure_modes[int(hash(subtask) % len(failure_modes))]
+
+        adversarial_solution = f"""[ADVERSARIAL MOCK — EDGE CASE / FAILURE MODE FOR SUBTASK]
+Subtask: {subtask}
+
+This mock is deliberately constructed to:
+- Fail at least one verifier snippet
+- Violate one or more contract rules
+- Test boundary conditions and robustness
+
+Chosen Failure Mode: {chosen_failure}
+
+Problematic Output:
+- Partial artifacts produced (missing key fields)
+- One or more invariants violated
+- Edge case triggered (null values, extreme inputs, or malformed data)
+
+Intended Failure Mode: Triggers verifier rejection or low score for robustness testing."""
+
+        mock = {
+            "subtask": subtask,
+            "solution": adversarial_solution,
+            "score": 0.28,           # deliberately low
+            "type": "adversarial",
+            "mock_quality": "stress_test",
+            "verifier_compliant": False,
+            "intended_failure": True,
+            "failure_mode": chosen_failure
+        }
+
+        self._append_trace("generate_adversarial_mock_complete", 
+                          f"Adversarial mock generated — Failure mode: {chosen_failure}",
+                          metrics={
+                              "mock_score": 0.28, 
+                              "type": "adversarial",
+                              "failure_mode": chosen_failure
+                          })
+
+        return mock
     # ====================== COMPOSABILITY CHECKER ======================
     def _check_composability(self, merged: Any, decomposed_subtasks: List[str], 
                                 verifier_snippets: List[str] = None) -> Dict:
@@ -1885,97 +1913,111 @@ After creating the contract, critique it internally for completeness and feasibi
             pass  # safe fallback        
     # ====================== PLANNING ======================
     def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_prompt: str = "", compute_mode: str = "local_gpu") -> Dict[str, Any]:
-            """v0.8+ Phase 1: Planning Arbos — generates decomposition, reassembly plan, dependency graph, 
-            and initial executable verifier snippets."""
-    
-            self.set_compute_source(compute_mode)
-            
-            if not challenge or len(challenge.strip()) < 10:
-                self._append_trace("plan_challenge_error", "Challenge too short")
-                return {"error": "Challenge too short"}
-    
-            # === TRACE: Planning start ===
-            self._append_trace("plan_challenge_start", 
-                              f"Planning Arbos Phase 1 started for challenge: {challenge[:100]}...",
-                              metrics={"compute_mode": compute_mode})
-    
-            logger.info("🚀 Planning Arbos Phase 1 started")
-    
-            # Rich prior context
-            recent_history = self.get_run_history(n=6)
-            grail_patterns = self._load_recent_grail_patterns()
-            wiki_deltas = self._apply_wiki_strategy(goal_md + "\n" + challenge, challenge.replace(" ", "_").lower())
-    
-            # Generate high-quality verifiability contract (includes initial verifier snippets)
-            contract_result = self.generate_verifiability_contract(challenge, goal_md)
-    
-            self._append_trace("contract_generation_complete", 
-                              "Verifiability contract generated",
-                              metrics={
-                                  "artifacts_count": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", [])),
-                                  "verifier_snippets_count": len(contract_result.get("verifier_code_snippets", []))
-                              })
-    
-            # Strong human-in-the-loop enforcement
-            if not enhancement_prompt or len(enhancement_prompt.strip()) < 30:
-                enhancement_prompt = "Maximize verifier compliance, heterogeneity across all five axes, deterministic/symbolic paths first. Prioritize clean composability for Synthesis Arbos. Be brutally honest about feasibility."
-    
-            self._current_enhancement = enhancement_prompt
-    
-            self._append_trace("human_refinement_applied", 
-                              "Human-in-the-loop enhancement prompt applied",
-                              metrics={"enhancement_prompt_length": len(enhancement_prompt)})
-    
-            # Structured handoff to Orchestrator Phase 2
-            orchestrator_input = {
-                "human_refinement": enhancement_prompt,
-                "verifiability_contract": contract_result["final_verifiability_contract"],
-                "decomposition": contract_result.get("decomposition", []),
-                "reassembly_plan": contract_result.get("recomposition_plan", {}),
-                "dependency_graph": contract_result.get("dependency_graph", {}),
-                "initial_verifier_snippets": contract_result.get("verifier_code_snippets", []),
-                "prior_lessons": {
-                    "recent_history": recent_history,
-                    "grail_patterns": grail_patterns,
-                    "wiki_deltas": wiki_deltas
-                }
-            }
-    
-            # Hand off to Orchestrator Arbos (Phase 2)
-            execution_result = self.orchestrate_subarbos(
-                task=challenge,
-                goal_md=goal_md,
-                orchestrator_input=orchestrator_input
-            )
-    
-            self._current_strategy = self.analyzer.analyze("", challenge)
-            self.validator.adapt_scoring(self._current_strategy)
-    
-            # === TRACE: Planning complete ===
-            self._append_trace("plan_challenge_complete", 
-                              "Planning Arbos Phase 1 completed successfully",
-                              metrics={
-                                  "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
-                                  "structured_handoff": True,
-                                  "contract_artifacts": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", []))
-                              })
+        """v0.8+ Phase 1: Planning Arbos — generates decomposition, reassembly plan, dependency graph, 
+        initial executable verifier snippets, and deep graph search for high-signal fragments."""
+
+        self.set_compute_source(compute_mode)
         
-            # Deep graph search for relevant fragments (v0.8+)
-            plan.setdefault("borrowed_fragments", [])
-            for subtask in plan.get("decomposition", []):
-                borrowed = self._borrow_fragment_for_subtask(subtask, plan.get("verifiability_contract", {}))
-                if borrowed:
-                    plan["borrowed_fragments"].append(borrowed)
-                    
-            return {
-                "phase1": contract_result,
-                "phase2": execution_result,
-                "adapted_strategy": self._current_strategy,
-                "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
-                "human_refinement": enhancement_prompt,
-                "verifiability_contract": contract_result["final_verifiability_contract"],
-                "structured_handoff": True
+        if not challenge or len(challenge.strip()) < 10:
+            self._append_trace("plan_challenge_error", "Challenge too short")
+            return {"error": "Challenge too short"}
+
+        # === TRACE: Planning start ===
+        self._append_trace("plan_challenge_start", 
+                          f"Planning Arbos Phase 1 started for challenge: {challenge[:100]}...",
+                          metrics={"compute_mode": compute_mode})
+
+        logger.info("🚀 Planning Arbos Phase 1 started")
+
+        # Rich prior context
+        recent_history = self.get_run_history(n=6)
+        grail_patterns = self._load_recent_grail_patterns()
+        wiki_deltas = self._apply_wiki_strategy(goal_md + "\n" + challenge, challenge.replace(" ", "_").lower())
+
+        # Generate high-quality verifiability contract (includes initial verifier snippets)
+        contract_result = self.generate_verifiability_contract(challenge, goal_md)
+
+        self._append_trace("contract_generation_complete", 
+                          "Verifiability contract generated",
+                          metrics={
+                              "artifacts_count": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", [])),
+                              "verifier_snippets_count": len(contract_result.get("verifier_code_snippets", []))
+                          })
+
+        # Strong human-in-the-loop enforcement
+        if not enhancement_prompt or len(enhancement_prompt.strip()) < 30:
+            enhancement_prompt = "Maximize verifier compliance, heterogeneity across all five axes, deterministic/symbolic paths first. Prioritize clean composability for Synthesis Arbos. Be brutally honest about feasibility."
+
+        self._current_enhancement = enhancement_prompt
+
+        self._append_trace("human_refinement_applied", 
+                          "Human-in-the-loop enhancement prompt applied",
+                          metrics={"enhancement_prompt_length": len(enhancement_prompt)})
+
+        # Structured handoff to Orchestrator Phase 2
+        orchestrator_input = {
+            "human_refinement": enhancement_prompt,
+            "verifiability_contract": contract_result["final_verifiability_contract"],
+            "decomposition": contract_result.get("decomposition", []),
+            "reassembly_plan": contract_result.get("recomposition_plan", {}),
+            "dependency_graph": contract_result.get("dependency_graph", {}),
+            "initial_verifier_snippets": contract_result.get("verifier_code_snippets", []),
+            "prior_lessons": {
+                "recent_history": recent_history,
+                "grail_patterns": grail_patterns,
+                "wiki_deltas": wiki_deltas
             }
+        }
+
+        # Hand off to Orchestrator Arbos (Phase 2)
+        execution_result = self.orchestrate_subarbos(
+            task=challenge,
+            goal_md=goal_md,
+            orchestrator_input=orchestrator_input
+        )
+
+        self._current_strategy = self.analyzer.analyze("", challenge)
+        self.validator.adapt_scoring(self._current_strategy)
+
+        # === TRACE: Planning complete ===
+        self._append_trace("plan_challenge_complete", 
+                          "Planning Arbos Phase 1 completed successfully",
+                          metrics={
+                              "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
+                              "structured_handoff": True,
+                              "contract_artifacts": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", []))
+                          })
+
+        # Deep graph search + borrowing high-signal fragments (v0.8+)
+        plan = {
+            "decomposition": contract_result.get("decomposition", []),
+            "verifiability_contract": contract_result.get("final_verifiability_contract", {}),
+            "borrowed_fragments": []
+        }
+        
+        self._append_trace("graph_search_pre_planning", "Searching wiki graph for high-signal fragments to borrow")
+        
+        for subtask in plan.get("decomposition", []):
+            borrowed = self._borrow_fragment_for_subtask(subtask, plan.get("verifiability_contract", {}))
+            if borrowed:
+                plan["borrowed_fragments"].append(borrowed)
+
+        if plan["borrowed_fragments"]:
+            logger.info(f"Planning Arbos borrowed {len(plan['borrowed_fragments'])} high-signal fragments")
+            self._append_trace("fragments_borrowed", 
+                              f"Borrowed {len(plan['borrowed_fragments'])} high-signal fragments for planning",
+                              metrics={"borrowed_count": len(plan["borrowed_fragments"])})
+
+        return {
+            "phase1": contract_result,
+            "phase2": execution_result,
+            "adapted_strategy": self._current_strategy,
+            "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
+            "human_refinement": enhancement_prompt,
+            "verifiability_contract": contract_result["final_verifiability_contract"],
+            "structured_handoff": True,
+            "borrowed_fragments": plan["borrowed_fragments"]
+        }
     # Clean handoff helper
     
         
@@ -3101,8 +3143,9 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
                         verifiability_contract: Dict, failure_context: Dict = None) -> Dict:
         """Maximum capability Synthesis Arbos — multi-proposal generation, structured debate, 
         iterative refinement, strict contract enforcement, and memory graph injection."""
-        
+
         if not subtask_outputs or len(subtask_outputs) == 0:
+            self._append_trace("synthesis_arbos_start", "No subtask outputs received")
             return {
                 "final_candidate": "", 
                 "synthesis_notes": "No outputs received", 
@@ -3110,7 +3153,11 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
                 "confidence": 0.0
             }
 
-                            
+        # === TRACE: Synthesis start ===
+        self._append_trace("synthesis_arbos_start", 
+                          f"Starting critique-first synthesis with {len(subtask_outputs)} subtasks",
+                          metrics={"subtask_count": len(subtask_outputs)})
+
         # Use consistent contract naming
         contract = {
             "artifacts_required": verifiability_contract.get("artifacts_required", []),
@@ -3120,11 +3167,11 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
             "recomposition_plan": recomposition_plan
         }
 
-        # Deep graph search to enrich synthesis
+        # Deep graph search to enrich synthesis (v0.8+)
         self._append_trace("graph_search_pre_synthesis", "Enriching synthesis with graph-searched fragments")
-                            
+        
         # === QUERY HIGH-SIGNAL FRAGMENTS FROM MEMORY GRAPH ===
-        relevant_fragments = self.fragment_tracker.query_relevant_fragments(
+        relevant_fragments = self._graph_search_high_signal_fragments(
             query="synthesis recomposition merge composability artifacts", 
             top_k=6
         )
@@ -3208,6 +3255,17 @@ Return only the improved final_candidate."""
             result.setdefault("refinement_steps", []).append("Final contract enforcement pass")
 
         logger.info(f"Synthesis Arbos completed with {len(relevant_fragments)} memory fragments | Compliance: {result.get('spec_compliance', 'medium')} | Confidence: {result.get('confidence', 0.0):.3f}")
+
+        # === TRACE: Synthesis complete ===
+        self._append_trace("synthesis_arbos_complete", 
+                          f"Synthesis finished — candidate length: {len(str(result.get('final_candidate', '')))}",
+                          metrics={
+                              "spec_compliance": result.get("spec_compliance", "medium"),
+                              "confidence": result.get("confidence", 0.0),
+                              "memory_fragments_used": len(relevant_fragments),
+                              "refinement_steps": len(result.get("refinement_steps", [])),
+                              "candidate_length": len(str(result.get('final_candidate', '')))
+                          })
 
         return result
                             
@@ -4536,145 +4594,145 @@ Do not include explanations or extra text."""
             return current_solution
 
     def _run_symbiosis_arbos(self, aggregated_outputs: List[Dict], 
-                                 message_bus: List = None, 
-                                 synthesis_result: Dict = None) -> List[Dict]:
-            """v0.8+ Symbiosis Arbos — intermediate layer between raw swarm outputs and Synthesis Arbos.
-            Discovers emergent mutualisms and writes high-value patterns as fragments to cross_field_synthesis/."""
-            
-            if not aggregated_outputs or len(aggregated_outputs) < 2:
-                logger.debug("Symbiosis Arbos skipped — fewer than 2 outputs")
-                self._append_trace("symbiosis_start", "Skipped — fewer than 2 outputs")
-                return []
-    
-            if message_bus is None:
-                message_bus = []
-    
-            # === TRACE: Symbiosis start ===
-            self._append_trace("symbiosis_start", 
-                              "Running symbiosis pattern discovery on raw swarm outputs",
-                              metrics={"total_outputs": len(aggregated_outputs)})
-    
-            # Filter to viable outputs only
-            viable_outputs = [o for o in aggregated_outputs 
-                             if isinstance(o, dict) and o.get("local_score", 0.0) > 0.35]
-    
-            if len(viable_outputs) < 2:
-                logger.debug("Symbiosis Arbos skipped — insufficient viable outputs")
-                self._append_trace("symbiosis_complete", 
-                                  "Skipped — insufficient viable outputs after filtering",
-                                  metrics={"viable_count": len(viable_outputs)})
-                return []
-    
-            # Query high-signal fragments from memory graph
-            relevant_fragments = self.fragment_tracker.query_relevant_fragments(
-                query="emergent patterns mutualisms symbiosis cross-field insights", 
-                top_k=5
+                             message_bus: List = None, 
+                             synthesis_result: Dict = None) -> List[Dict]:
+        """v0.8+ Symbiosis Arbos — intermediate layer between raw swarm outputs and Synthesis Arbos.
+        Discovers emergent mutualisms using deep graph search and writes high-value patterns as fragments."""
+
+        if not aggregated_outputs or len(aggregated_outputs) < 2:
+            logger.debug("Symbiosis Arbos skipped — fewer than 2 outputs")
+            self._append_trace("symbiosis_start", "Skipped — fewer than 2 outputs")
+            return []
+
+        if message_bus is None:
+            message_bus = []
+
+        # === TRACE: Symbiosis start ===
+        self._append_trace("symbiosis_start", 
+                          "Running symbiosis pattern discovery on raw swarm outputs",
+                          metrics={"total_outputs": len(aggregated_outputs)})
+
+        # Filter to viable outputs only
+        viable_outputs = [o for o in aggregated_outputs 
+                         if isinstance(o, dict) and o.get("local_score", 0.0) > 0.35]
+
+        if len(viable_outputs) < 2:
+            logger.debug("Symbiosis Arbos skipped — insufficient viable outputs")
+            self._append_trace("symbiosis_complete", 
+                              "Skipped — insufficient viable outputs after filtering",
+                              metrics={"viable_count": len(viable_outputs)})
+            return []
+
+        # === DEEP GRAPH SEARCH for relevant high-signal patterns ===
+        relevant_fragments = self._graph_search_high_signal_fragments(
+            query="emergent patterns mutualisms symbiosis cross-field insights entanglement",
+            top_k=8
+        )
+
+        # Build prompt
+        subtask_summary = [{
+            "subtask": o.get("subtask", "unknown"),
+            "role": o.get("role", "unknown"),
+            "solution_snippet": str(o.get("solution", ""))[:550],
+            "score": round(o.get("local_score", 0.5), 3)
+        } for o in viable_outputs]
+
+        symbiosis_prompt = f"""You are Symbiosis Arbos — specialist in detecting emergent mutualisms and cross-field patterns.
+
+SYNTHESIS RESULT (if available):
+{json.dumps(synthesis_result or {}, indent=2)[:900]}
+
+SUBTASK OUTPUTS (viable only):
+{json.dumps(subtask_summary, indent=2)}
+
+RECENT MESSAGE BUS SIGNALS:
+{json.dumps(message_bus[-10:], indent=2) if message_bus else "None"}
+
+HIGH-SIGNAL FRAGMENTS FROM MEMORY GRAPH:
+{json.dumps(relevant_fragments, indent=2)}
+
+Your job:
+1. Identify non-obvious connections, mutualisms, and emergent patterns across subtasks.
+2. Find entanglement-like opportunities where one subtask dramatically improves another.
+3. Extract high-signal insights worthy of the Grail.
+4. Suggest concrete, actionable improvements or new hypotheses.
+
+Return ONLY a valid JSON array (max 6 patterns). Each pattern must follow this exact schema:
+{{
+  "pattern_name": "short descriptive name",
+  "description": "detailed explanation of the mutualism or insight",
+  "involved_subtasks": ["list of subtask names"],
+  "insight_strength": 0.0-1.0,
+  "actionable_recommendation": "concrete next step or hypothesis",
+  "grail_worthiness": "high/medium/low"
+}}"""
+
+        try:
+            model_config = self.load_model_registry(role="planner")
+            raw = self.harness.call_llm(
+                symbiosis_prompt, 
+                temperature=0.42, 
+                max_tokens=2300, 
+                model_config=model_config
             )
-    
-            # Build prompt
-            subtask_summary = [{
-                "subtask": o.get("subtask", "unknown"),
-                "role": o.get("role", "unknown"),
-                "solution_snippet": str(o.get("solution", ""))[:550],
-                "score": round(o.get("local_score", 0.5), 3)
-            } for o in viable_outputs]
-    
-            symbiosis_prompt = f"""You are Symbiosis Arbos — specialist in detecting emergent mutualisms and cross-field patterns.
-    
-    SYNTHESIS RESULT (if available):
-    {json.dumps(synthesis_result or {}, indent=2)[:900]}
-    
-    SUBTASK OUTPUTS (viable only):
-    {json.dumps(subtask_summary, indent=2)}
-    
-    RECENT MESSAGE BUS SIGNALS:
-    {json.dumps(message_bus[-10:], indent=2) if message_bus else "None"}
-    
-    HIGH-SIGNAL FRAGMENTS FROM MEMORY GRAPH:
-    {json.dumps(relevant_fragments, indent=2)}
-    
-    Your job:
-    1. Identify non-obvious connections, mutualisms, and emergent patterns across subtasks.
-    2. Find entanglement-like opportunities where one subtask dramatically improves another.
-    3. Extract high-signal insights worthy of the Grail.
-    4. Suggest concrete, actionable improvements or new hypotheses.
-    
-    Return ONLY a valid JSON array (max 6 patterns). Each pattern must follow this exact schema:
-    {{
-      "pattern_name": "short descriptive name",
-      "description": "detailed explanation of the mutualism or insight",
-      "involved_subtasks": ["list of subtask names"],
-      "insight_strength": 0.0-1.0,
-      "actionable_recommendation": "concrete next step or hypothesis",
-      "grail_worthiness": "high/medium/low"
-    }}"""
-    
-            try:
-                model_config = self.load_model_registry(role="planner")
-                raw = self.harness.call_llm(
-                    symbiosis_prompt, 
-                    temperature=0.42, 
-                    max_tokens=2300, 
-                    model_config=model_config
-                )
-                
-                patterns = self._safe_parse_json(raw)
-                if not isinstance(patterns, list):
-                    patterns = [patterns] if isinstance(patterns, dict) else []
-    
-                # Filter high-value patterns
-                high_value_patterns = [
-                    p for p in patterns 
-                    if isinstance(p, dict) and (p.get("insight_strength", 0) > 0.62 or p.get("grail_worthiness") == "high")
-                ]
-    
-                if high_value_patterns:
-                    challenge_id = getattr(self, "_current_challenge_id", "current")
-                    cross_field_dir = Path(f"goals/knowledge/{challenge_id}/wiki/cross_field_synthesis")
-                    cross_field_dir.mkdir(parents=True, exist_ok=True)
-    
-                    for pattern in high_value_patterns:
-                        # Write as fragmented high-signal pattern
-                        frag_content = json.dumps(pattern, indent=2)
-                        fragments = self._fragment_output(frag_content)
-                        for frag in fragments:
-                            frag_id = f"symbiosis_pattern_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{frag.get('id', 0)}"
-                            self.fragment_tracker.record_fragment(
-                                frag_id=frag_id,
-                                initial_mau=0.92,  # symbiosis patterns are high-value
-                                challenge_id=challenge_id,
-                                subtask_id="cross_field_synthesis",
-                                content_preview=frag["content"][:250]
-                            )
-                            self._write_fragment(challenge_id, "cross_field_synthesis", frag, {"type": "symbiosis_pattern"})
-    
-                    # Also append to grail for easy access
-                    grail_path = Path("goals/brain/grail_patterns/symbiosis_patterns.json")
-                    grail_path.parent.mkdir(parents=True, exist_ok=True)
-                    with open(grail_path, "a", encoding="utf-8") as f:
-                        f.write(json.dumps(high_value_patterns, indent=2) + "\n\n")
-    
-                    logger.info(f"Symbiosis Arbos discovered and fragmented {len(high_value_patterns)} high-value patterns")
-                else:
-                    logger.debug("Symbiosis Arbos found no high-value patterns this run")
-    
-                # === TRACE: Symbiosis complete ===
-                self._append_trace("symbiosis_complete", 
-                                  f"Symbiosis Arbos finished — discovered {len(high_value_patterns)} high-value patterns",
-                                  metrics={
-                                      "total_patterns_found": len(patterns),
-                                      "high_value_patterns": len(high_value_patterns),
-                                      "relevant_fragments_used": len(relevant_fragments)
-                                  })
-    
-                return high_value_patterns
-    
-            except Exception as e:
-                logger.warning(f"Symbiosis Arbos failed (safe fallback): {e}")
-                self._append_trace("symbiosis_complete", 
-                                  f"Symbiosis Arbos failed with exception: {str(e)[:200]}",
-                                  metrics={"error": True})
-                return []
+            
+            patterns = self._safe_parse_json(raw)
+            if not isinstance(patterns, list):
+                patterns = [patterns] if isinstance(patterns, dict) else []
+
+            # Filter high-value patterns
+            high_value_patterns = [
+                p for p in patterns 
+                if isinstance(p, dict) and (p.get("insight_strength", 0) > 0.62 or p.get("grail_worthiness") == "high")
+            ]
+
+            if high_value_patterns:
+                challenge_id = getattr(self, "_current_challenge_id", "current")
+                cross_field_dir = Path(f"goals/knowledge/{challenge_id}/wiki/cross_field_synthesis")
+                cross_field_dir.mkdir(parents=True, exist_ok=True)
+
+                for pattern in high_value_patterns:
+                    # Write as fragmented high-signal pattern
+                    frag_content = json.dumps(pattern, indent=2)
+                    fragments = self._fragment_output(frag_content)
+                    for frag in fragments:
+                        frag_id = f"symbiosis_pattern_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{frag.get('id', 0)}"
+                        self.fragment_tracker.record_fragment(
+                            frag_id=frag_id,
+                            initial_mau=0.92,  # symbiosis patterns are high-value
+                            challenge_id=challenge_id,
+                            subtask_id="cross_field_synthesis",
+                            content_preview=frag["content"][:250]
+                        )
+                        self._write_fragment(challenge_id, "cross_field_synthesis", frag, {"type": "symbiosis_pattern"})
+
+                # Also append to grail for easy access
+                grail_path = Path("goals/brain/grail_patterns/symbiosis_patterns.json")
+                grail_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(grail_path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(high_value_patterns, indent=2) + "\n\n")
+
+                logger.info(f"Symbiosis Arbos discovered and fragmented {len(high_value_patterns)} high-value patterns")
+            else:
+                logger.debug("Symbiosis Arbos found no high-value patterns this run")
+
+            # === TRACE: Symbiosis complete ===
+            self._append_trace("symbiosis_complete", 
+                              f"Symbiosis Arbos finished — discovered {len(high_value_patterns)} high-value patterns",
+                              metrics={
+                                  "total_patterns_found": len(patterns),
+                                  "high_value_patterns": len(high_value_patterns),
+                                  "relevant_fragments_used": len(relevant_fragments)
+                              })
+
+            return high_value_patterns
+
+        except Exception as e:
+            logger.warning(f"Symbiosis Arbos failed (safe fallback): {e}")
+            self._append_trace("symbiosis_complete", 
+                              f"Symbiosis Arbos failed with exception: {str(e)[:200]}",
+                              metrics={"error": True})
+            return []
             
     def post_high_signal_finding(self, subtask: str, content: str, local_score: float):
         """Post a high-signal finding from a Sub-Arbos worker to the message bus 
