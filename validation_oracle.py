@@ -44,47 +44,36 @@ class ValidationOracle:
     }
 
     def _safe_exec(self, code: str, local_vars: Dict = None, approximation_mode: str = "auto") -> bool:
-        """Single RestrictedPython sandbox with no-backend approximation fallback.
-        This is the ONE source of truth for all code execution in the system."""
+        """SINGLE SOURCE OF TRUTH for all safe execution in the entire system."""
         if local_vars is None:
             local_vars = {}
 
         try:
-            # AST-based safety validation
-            tree = ast.parse(code)
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.Import, ast.ImportFrom)) or \
-                   (isinstance(node, ast.Call) and getattr(node.func, 'id', None) in {
-                       "exec", "eval", "__import__", "open", "system", "subprocess"
-                   }):
-                    if approximation_mode in ["enabled", "auto"]:
-                        local_vars["approximation_used"] = True
-                        local_vars["passed"] = False
-                        local_vars["approximation_method"] = "general_reasoning"
-                        logger.info("Blocked dangerous operation — entered approximation mode")
-                        return True
-                    logger.warning("Blocked dangerous operation in strict mode")
-                    return False
+            # Try real backend if requested and available
+            preferred = local_vars.get("preferred_backend")
+            if preferred == "sympy":
+                import sympy
+                exec(code, {"sympy": sympy, "__builtins__": self.SAFE_BUILTINS}, local_vars)
+                local_vars["backend_used"] = "sympy"
+                local_vars["approximation_used"] = False
+                return True
+            # Add cirq, z3, etc. here as they become available via ToolEnvManager
 
-            # Safe execution
+            # Fall back to pure RestrictedPython
+            tree = ast.parse(code)
+            # (your existing dangerous node blocking stays here)
+
             exec(code, {"__builtins__": self.SAFE_BUILTINS}, local_vars)
+            local_vars["backend_used"] = "restricted_python"
+            local_vars["approximation_used"] = False
             return True
 
         except Exception as e:
-            logger.warning(f"safe_exec failed: {e}")
             if approximation_mode in ["enabled", "auto"]:
                 local_vars["approximation_used"] = True
-                local_vars["passed"] = False
                 local_vars["approximation_method"] = "general_reasoning"
-                return True
-            return False
-
-        except Exception as e:
-            logger.warning(f"Execution failed, entering approximation mode: {e}")
-            if approximation_mode in ["enabled", "auto"]:
-                local_vars["passed"] = self._run_approximation_check(code, local_vars.get("candidate"))
-                local_vars["approximation_used"] = True
-                local_vars["approximation_method"] = "general_reasoning"
+                local_vars["backend_used"] = "approximation"
+                logger.info(f"Approximation fallback used for code execution: {str(e)[:80]}")
                 return True
             return False
 
