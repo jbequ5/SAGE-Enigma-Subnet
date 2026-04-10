@@ -11,20 +11,21 @@ This is a **self-hardening, embodied intelligence engine** that learns from its 
 
 ### Core Differentiators — What Makes Enigma Truly SOTA
 
-**1. Verifier-First Discipline + Full DVRP Pipeline**  
+**1. Verifier-First Discipline + Full DVR Pipeline**  
 Every challenge begins with a formal **Verifiability Contract** — the single source of truth defining required artifacts, composability rules, dry-run success criteria, and synthesis guidance.  
 
-The complete **DVRP Pipeline** (Decompose → Verify → Recompose) enforces this contract at every layer with ruthless determinism:
-- Planning Arbos generates and self-critiques the contract with deep graph search for high-signal fragments.
-- Orchestrator Arbos runs 2-round critique-first debate to produce per-subtask contract slices and executable verifier snippets, with **strict heterogeneity veto**.
-- Hardened Dry-Run Gate tests the full plan on intelligent winning + adversarial mocks before any swarm compute is spent.
-- Swarm workers validate locally against their contract slice.
+The complete **DVR Pipeline** (Decompose → Verify → Recompose) enforces this contract at every layer with ruthless determinism:
+- Planning Arbos generates and self-critiques the contract with deep graph search to use high-signal memory fragments.
+- Orchestrator Arbos runs 2-round critique-first debate to produce per-subtask contract slices and executable verifier snippets, all snippets are pre-run to verify they're executable before dry-run.
+- Hardened Dry-Run Gate tests the full plan on intelligent winning + adversarial mock data before any swarm compute is spent.
+- Swarm workers activate, solve assigned subtasks, and validate locally against their contract slice.
 - Symbiosis Arbos (intermediate layer) discovers emergent mutualisms across raw outputs using graph-searched patterns.
-- Synthesis Arbos performs multi-proposal debate, enriched with borrowed fragments, and final contract enforcement.
+- Synthesis Arbos performs multi-proposal debate, enriched with borrowed fragments, and final contract enforcement while building the final solution.
 - ValidationOracle is the sole source of truth, computing real deterministic metrics: edge coverage, invariant tightness, fidelity, heterogeneity, C3A confidence, θ_dynamic, and composite EFS.
+- Solutions that fail the ValidationOracle are sent through Intelligent Replanning and loop through again maintaining all relevent context from the failed run.
 
 **2. Real Compute Backends + Graceful Approximation**  
-ComputeRouter intelligently routes to real deterministic backends (**SymPy, Cirq, Z3, PuLP** for linear/mixed-integer optimization, and more) before falling back to approximation mode. ValidationOracle’s single safe_exec sandbox is the hardened gate for all execution. No more fake metrics — everything is real where possible.
+ComputeRouter intelligently routes to real deterministic backends (**SymPy, Cirq, Z3, PuLP** for linear/mixed-integer optimization, and more) before falling back to approximation mode. ValidationOracle’s single safe_exec sandbox is the hardened gate for all verification execution. No more fake metrics. Determinism everywhere.
 
 **3. Intelligent Stall & Gap Handling with Self-Healing**  
 Rich failure context packets are built automatically. The system distinguishes **severe stalls** (full replan or Scientist Mode escalation) from **moderate stalls** (targeted repair). **DOUBLE_CLICK** and **ESCALATE** tags identify precise gaps and automatically queue narrower experiments. Failure becomes surgical learning.
@@ -33,10 +34,10 @@ Rich failure context packets are built automatically. The system distinguishes *
 Orchestrator feeds ToolHunter the full rich context (contract, gaps, graph fragments, reassembly plan). Miner adds tools via **one-click ToolEnvManager** (safe persistent or ephemeral venvs). A living Tool Recommendation Log tracks real ROI via EFS contribution and replay pass rate. Capability compounds run after run.
 
 **5. Scientist Mode — Autonomous Domain Expertise Engine**  
-Scientist Mode generates synthetic challenges, runs the full DVRP pipeline, extracts contract improvements, new invariants, and heuristics. DOUBLE_CLICK gaps trigger focused follow-ups. All summaries feed directly into Meta-Tuning.
+Scientist Mode generates synthetic challenges, runs the full DVRP pipeline, extracts contract improvements, new invariants, and heuristics. DOUBLE_CLICK gaps found during a challenge run trigger focused follow-up experiments on the exact failure gap. All run summaries feed directly into Meta-Tuning.
 
 **6. Self-Hardening Intelligence Flywheel (The Outer Loop)**  
-- Scientist Mode + **true TPE-guided Meta-Tuning** evolve contracts, principles, and memory constants (decay_k, thresholds, EFS weights).
+- Scientist Mode + **true TPE-guided Meta-Tuning** evolve contracts, principles, and constants (decay_k, thresholds, EFS weights, etc).
 - Pruning Advisor tracks per-fragment and module ROI with real data.
 - Embodiment layers (Neurogenesis, Microbiome, Vagus) + pattern surfacers (Resonance + Photoelectric) add biological plasticity.
 - ByteRover MAU Pyramid (per-fragment) + Grail reinforcement remember what matters.
