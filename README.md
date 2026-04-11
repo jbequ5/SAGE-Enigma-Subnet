@@ -3,27 +3,27 @@
 **English-first • Verifier-first • Biologically-evolving • Maximum Heterogeneity • Self-Hardening • Real Compute Backends**
 
 
+### Unique & Solver Features
+
 The Enigma Machine Miner is a self-improving agentic system engineered to solve the hardest verifiable optimization problems on the Enigma subnet — quantum, cryptography, symbolic mathematics, stochastic systems, plasma control, battery chemistry, fusion, and beyond.
 
 Every execution is treated as both a solution attempt and a permanent evolutionary step. High-signal outcomes are distilled through per-fragment reinforcement scoring and folded into a living second brain of readable Markdown files. This creates measurable compounding capability that grows stronger, more reliable, and more creative over time.
-
-### Unique & Novel Solver Features
 
 #### 1. Verifier-First Architecture with Living Contract
 
 Every challenge begins with a formal Verifiability Contract — the single source of truth that defines required artifacts, composability rules, dry-run success criteria, and synthesis guidance.
 
-**How it works**: The contract is written first, before any compute is spent. Planning generates and self-critiques it using deep graph search and bootstrap insights. Orchestrator then produces per-subtask contract slices and executable verifier snippets that constrain the entire pipeline.
+**How it works**: Challenges and verification specifications come directly from the Enigma subnet itself and are input by the miner. The system is therefore executing precisely on what the subnet expects and rewards. Planning generates and self-critiques the contract using deep graph search and bootstrap insights. Orchestrator then produces per-subtask contract slices and executable verifier snippets that constrain the entire pipeline.
 
-**Why it matters**: It turns verification from a post-hoc check into a proactive constraint, dramatically increasing the probability of producing solutions that are both novel and verifiable.
+**Why it matters**: It turns verification from a post-hoc check into a proactive constraint, dramatically increasing the probability of producing solutions that meet the subnet’s exact standards.
 
 #### 2. DVR Pipeline & Intelligent Dry Run Gate
 
 The complete DVR Pipeline (Decompose → Verify → Recompose) enforces the contract at every layer with ruthless determinism.
 
-**How it works**: Intelligent mock generation creates high-fidelity winning mocks and adversarial variants that deliberately stress-test rules and invariants. Snippet self-validation and a 5D Verifier Self-Check run before any swarm compute is spent. Deterministic composability checking validates the merged output. Failures automatically trigger targeted deep-dive experiments.
+**How it works**: Intelligent mock generation creates high-fidelity winning mocks and adversarial variants that deliberately stress-test rules and invariants. Snippet self-validation and a 5D Verifier Self-Check run before any swarm compute is spent. Deterministic composability checking validates the merged output.
 
-**Why it matters**: It dramatically reduces wasted compute and turns verification failures into self-directed improvement.
+**Why it matters**: It dramatically reduces wasted compute and ensures only high-quality plans proceed.
 
 #### 3. Balanced Hybrid Compute with Confidence-Gated Routing
 
@@ -73,12 +73,14 @@ When a dry-run fails, a swarm stalls, or performance drops, the system uses stal
 
 #### The Compounding Effect
 
-The real strength of the Enigma Machine Miner lies in how these mechanisms work together in a tightly integrated, self-reinforcing cycle. A formal, self-improving verification contract sets the standard from the start. Intelligent pre-execution validation and composability checks ensure only high-quality plans consume real compute. When difficulties arise, the system analyzes failures and adjusts its approach in real time. Deterministic tools are used wherever they add value, while creative exploration remains fully available. Fresh knowledge is gathered and integrated, patterns are discovered and tested, targeted experiments close critical gaps, and core parameters are refined. All of this is filtered through an active memory layer that scores, promotes, and prunes knowledge so that only the highest-signal insights are retained and made immediately usable.
+The real strength of the Enigma Machine Miner lies in how these mechanisms work together in a tightly integrated, self-reinforcing cycle that compounds capability with every mission.
 
-Every mission makes the entire system sharper, more efficient, more reliable, and more creative. Verification failures become fuel for targeted evolution. Knowledge compounds rather than dissipates.
+A formal, self-improving verification contract sets the standard from the start. Intelligent pre-execution validation and composability checks ensure only high-quality plans consume real compute. When difficulties arise, the system analyzes failures and adjusts its approach in real time. Deterministic tools are used wherever they add value, while creative exploration remains fully available. Fresh knowledge is gathered and integrated, patterns are discovered and tested, targeted experiments close critical gaps, and core parameters are refined. All of this is filtered through an active memory layer that scores, promotes, and prunes knowledge so that only the highest-signal insights are retained and made immediately usable.
+
+Every mission makes the entire system sharper, more efficient, more reliable, and more creative.
 
 **Execution Reality**  
-In practice, the full cycle runs efficiently on standard GPU hardware with predictable latency and cost. Dry-run gates and stall detection keep wasted compute low, while the memory and tuning layers keep mission costs predictable as the system improves over time. Early testing shows consistent completion within prize-pool windows with measurable gains in solution quality per mission. All solutions can be submitted through miners run by the subnet owners.
+In practice, the full cycle runs efficiently on standard GPU hardware with predictable latency and cost. Dry-run gates and stall detection keep wasted compute low, while the memory and tuning layers keep mission costs predictable as the system improves over time. Early testing shows consistent completion within prize-pool windows with measurable gains in solution quality per mission. All solutions will be submitted through miners run by the subnet owners.
 
 ### Miner Workflow — Command-Post Experience
 1. Open the enhanced **Streamlit Command Dashboard** with live metrics, sparklines, fragment heatmap, and real-time trace log.
