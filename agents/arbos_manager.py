@@ -232,7 +232,10 @@ class PatternEvolutionArbos:
 
         self._append_trace("pattern_evolution_complete", 
                           f"Processed {len(new_fragments)} fragments → {len(usable_items)} usable → {len(new_items)} new items")
-
+        
+        module_score = (usable / max(1, fragments_processed)) * 0.6 + (created / max(1, usable)) * 0.4 if 'usable' in locals() else 0.0
+        self.memory_layers.record_pattern_evolution_score(module_score)
+        
         return {
             "fragments_processed": len(new_fragments),
             "usable_patterns": len(usable_items),
@@ -935,6 +938,16 @@ class ArbosManager:
         self._pending_new_avenue_plan = None
         self.current_run_id = 0
         self.meta_velocity = np.zeros(5)
+
+        # Tool Hunter
+        self.tool_hunter = tool_hunter
+            self.pattern_evolution_arbos = PatternEvolutionArbos()
+        self.memory_layers = MemoryLayers()
+        self.memory_layers.arbos = self
+            # Wire ToolHunter back to memory and pattern evolution
+        self.tool_hunter.memory_layers = self.memory_layers
+        self.tool_hunter.pattern_evolution_arbos = self.pattern_evolution_arbos
+        logger.info("✅ v0.9.5 Full memory + ToolHunter + PatternEvolutionArbos wiring complete")
         
 
         # AutoHarness with constitution
@@ -1009,10 +1022,6 @@ class ArbosManager:
 
         # Wire memory layers
         self.memory_layers.byterover_mau_enabled = self.byterover_mau_enabled
-        self.memory_layers = MemoryLayers()
-            self.memory_layers.arbos = self  # critical bidirectional wiring
-            logger.info("✅ MemoryLayers wired with full v0.9.5 SOTA helpers")
-
         self.set_compute_source("local_gpu")
         self._load_heterogeneity_weights()
 
@@ -2234,6 +2243,10 @@ After creating the contract, critique it internally for completeness and feasibi
             logger.info("🔍 v0.9.5 Lightweight pre-contract ToolHunter hunt (domain-level)")
             domain = self._extract_domain_from_challenge(challenge)
             
+            # v0.9.5 Pre-contract lightweight ToolHunter hunt
+            hunt_result = self.tool_hunter.hunt_for_all_compute_tools(priority_domains=[domain])
+            self.memory_layers.record_deep_hunt_success({"new_fragments": hunt_result.get("new_fragments", 0), "phase": "pre_contract"})
+          
             # Lightweight hunt first
             self.tool_hunter.hunt_for_all_compute_tools(priority_domains=[domain])
             
@@ -2427,8 +2440,10 @@ After creating the contract, critique it internally for completeness and feasibi
             logger.info("🔍 v0.9.5 Post-decomposition targeted ToolHunter hunt for Sub-Arbos slices")
             # Use decomposition from contract (or fallback)
             slice_domains = [subtask[:100] for subtask in verifiability_contract.get("decomposition", [])]
-            self.tool_hunter.hunt_for_all_compute_tools(priority_domains=slice_domains)
-            
+                    # v0.9.5 Post-decomposition targeted ToolHunter hunt
+            hunt_result = self.tool_hunter.hunt_for_all_compute_tools(priority_domains=slice_domains, force=True)
+            self.memory_layers.record_deep_hunt_success({"new_fragments": hunt_result.get("new_fragments", 0), "phase": "post_decomposition"})
+                
             # High-scale pattern recognition on new knowledge
             self.pattern_evolution_arbos.evolve_from_new_knowledge(
                 self.tool_hunter.get_latest_fragments(), task
@@ -3699,7 +3714,14 @@ def execute_full_cycle(self, blueprint: Dict, challenge: str, verification_instr
         failure_context=None,
         symbiosis_patterns=symbiosis_patterns
     )
-
+        # v0.9.5 Ensure graph is updated with final outputs (for PatternEvolutionArbos discovery)
+        # Use the actual variable from your swarm/synthesis
+        for output in (subtask_outputs if 'subtask_outputs' in locals() else []) or (list(results.values()) if isinstance(results, dict) else []):
+            if isinstance(output, dict) and "content" in output:
+                self.memory_layers.add(output["content"], output.get("metadata", {}))
+            elif isinstance(output, dict) and "solution" in output:  # fallback for some formats
+                self.memory_layers.add(str(output["solution"]), output.get("metadata", {}))
+                
     final_candidate = synthesis_result.get("final_candidate", 
                                          raw_merged.get("solution", str(raw_merged)))
     
@@ -5069,6 +5091,9 @@ def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 
         logger.debug(f"Meta-Tuning after Scientist Mode skipped: {e}")
 
     self._current_scientist_summary = meta_summary
+    if hasattr(self, "memory_layers"):
+        self.memory_layers.record_pattern_evolution_score(meta_summary.get("avg_efs", 0.0) * 0.8)
+    
     runtime = round(time.time() - start_time, 1)
     self._double_click_count -= 1  # reset after run
 
@@ -5866,7 +5891,12 @@ Return ONLY valid JSON:
 
         # 4. Final ByteRover cleanup
         self.memory_layers.compress_low_value(current_score=best_score)
-
+       # v0.9.5 Post-run DOUBLE_CLICK recommendations
+        if hasattr(self, "pattern_evolution_arbos"):
+            double_click_recs = self.pattern_evolution_arbos.generate_post_run_double_click_recommendations(run_data_for_end)
+            self._current_double_click_recommendations = double_click_recs
+            self._append_trace("double_click_recommendations_generated", 
+                              f"Generated {len(double_click_recs)} targeted experiments")
         # 5. Save to history
         self.save_run_to_history(
             challenge=challenge,
@@ -6520,6 +6550,7 @@ Return ONLY valid JSON:
                 self.evolve_compression_prompt(score, 0.92)
             if hasattr(self, 'meta_reflect'):
                 self.meta_reflect(best_solution, score, diagnostics)
+                
             # v0.9+: Contract evolution from high-signal runs
             if score > 0.88 and hasattr(self, '_apply_contract_delta'):
                 delta = {
@@ -6618,6 +6649,18 @@ Return ONLY valid JSON:
     
         self._write_stigmergic_trace(trace)
         self.memory_layers.compress_low_value(current_score=score)
+                # v0.9.5 Ensure graph is updated with final outputs (for PatternEvolutionArbos discovery)
+        # Use the actual variable from your swarm/synthesis (adjust if needed)
+        for output in (subtask_outputs if 'subtask_outputs' in locals() else []) or []:
+            if isinstance(output, dict) and "content" in output:
+                self.memory_layers.add(output["content"], output.get("metadata", {}))
+            elif isinstance(output, dict) and "solution" in output:
+                self.memory_layers.add(str(output.get("solution", "")), output.get("metadata", {}))
+                
+        if hasattr(self, "pattern_evolution_arbos"):
+            double_click_recs = self.pattern_evolution_arbos.generate_post_run_double_click_recommendations(run_data_for_end)
+            self._current_double_click_recommendations = double_click_recs
+            self._append_trace("double_click_recommendations_generated", f"Generated {len(double_click_recs)} targeted experiments")
     
         # v0.9.1 Cosmic Compression (safe)
         if getattr(self, "enable_cosmic_compression", True):
