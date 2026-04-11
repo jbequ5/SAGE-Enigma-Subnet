@@ -5893,12 +5893,7 @@ Return ONLY valid JSON:
         # 4. Final ByteRover cleanup
         self.memory_layers.compress_low_value(current_score=best_score)
        # v0.9.5 Post-run DOUBLE_CLICK recommendations
-        if hasattr(self, "pattern_evolution_arbos"):
-            double_click_recs = self.pattern_evolution_arbos.generate_post_run_double_click_recommendations(run_data_for_end)
-            self._current_double_click_recommendations = double_click_recs
-            self._append_trace("double_click_recommendations_generated", 
-                              f"Generated {len(double_click_recs)} targeted experiments")
-        # 5. Save to history
+
         self.save_run_to_history(
             challenge=challenge,
             enhancement_prompt=enhancement_prompt,
@@ -6650,19 +6645,19 @@ Return ONLY valid JSON:
     
         self._write_stigmergic_trace(trace)
         self.memory_layers.compress_low_value(current_score=score)
-        if getattr(self, "enable_cosmic_compression", True):
-            try:
-                compression_result = self.perform_cosmic_compression()
-                self._append_trace("cosmic_compression_complete", f"Removed {compression_result.get('fragments_removed', 0)} fragments")
-            except Exception as e:
-                logger.debug(f"Cosmic Compression skipped (safe): {e}")
-                self._append_trace("cosmic_compression_skipped", str(e))
+                if getattr(self, "enable_cosmic_compression", True):
+                    try:
+                        compression_result = self.perform_cosmic_compression()
+                        self._append_trace("cosmic_compression_complete", f"Removed {compression_result.get('fragments_removed', 0)} fragments")
+                    except Exception as e:
+                        logger.debug(f"Cosmic Compression skipped (safe): {e}")
+                        self._append_trace("cosmic_compression_skipped", str(e))
         # v0.9.5 Ensure graph is updated with final outputs (for PatternEvolutionArbos discovery)
-            for output in (subtask_outputs if 'subtask_outputs' in locals() else []) or []:
-                if isinstance(output, dict) and "content" in output:
-                    self.memory_layers.add(output["content"], output.get("metadata", {}))
-                elif isinstance(output, dict) and "solution" in output:
-                    self.memory_layers.add(str(output.get("solution", "")), output.get("metadata", {}))
+                for output in (subtask_outputs if 'subtask_outputs' in locals() else []) or []:
+                    if isinstance(output, dict) and "content" in output:
+                        self.memory_layers.add(output["content"], output.get("metadata", {}))
+                    elif isinstance(output, dict) and "solution" in output:
+                        self.memory_layers.add(str(output.get("solution", "")), output.get("metadata", {}))
 
         # v0.9.5 Post-run DOUBLE_CLICK recommendations
         if hasattr(self, "pattern_evolution_arbos"):
