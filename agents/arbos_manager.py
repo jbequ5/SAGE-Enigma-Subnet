@@ -2210,28 +2210,46 @@ After creating the contract, critique it internally for completeness and feasibi
             pass  # safe fallback        
     # ====================== PLANNING ======================
 def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_prompt: str = "", compute_mode: str = "local_gpu") -> Dict[str, Any]:
-    """v0.9.3 — Planning Arbos with Deterministic Reasoning Layer + Unrestricted High-Perf Path.
-    Detects symbolic/optimization/quantum_sim/stabilizer subtasks and routes them DIRECTLY
-    to real backends BEFORE any LLM decomposition or swarm workers are spawned."""
-    
+    """v0.9.5 — Planning Arbos with Continuous Intelligence Engine.
+    Lightweight pre-contract ToolHunter hunt + Knowledge Bootstrap (high-scale pattern recognition)
+    + Deterministic Reasoning Layer + post-decomposition targeted hunt."""
+   
     self.set_compute_source(compute_mode)
-    
+   
     if not challenge or len(challenge.strip()) < 10:
         self._append_trace("plan_challenge_error", "Challenge too short")
         return {"error": "Challenge too short"}
-    
+   
     # === TRACE: Planning start ===
     self._append_trace("plan_challenge_start",
                       f"Planning Arbos Phase 1 started for challenge: {challenge[:100]}...",
                       metrics={"compute_mode": compute_mode})
-    logger.info("🚀 Planning Arbos Phase 1 started (v0.9.3 deterministic-first)")
+    logger.info("🚀 Planning Arbos Phase 1 started (v0.9.5 Continuous Intelligence)")
 
-    # Rich prior context (unchanged)
+    # === v0.9.5 LIGHTWEIGHT PRE-CONTRACT KNOWLEDGE HUNT + BOOTSTRAP ===
+    if getattr(self, "enable_continuous_knowledge_acquisition", True):
+        logger.info("🔍 v0.9.5 Lightweight pre-contract ToolHunter hunt (domain-level)")
+        domain = self._extract_domain_from_challenge(challenge)
+        
+        # Lightweight hunt first
+        self.tool_hunter.hunt_for_all_compute_tools(priority_domains=[domain])
+        
+        # High-scale pattern recognition + discovery (Knowledge Bootstrap)
+        bootstrap_fragments = self.pattern_evolution_arbos.evolve_from_new_knowledge(
+            self.tool_hunter.get_latest_fragments(), challenge
+        )
+        self._current_bootstrap_insights = bootstrap_fragments
+        
+        self._append_trace("knowledge_bootstrap_complete", 
+                          f"Discovered {len(bootstrap_fragments)} new potential ammo items pre-contract")
+    # ===================================================================
+
+    # Rich prior context
     recent_history = self.get_run_history(n=6)
     grail_patterns = self._load_recent_grail_patterns()
     wiki_deltas = self._apply_wiki_strategy(goal_md + "\n" + challenge, challenge.replace(" ", "_").lower())
 
-    # Generate high-quality verifiability contract (unchanged)
+    # Generate high-quality verifiability contract (now with fresh bootstrap insights)
     contract_result = self.generate_verifiability_contract(challenge, goal_md)
     self._append_trace("contract_generation_complete",
                       "Verifiability contract generated",
@@ -2240,7 +2258,7 @@ def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_pro
                           "verifier_snippets_count": len(contract_result.get("verifier_code_snippets", []))
                       })
 
-    # Strong human-in-the-loop enforcement (unchanged)
+    # Strong human-in-the-loop enforcement
     if not enhancement_prompt or len(enhancement_prompt.strip()) < 30:
         enhancement_prompt = "Maximize verifier compliance, heterogeneity across all five axes, deterministic/symbolic paths first. Prioritize clean composability for Synthesis Arbos. Be brutally honest about feasibility."
     self._current_enhancement = enhancement_prompt
@@ -2252,14 +2270,13 @@ def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_pro
     deterministic_results = {}
     if getattr(self, "enable_deterministic_reasoning", True):
         logger.info("🔍 v0.9.3 Deterministic Reasoning Layer scanning for reducible subtasks...")
-        
-        # Use the contract's own decomposition if available, otherwise fall back
+       
         initial_decomp = contract_result.get("decomposition", [])
-        
+       
         for subtask in initial_decomp:
             contract_slice = contract_result.get("final_verifiability_contract", {}).get(subtask, {})
             det_result = self.deterministic_layer.route_to_backend(subtask, contract_slice, self)
-            
+           
             if det_result.get("status") == "deterministic_success":
                 deterministic_results[subtask] = det_result
                 logger.info(f"✅ Deterministic win on subtask '{subtask[:80]}...' → {det_result['category']} backend")
@@ -2270,12 +2287,12 @@ def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_pro
                                       "category": det_result["category"],
                                       "backend_used": det_result.get("backend_used", [])
                                   })
-    
+   
     # Store deterministic results for later synthesis and swarm skipping
     self._current_deterministic_results = deterministic_results
     # =================================================================================
 
-    # Structured handoff to Orchestrator Phase 2 (enhanced with deterministic results)
+    # Structured handoff to Orchestrator Phase 2 (enhanced with deterministic + bootstrap insights)
     orchestrator_input = {
         "human_refinement": enhancement_prompt,
         "verifiability_contract": contract_result["final_verifiability_contract"],
@@ -2288,7 +2305,8 @@ def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_pro
             "grail_patterns": grail_patterns,
             "wiki_deltas": wiki_deltas
         },
-        "deterministic_results": deterministic_results  # NEW: pass to orchestrator/synthesis
+        "deterministic_results": deterministic_results,
+        "bootstrap_insights": getattr(self, "_current_bootstrap_insights", {})  # NEW: fresh knowledge from bootstrap
     }
 
     # Hand off to Orchestrator Arbos (Phase 2)
@@ -2303,28 +2321,29 @@ def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_pro
 
     # === TRACE: Planning complete ===
     self._append_trace("plan_challenge_complete",
-                      "Planning Arbos Phase 1 completed successfully (v0.9.3)",
+                      "Planning Arbos Phase 1 completed successfully (v0.9.5)",
                       metrics={
                           "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
                           "structured_handoff": True,
                           "contract_artifacts": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", [])),
-                          "deterministic_subtasks_routed": len(deterministic_results)
+                          "deterministic_subtasks_routed": len(deterministic_results),
+                          "bootstrap_insights": len(getattr(self, "_current_bootstrap_insights", {}))
                       })
 
-    # Deep graph search + borrowing high-signal fragments (unchanged)
+    # Deep graph search + borrowing high-signal fragments
     plan = {
         "decomposition": contract_result.get("decomposition", []),
         "verifiability_contract": contract_result.get("final_verifiability_contract", {}),
         "borrowed_fragments": []
     }
-    
+   
     self._append_trace("graph_search_pre_planning", "Searching wiki graph for high-signal fragments to borrow")
-    
+   
     for subtask in plan.get("decomposition", []):
         borrowed = self._borrow_fragment_for_subtask(subtask, plan.get("verifiability_contract", {}))
         if borrowed:
             plan["borrowed_fragments"].append(borrowed)
-    
+   
     if plan["borrowed_fragments"]:
         logger.info(f"Planning Arbos borrowed {len(plan['borrowed_fragments'])} high-signal fragments")
         self._append_trace("fragments_borrowed",
@@ -2340,15 +2359,15 @@ def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_pro
                 execution_result.get("tools", []) or
                 execution_result.get("proposals", [])
             )
-        
+       
         self.real_compute_engine.register_recommendations(recommended_tools)
         logger.info(f"RealComputeEngine registered {len(recommended_tools)} tools/backends from planning phase")
     # ================================================================================================
 
-    # v0.9.1 Auto-experiment trigger (unchanged)
+    # v0.9.1 Auto-experiment trigger
     if getattr(self, "enable_auto_experiment", True):
         self.run_scientist_mode(intent=None)
-    
+   
     return {
         "phase1": contract_result,
         "phase2": execution_result,
@@ -2358,7 +2377,8 @@ def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_pro
         "verifiability_contract": contract_result["final_verifiability_contract"],
         "structured_handoff": True,
         "borrowed_fragments": plan["borrowed_fragments"],
-        "deterministic_results": deterministic_results,   # NEW: exposed for synthesis & swarm
+        "deterministic_results": deterministic_results,
+        "bootstrap_insights": getattr(self, "_current_bootstrap_insights", {}),
         "deterministic_subtasks_routed": len(deterministic_results)
     }
     # Clean handoff helper
