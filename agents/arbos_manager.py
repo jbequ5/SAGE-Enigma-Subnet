@@ -2209,499 +2209,516 @@ After creating the contract, critique it internally for completeness and feasibi
         except:
             pass  # safe fallback        
     # ====================== PLANNING ======================
-def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_prompt: str = "", compute_mode: str = "local_gpu") -> Dict[str, Any]:
-    """v0.9.5 — Planning Arbos with Continuous Intelligence Engine.
-    Lightweight pre-contract ToolHunter hunt + Knowledge Bootstrap (high-scale pattern recognition)
-    + Deterministic Reasoning Layer + post-decomposition targeted hunt."""
-   
-    self.set_compute_source(compute_mode)
-   
-    if not challenge or len(challenge.strip()) < 10:
-        self._append_trace("plan_challenge_error", "Challenge too short")
-        return {"error": "Challenge too short"}
-   
-    # === TRACE: Planning start ===
-    self._append_trace("plan_challenge_start",
-                      f"Planning Arbos Phase 1 started for challenge: {challenge[:100]}...",
-                      metrics={"compute_mode": compute_mode})
-    logger.info("🚀 Planning Arbos Phase 1 started (v0.9.5 Continuous Intelligence)")
-
-    # === v0.9.5 LIGHTWEIGHT PRE-CONTRACT KNOWLEDGE HUNT + BOOTSTRAP ===
-    if getattr(self, "enable_continuous_knowledge_acquisition", True):
-        logger.info("🔍 v0.9.5 Lightweight pre-contract ToolHunter hunt (domain-level)")
-        domain = self._extract_domain_from_challenge(challenge)
-        
-        # Lightweight hunt first
-        self.tool_hunter.hunt_for_all_compute_tools(priority_domains=[domain])
-        
-        # High-scale pattern recognition + discovery (Knowledge Bootstrap)
-        bootstrap_fragments = self.pattern_evolution_arbos.evolve_from_new_knowledge(
-            self.tool_hunter.get_latest_fragments(), challenge
-        )
-        self._current_bootstrap_insights = bootstrap_fragments
-        
-        self._append_trace("knowledge_bootstrap_complete", 
-                          f"Discovered {len(bootstrap_fragments)} new potential ammo items pre-contract")
-    # ===================================================================
-
-    # Rich prior context
-    recent_history = self.get_run_history(n=6)
-    grail_patterns = self._load_recent_grail_patterns()
-    wiki_deltas = self._apply_wiki_strategy(goal_md + "\n" + challenge, challenge.replace(" ", "_").lower())
-
-    # Generate high-quality verifiability contract (now with fresh bootstrap insights)
-    contract_result = self.generate_verifiability_contract(challenge, goal_md)
-    self._append_trace("contract_generation_complete",
-                      "Verifiability contract generated",
-                      metrics={
-                          "artifacts_count": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", [])),
-                          "verifier_snippets_count": len(contract_result.get("verifier_code_snippets", []))
-                      })
-
-    # Strong human-in-the-loop enforcement
-    if not enhancement_prompt or len(enhancement_prompt.strip()) < 30:
-        enhancement_prompt = "Maximize verifier compliance, heterogeneity across all five axes, deterministic/symbolic paths first. Prioritize clean composability for Synthesis Arbos. Be brutally honest about feasibility."
-    self._current_enhancement = enhancement_prompt
-    self._append_trace("human_refinement_applied",
-                      "Human-in-the-loop enhancement prompt applied",
-                      metrics={"enhancement_prompt_length": len(enhancement_prompt)})
-
-    # ====================== v0.9.3 DETERMINISTIC REASONING LAYER ======================
-    deterministic_results = {}
-    if getattr(self, "enable_deterministic_reasoning", True):
-        logger.info("🔍 v0.9.3 Deterministic Reasoning Layer scanning for reducible subtasks...")
+    def plan_challenge(self, goal_md: str = "", challenge: str = "", enhancement_prompt: str = "", compute_mode: str = "local_gpu") -> Dict[str, Any]:
+        """v0.9.5 — Planning Arbos with Continuous Intelligence Engine.
+        Lightweight pre-contract ToolHunter hunt + Knowledge Bootstrap (high-scale pattern recognition)
+        + Deterministic Reasoning Layer + post-decomposition targeted hunt."""
        
-        initial_decomp = contract_result.get("decomposition", [])
+        self.set_compute_source(compute_mode)
        
-        for subtask in initial_decomp:
-            contract_slice = contract_result.get("final_verifiability_contract", {}).get(subtask, {})
-            det_result = self.deterministic_layer.route_to_backend(subtask, contract_slice, self)
-           
-            if det_result.get("status") == "deterministic_success":
-                deterministic_results[subtask] = det_result
-                logger.info(f"✅ Deterministic win on subtask '{subtask[:80]}...' → {det_result['category']} backend")
-                self._append_trace("deterministic_routing",
-                                  f"Routed subtask directly to real backend",
-                                  metrics={
-                                      "subtask": subtask[:100],
-                                      "category": det_result["category"],
-                                      "backend_used": det_result.get("backend_used", [])
-                                  })
-   
-    # Store deterministic results for later synthesis and swarm skipping
-    self._current_deterministic_results = deterministic_results
-    # =================================================================================
-
-    # Structured handoff to Orchestrator Phase 2 (enhanced with deterministic + bootstrap insights)
-    orchestrator_input = {
-        "human_refinement": enhancement_prompt,
-        "verifiability_contract": contract_result["final_verifiability_contract"],
-        "decomposition": contract_result.get("decomposition", []),
-        "reassembly_plan": contract_result.get("recomposition_plan", {}),
-        "dependency_graph": contract_result.get("dependency_graph", {}),
-        "initial_verifier_snippets": contract_result.get("verifier_code_snippets", []),
-        "prior_lessons": {
-            "recent_history": recent_history,
-            "grail_patterns": grail_patterns,
-            "wiki_deltas": wiki_deltas
-        },
-        "deterministic_results": deterministic_results,
-        "bootstrap_insights": getattr(self, "_current_bootstrap_insights", {})  # NEW: fresh knowledge from bootstrap
-    }
-
-    # Hand off to Orchestrator Arbos (Phase 2)
-    execution_result = self.orchestrate_subarbos(
-        task=challenge,
-        goal_md=goal_md,
-        orchestrator_input=orchestrator_input
-    )
-
-    self._current_strategy = self.analyzer.analyze("", challenge)
-    self.validator.adapt_scoring(self._current_strategy)
-
-    # === TRACE: Planning complete ===
-    self._append_trace("plan_challenge_complete",
-                      "Planning Arbos Phase 1 completed successfully (v0.9.5)",
-                      metrics={
-                          "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
-                          "structured_handoff": True,
-                          "contract_artifacts": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", [])),
-                          "deterministic_subtasks_routed": len(deterministic_results),
-                          "bootstrap_insights": len(getattr(self, "_current_bootstrap_insights", {}))
-                      })
-
-    # Deep graph search + borrowing high-signal fragments
-    plan = {
-        "decomposition": contract_result.get("decomposition", []),
-        "verifiability_contract": contract_result.get("final_verifiability_contract", {}),
-        "borrowed_fragments": []
-    }
-   
-    self._append_trace("graph_search_pre_planning", "Searching wiki graph for high-signal fragments to borrow")
-   
-    for subtask in plan.get("decomposition", []):
-        borrowed = self._borrow_fragment_for_subtask(subtask, plan.get("verifiability_contract", {}))
-        if borrowed:
-            plan["borrowed_fragments"].append(borrowed)
-   
-    if plan["borrowed_fragments"]:
-        logger.info(f"Planning Arbos borrowed {len(plan['borrowed_fragments'])} high-signal fragments")
-        self._append_trace("fragments_borrowed",
-                          f"Borrowed {len(plan['borrowed_fragments'])} high-signal fragments for planning",
-                          metrics={"borrowed_count": len(plan["borrowed_fragments"])})
-
-    # ====================== v0.9 TOOLHUNTER → REAL COMPUTE ENGINE REGISTRATION ======================
-    if hasattr(self, 'real_compute_engine'):
-        recommended_tools = []
-        if isinstance(execution_result, dict):
-            recommended_tools = (
-                execution_result.get("recommended_tools", []) or
-                execution_result.get("tools", []) or
-                execution_result.get("proposals", [])
+        if not challenge or len(challenge.strip()) < 10:
+            self._append_trace("plan_challenge_error", "Challenge too short")
+            return {"error": "Challenge too short"}
+       
+        # === TRACE: Planning start ===
+        self._append_trace("plan_challenge_start",
+                          f"Planning Arbos Phase 1 started for challenge: {challenge[:100]}...",
+                          metrics={"compute_mode": compute_mode})
+        logger.info("🚀 Planning Arbos Phase 1 started (v0.9.5 Continuous Intelligence)")
+    
+        # === v0.9.5 LIGHTWEIGHT PRE-CONTRACT KNOWLEDGE HUNT + BOOTSTRAP ===
+        if getattr(self, "enable_continuous_knowledge_acquisition", True):
+            logger.info("🔍 v0.9.5 Lightweight pre-contract ToolHunter hunt (domain-level)")
+            domain = self._extract_domain_from_challenge(challenge)
+            
+            # Lightweight hunt first
+            self.tool_hunter.hunt_for_all_compute_tools(priority_domains=[domain])
+            
+            # High-scale pattern recognition + discovery (Knowledge Bootstrap)
+            bootstrap_fragments = self.pattern_evolution_arbos.evolve_from_new_knowledge(
+                self.tool_hunter.get_latest_fragments(), challenge
             )
+            self._current_bootstrap_insights = bootstrap_fragments
+            
+            self._append_trace("knowledge_bootstrap_complete",
+                              f"Discovered {len(bootstrap_fragments)} new potential ammo items pre-contract")
+        # ===================================================================
+    
+        # Rich prior context
+        recent_history = self.get_run_history(n=6)
+        grail_patterns = self._load_recent_grail_patterns()
+        wiki_deltas = self._apply_wiki_strategy(goal_md + "\n" + challenge, challenge.replace(" ", "_").lower())
+    
+        # Generate high-quality verifiability contract (now with fresh bootstrap insights)
+        contract_result = self.generate_verifiability_contract(challenge, goal_md)
+        self._append_trace("contract_generation_complete",
+                          "Verifiability contract generated",
+                          metrics={
+                              "artifacts_count": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", [])),
+                              "verifier_snippets_count": len(contract_result.get("verifier_code_snippets", []))
+                          })
+    
+        # Strong human-in-the-loop enforcement
+        if not enhancement_prompt or len(enhancement_prompt.strip()) < 30:
+            enhancement_prompt = "Maximize verifier compliance, heterogeneity across all five axes, deterministic/symbolic paths first. Prioritize clean composability for Synthesis Arbos. Be brutally honest about feasibility."
+        self._current_enhancement = enhancement_prompt
+        self._append_trace("human_refinement_applied",
+                          "Human-in-the-loop enhancement prompt applied",
+                          metrics={"enhancement_prompt_length": len(enhancement_prompt)})
+    
+        # ====================== v0.9.3 DETERMINISTIC REASONING LAYER ======================
+        deterministic_results = {}
+        if getattr(self, "enable_deterministic_reasoning", True):
+            logger.info("🔍 v0.9.3 Deterministic Reasoning Layer scanning for reducible subtasks...")
+           
+            initial_decomp = contract_result.get("decomposition", [])
+           
+            for subtask in initial_decomp:
+                contract_slice = contract_result.get("final_verifiability_contract", {}).get(subtask, {})
+                det_result = self.deterministic_layer.route_to_backend(subtask, contract_slice, self)
+               
+                if det_result.get("status") == "deterministic_success":
+                    deterministic_results[subtask] = det_result
+                    logger.info(f"✅ Deterministic win on subtask '{subtask[:80]}...' → {det_result['category']} backend")
+                    self._append_trace("deterministic_routing",
+                                      f"Routed subtask directly to real backend",
+                                      metrics={
+                                          "subtask": subtask[:100],
+                                          "category": det_result["category"],
+                                          "backend_used": det_result.get("backend_used", [])
+                                      })
        
-        self.real_compute_engine.register_recommendations(recommended_tools)
-        logger.info(f"RealComputeEngine registered {len(recommended_tools)} tools/backends from planning phase")
-    # ================================================================================================
-
-    # v0.9.1 Auto-experiment trigger
-    if getattr(self, "enable_auto_experiment", True):
-        self.run_scientist_mode(intent=None)
-   
-    return {
-        "phase1": contract_result,
-        "phase2": execution_result,
-        "adapted_strategy": self._current_strategy,
-        "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
-        "human_refinement": enhancement_prompt,
-        "verifiability_contract": contract_result["final_verifiability_contract"],
-        "structured_handoff": True,
-        "borrowed_fragments": plan["borrowed_fragments"],
-        "deterministic_results": deterministic_results,
-        "bootstrap_insights": getattr(self, "_current_bootstrap_insights", {}),
-        "deterministic_subtasks_routed": len(deterministic_results)
-    }
+        # Store deterministic results for later synthesis and swarm skipping
+        self._current_deterministic_results = deterministic_results
+        # =================================================================================
+    
+        # Structured handoff to Orchestrator Phase 2 (enhanced with deterministic + bootstrap insights)
+        orchestrator_input = {
+            "human_refinement": enhancement_prompt,
+            "verifiability_contract": contract_result["final_verifiability_contract"],
+            "decomposition": contract_result.get("decomposition", []),
+            "reassembly_plan": contract_result.get("recomposition_plan", {}),
+            "dependency_graph": contract_result.get("dependency_graph", {}),
+            "initial_verifier_snippets": contract_result.get("verifier_code_snippets", []),
+            "prior_lessons": {
+                "recent_history": recent_history,
+                "grail_patterns": grail_patterns,
+                "wiki_deltas": wiki_deltas
+            },
+            "deterministic_results": deterministic_results,
+            "bootstrap_insights": getattr(self, "_current_bootstrap_insights", {})  # NEW: fresh knowledge from bootstrap
+        }
+    
+        # Hand off to Orchestrator Arbos (Phase 2)
+        execution_result = self.orchestrate_subarbos(
+            task=challenge,
+            goal_md=goal_md,
+            orchestrator_input=orchestrator_input
+        )
+    
+        self._current_strategy = self.analyzer.analyze("", challenge)
+        self.validator.adapt_scoring(self._current_strategy)
+    
+        # === TRACE: Planning complete ===
+        self._append_trace("plan_challenge_complete",
+                          "Planning Arbos Phase 1 completed successfully (v0.9.5)",
+                          metrics={
+                              "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
+                              "structured_handoff": True,
+                              "contract_artifacts": len(contract_result.get("final_verifiability_contract", {}).get("artifacts_required", [])),
+                              "deterministic_subtasks_routed": len(deterministic_results),
+                              "bootstrap_insights": len(getattr(self, "_current_bootstrap_insights", {}))
+                          })
+    
+        # Deep graph search + borrowing high-signal fragments
+        plan = {
+            "decomposition": contract_result.get("decomposition", []),
+            "verifiability_contract": contract_result.get("final_verifiability_contract", {}),
+            "borrowed_fragments": []
+        }
+       
+        self._append_trace("graph_search_pre_planning", "Searching wiki graph for high-signal fragments to borrow")
+       
+        for subtask in plan.get("decomposition", []):
+            borrowed = self._borrow_fragment_for_subtask(subtask, plan.get("verifiability_contract", {}))
+            if borrowed:
+                plan["borrowed_fragments"].append(borrowed)
+       
+        if plan["borrowed_fragments"]:
+            logger.info(f"Planning Arbos borrowed {len(plan['borrowed_fragments'])} high-signal fragments")
+            self._append_trace("fragments_borrowed",
+                              f"Borrowed {len(plan['borrowed_fragments'])} high-signal fragments for planning",
+                              metrics={"borrowed_count": len(plan["borrowed_fragments"])})
+    
+        # ====================== v0.9 TOOLHUNTER → REAL COMPUTE ENGINE REGISTRATION ======================
+        if hasattr(self, 'real_compute_engine'):
+            recommended_tools = []
+            if isinstance(execution_result, dict):
+                recommended_tools = (
+                    execution_result.get("recommended_tools", []) or
+                    execution_result.get("tools", []) or
+                    execution_result.get("proposals", [])
+                )
+           
+            self.real_compute_engine.register_recommendations(recommended_tools)
+            logger.info(f"RealComputeEngine registered {len(recommended_tools)} tools/backends from planning phase")
+        # ================================================================================================
+    
+        # v0.9.1 Auto-experiment trigger
+        if getattr(self, "enable_auto_experiment", True):
+            self.run_scientist_mode(intent=None)
+       
+        return {
+            "phase1": contract_result,
+            "phase2": execution_result,
+            "adapted_strategy": self._current_strategy,
+            "dynamic_swarm_size": execution_result.get("dynamic_swarm_size", 6),
+            "human_refinement": enhancement_prompt,
+            "verifiability_contract": contract_result["final_verifiability_contract"],
+            "structured_handoff": True,
+            "borrowed_fragments": plan["borrowed_fragments"],
+            "deterministic_results": deterministic_results,
+            "bootstrap_insights": getattr(self, "_current_bootstrap_insights", {}),
+            "deterministic_subtasks_routed": len(deterministic_results)
+        }
     # Clean handoff helper
     
         
     # ====================== ORCHESTRATE SUB-ARBOS (FULLY HARDENED & WIRED) ======================
-    def orchestrate_subarbos(self, task: str, goal_md: str = "", previous_outputs: List[Any] = None, 
-                                 orchestrator_input: Dict = None) -> Dict[str, Any]:
-            """v0.8+ Top-tier Orchestrator Arbos — proactive ToolHunter + DOUBLE_CLICK + 
-            per-subtask contract slices + memory graph integration."""
+    def orchestrate_subarbos(self, task: str, goal_md: str = "", previous_outputs: List[Any] = None,
+                             orchestrator_input: Dict = None) -> Dict[str, Any]:
+        """v0.9.5 — Top-tier Orchestrator Arbos with Continuous Intelligence Engine.
+        Proactive ToolHunter + DOUBLE_CLICK + per-subtask contract slices + memory graph integration
+        + post-decomposition targeted knowledge hunt + PatternEvolutionArbos discovery."""
     
-            logger.info(f"🚀 Orchestrator Arbos starting (v0.8+): {task[:80]}...")
+        logger.info(f"🚀 Orchestrator Arbos starting (v0.9.5): {task[:80]}...")
     
-            # === TRACE: Orchestrator start ===
-            self._append_trace("orchestrate_subarbos_start", 
-                              f"Orchestrator Arbos started for task: {task[:120]}...",
-                              metrics={"has_orchestrator_input": bool(orchestrator_input)})
+        # === TRACE: Orchestrator start ===
+        self._append_trace("orchestrate_subarbos_start",
+                          f"Orchestrator Arbos started for task: {task[:120]}...",
+                          metrics={"has_orchestrator_input": bool(orchestrator_input)})
     
-            # 1. Receive structured handoff from Planning
-            if orchestrator_input:
-                verifiability_contract = orchestrator_input.get("verifiability_contract", {})
-                human_refinement = orchestrator_input.get("human_refinement", "")
-                logger.info("✅ Received rich structured Verifiability Contract from Planning")
-                self._append_trace("orchestrator_input_received", "Rich structured handoff from Planning Arbos")
-            else:
-                contract_result = self.generate_verifiability_contract(task, goal_md)
-                verifiability_contract = contract_result.get("final_verifiability_contract", {})
-                human_refinement = ""
-                self._append_trace("fallback_contract_generated", "No orchestrator_input — generated fallback contract")
+        # 1. Receive structured handoff from Planning (with bootstrap insights)
+        if orchestrator_input:
+            verifiability_contract = orchestrator_input.get("verifiability_contract", {})
+            human_refinement = orchestrator_input.get("human_refinement", "")
+            bootstrap_insights = orchestrator_input.get("bootstrap_insights", {})
+            logger.info("✅ Received rich structured Verifiability Contract + bootstrap insights from Planning")
+            self._append_trace("orchestrator_input_received", "Rich structured handoff from Planning Arbos")
+        else:
+            contract_result = self.generate_verifiability_contract(task, goal_md)
+            verifiability_contract = contract_result.get("final_verifiability_contract", {})
+            human_refinement = ""
+            bootstrap_insights = {}
+            self._append_trace("fallback_contract_generated", "No orchestrator_input — generated fallback contract")
     
-            # 2. Build strategy
-            strategy = self.analyzer.analyze("", task)
+        # 2. Build strategy
+        strategy = self.analyzer.analyze("", task)
+        strategy["verifiability_contract"] = verifiability_contract
+        strategy["human_refinement"] = human_refinement
+        strategy["hardening_dialogue"] = self.dvr.hardening_conversation_template()
+        self._current_strategy = strategy
+    
+        # 3. v0.9.5 Post-decomposition targeted ToolHunter hunt + PatternEvolutionArbos discovery
+        if getattr(self, "enable_continuous_knowledge_acquisition", True):
+            logger.info("🔍 v0.9.5 Post-decomposition targeted ToolHunter hunt for Sub-Arbos slices")
+            # Use decomposition from contract (or fallback)
+            slice_domains = [subtask[:100] for subtask in verifiability_contract.get("decomposition", [])]
+            self.tool_hunter.hunt_for_all_compute_tools(priority_domains=slice_domains)
+            
+            # High-scale pattern recognition on new knowledge
+            self.pattern_evolution_arbos.evolve_from_new_knowledge(
+                self.tool_hunter.get_latest_fragments(), task
+            )
+            self._append_trace("post_decomposition_knowledge_hunt_complete", 
+                              f"Targeted hunt + discovery for {len(slice_domains)} slices")
+    
+        # 4. Proactive ToolHunter + FULL rich context packet (pre-dry-run)
+        rich_context = {
+            "task": task,
+            "verifiability_contract": verifiability_contract,
+            "human_refinement": human_refinement,
+            "previous_outputs_summary": [o.get("subtask", "") for o in (previous_outputs or [])],
+            "gaps": self._detect_gaps_from_previous_outputs(previous_outputs) if previous_outputs else [],
+            "dependency_graph": strategy.get("dependency_graph", {}),
+            "reassembly_plan": verifiability_contract.get("recomposition_plan", {}),
+            "high_signal_fragments": self.fragment_tracker.query_relevant_fragments(task, top_k=6),
+            "bootstrap_insights": bootstrap_insights,  # NEW: fresh knowledge from planning
+            "graph_query_results": self.fragment_tracker.query_relevant_fragments(
+                query=f"quantum OR crypto OR symbolic OR composability OR {task[:80]}",
+                top_k=8
+            ) if hasattr(self.fragment_tracker, 'query_relevant_fragments') else []
+        }
+                                        
+        tool_recs = self.tool_hunter.hunt_and_integrate(
+            gap_description="Proactive capability hunt for this subtask",
+            subtask=task,
+            challenge_context=json.dumps(rich_context),
+            verifiability_contract=verifiability_contract,
+            arbos=self
+        )
+                                        
+        # Register with RealComputeEngine (Proactive)
+        if hasattr(self, 'real_compute_engine'):
+            recommended = []
+            if isinstance(tool_recs, dict):
+                recommended = tool_recs.get("recommended_tools", []) or \
+                             tool_recs.get("proposals", []) or \
+                             tool_recs.get("tools", [])
+           
+            self.real_compute_engine.register_recommendations(recommended)
+            logger.info(f"RealComputeEngine registered {len(recommended)} tools from main orchestration")
+    
+        strategy["recommended_tools"] = tool_recs.get("recommended_tools", [])
+        strategy["tool_env_paths"] = tool_recs.get("env_paths", {})
+    
+        self._append_trace("toolhunter_proactive_complete",
+                          f"ToolHunter suggested {len(strategy['recommended_tools'])} tools pre-dry-run",
+                          metrics={"recommended_tools_count": len(strategy["recommended_tools"])})
+    
+        logger.info(f"ToolHunter suggested {len(strategy['recommended_tools'])} tools pre-dry-run")
+    
+        # 5. 2-Round Debate (with graph fragments + bootstrap insights)
+        debate_result = self._run_orchestrator_debate(task, verifiability_contract, rich_context)
+        if debate_result and debate_result.get("refined_contract"):
+            verifiability_contract = debate_result["refined_contract"]
             strategy["verifiability_contract"] = verifiability_contract
-            strategy["human_refinement"] = human_refinement
-            strategy["hardening_dialogue"] = self.dvr.hardening_conversation_template()
-            self._current_strategy = strategy
-            self._full_tool_integration_scan()  # integrate ALL tooling before planning/swarm
-                                     
-            # 3. Proactive ToolHunter + FULL rich context packet (pre-dry-run)
-            rich_context = {
-                "task": task,
-                "verifiability_contract": verifiability_contract,
-                "human_refinement": human_refinement,
-                "previous_outputs_summary": [o.get("subtask", "") for o in (previous_outputs or [])],
-                "gaps": self._detect_gaps_from_previous_outputs(previous_outputs) if previous_outputs else [],
-                "dependency_graph": strategy.get("dependency_graph", {}),
-                "reassembly_plan": verifiability_contract.get("recomposition_plan", {}),
-                "high_signal_fragments": self.fragment_tracker.query_relevant_fragments(task, top_k=6),
-                "graph_query_results": self.fragment_tracker.query_relevant_fragments(
-                    query=f"quantum OR crypto OR symbolic OR composability OR {task[:80]}",
-                    top_k=8
-                ) if hasattr(self.fragment_tracker, 'query_relevant_fragments') else []
-            }
-                                     
-            tool_recs = tool_hunter.hunt_and_integrate(
-                gap_description="Proactive capability hunt for this subtask",
-                subtask=task,
-                challenge_context=json.dumps(rich_context),
-                verifiability_contract=verifiability_contract,
-                arbos=self
+            logger.info("Orchestrator 2-round debate completed")
+            self._append_trace("orchestrator_debate_complete", "2-round critique-first debate finished")
+    
+        # 6. Dry-run gate + DOUBLE_CLICK handling
+        full_verifier_snippets = strategy.get("verifier_code_snippets", [])
+        dry_run = self.simulator.run_dry_run(
+            decomposed_subtasks=verifiability_contract.get("artifacts_required", []),
+            full_verifier_snippets=full_verifier_snippets,
+            goal_md=goal_md
+        )
+        strategy["dry_run_result"] = dry_run
+    
+        self._append_trace("dry_run_gate_complete",
+                          f"Dry-run completed — passed: {dry_run.get('dry_run_passed', False)}",
+                          metrics=dry_run)
+    
+        # Handle DOUBLE_CLICK from dry-run
+        if dry_run.get("double_click_info"):
+            self._emit_double_click_tag(
+                gap=dry_run["double_click_info"]["gap"],
+                details=dry_run["double_click_info"]["details"],
+                severity=dry_run["double_click_info"].get("severity", "high")
             )
-                                     
-            # Register with RealComputeEngine (Proactive)
-            if hasattr(self, 'real_compute_engine') and hunt_result:
-                recommended = []
-                if isinstance(hunt_result, dict):
-                    recommended = hunt_result.get("recommended_tools", []) or \
-                                 hunt_result.get("proposals", []) or \
-                                 hunt_result.get("tools", [])
-                
-                self.real_compute_engine.register_recommendations(recommended)
-                logger.info(f"RealComputeEngine registered {len(recommended)} tools from main orchestration")
-            # ===================================================================================
-            strategy["recommended_tools"] = tool_recs.get("recommended_tools", [])
-            strategy["tool_env_paths"] = tool_recs.get("env_paths", {})
+            self._append_trace("double_click_emitted",
+                              f"DOUBLE_CLICK triggered: {dry_run['double_click_info']['gap']}")
     
-            self._append_trace("toolhunter_proactive_complete", 
-                              f"ToolHunter suggested {len(strategy['recommended_tools'])} tools pre-dry-run",
-                              metrics={"recommended_tools_count": len(strategy["recommended_tools"])})
-    
-            logger.info(f"ToolHunter suggested {len(strategy['recommended_tools'])} tools pre-dry-run")
-                                     
-            # 4. 2-Round Debate (with graph fragments)
-            debate_result = self._run_orchestrator_debate(task, verifiability_contract, rich_context)
-            if debate_result and debate_result.get("refined_contract"):
-                verifiability_contract = debate_result["refined_contract"]
-                strategy["verifiability_contract"] = verifiability_contract
-                logger.info("Orchestrator 2-round debate completed")
-                self._append_trace("orchestrator_debate_complete", "2-round critique-first debate finished")
-    
-            # 5. Dry-run gate + DOUBLE_CLICK handling
-            full_verifier_snippets = strategy.get("verifier_code_snippets", [])
-            dry_run = self.simulator.run_dry_run(
-                decomposed_subtasks=verifiability_contract.get("artifacts_required", []),
-                full_verifier_snippets=full_verifier_snippets,
-                goal_md=goal_md
-            )
-            strategy["dry_run_result"] = dry_run
-    
-            self._append_trace("dry_run_gate_complete", 
-                              f"Dry-run completed — passed: {dry_run.get('dry_run_passed', False)}",
-                              metrics=dry_run)
-    
-            # Handle DOUBLE_CLICK from dry-run
-            if dry_run.get("double_click_info"):
-                self._emit_double_click_tag(
-                    gap=dry_run["double_click_info"]["gap"],
-                    details=dry_run["double_click_info"]["details"],
-                    severity=dry_run["double_click_info"].get("severity", "high")
-                )
-                self._append_trace("double_click_emitted", 
-                                  f"DOUBLE_CLICK triggered: {dry_run['double_click_info']['gap']}")
-    
-            # Dry-run intelligent replan
-            if dry_run.get("recommendation") == "ITERATE_DECOMP" or any(tag in task for tag in ["[DOUBLE_CLICK]", "[ESCALATE_TO_TOOL]"]):
-                logger.warning("Dry-run failed or failure tag detected — triggering intelligent replan")
-                
-                failure_context = self._build_failure_context(
-                    failure_type="dry_run_failed", 
-                    task=task, 
-                    goal_md=goal_md,
-                    strategy=strategy, 
-                    dry_run=dry_run
-                )
-                replan_decision = self._intelligent_replan(failure_context)
-                
-                logger.info(f"Replan decision: {replan_decision.get('decision')} | Reason: {replan_decision.get('reasoning', 'none')}")
-                self._append_trace("dry_run_replan_triggered", 
-                                  f"Replan triggered — decision: {replan_decision.get('decision')}")
-    
-                if replan_decision.get("decision") == "new_strategy_needed":
-                    logger.info("→ Triggering full new strategy")
-                    return self.orchestrate_subarbos(
-                        task=f"{task} [NEW STRATEGY AFTER DRY-RUN FAILURE]",
-                        goal_md=goal_md,
-                        orchestrator_input=orchestrator_input
-                    )
-                else:
-                    if replan_decision.get("spec_fixes"):
-                        verifiability_contract.setdefault("fixes_applied", []).extend(replan_decision["spec_fixes"])
-                        logger.info(f"Applied {len(replan_decision['spec_fixes'])} spec fixes")
-    
-            # Deep graph search before swarm launch
-            self._append_trace("graph_search_pre_orchestration", "Searching wiki graph for high-signal fragments")
-            strategy.setdefault("borrowed_fragments", [])
-            for subtask in strategy.get("decomposition", []):
-                borrowed = self._borrow_fragment_for_subtask(subtask, verifiability_contract)
-                if borrowed:
-                    strategy["borrowed_fragments"].append(borrowed)
-                                     
-            # 6. Swarm Execution
-            subtask_outputs = self._launch_hyphal_workers(task, strategy)
-            # v0.9.1 Heterogeneity enforcement
-            subtask_outputs = self._enforce_heterogeneity_in_swarm(subtask_outputs)
-    
-            # Write fragmented outputs to wiki memory
-            hetero = self.validator._compute_heterogeneity_score(subtask_outputs) if subtask_outputs else 0.0
-            for output in subtask_outputs:
-                if isinstance(output, dict):
-                    self._write_subtask_md(
-                        path=self._create_subtask_wiki_folder(
-                            getattr(self, "_current_challenge_id", "current"), 
-                            str(output.get("subtask_id", "unknown"))
-                        ),
-                        content=output.get("solution", ""),
-                        metadata={
-                            "local_score": output.get("local_score", 0.0),
-                            "fidelity": output.get("fidelity", 0.8),
-                            "hetero_bonus": hetero
-                        }
-                    )
-    
-            # === EARLY SWARM STALL DETECTION ===
-            stall_analysis = self._analyze_swarm_stall(
-                subtask_outputs=subtask_outputs,
-                validation_result=None,
+        # Dry-run intelligent replan
+        if dry_run.get("recommendation") == "ITERATE_DECOMP" or any(tag in task for tag in ["[DOUBLE_CLICK]", "[ESCALATE_TO_TOOL]"]):
+            logger.warning("Dry-run failed or failure tag detected — triggering intelligent replan")
+           
+            failure_context = self._build_failure_context(
+                failure_type="dry_run_failed",
+                task=task,
+                goal_md=goal_md,
+                strategy=strategy,
                 dry_run=dry_run
             )
+            replan_decision = self._intelligent_replan(failure_context)
+           
+            logger.info(f"Replan decision: {replan_decision.get('decision')} | Reason: {replan_decision.get('reasoning', 'none')}")
+            self._append_trace("dry_run_replan_triggered",
+                              f"Replan triggered — decision: {replan_decision.get('decision')}")
     
-            if stall_analysis.get("is_severe_stall", False):
-                logger.warning(f"🚨 Early severe swarm stall detected | Reason: {stall_analysis.get('reason')}")
-                self._append_trace("early_severe_stall_detected", stall_analysis.get("reason", ""))
-                failure_context = self._build_failure_context(
-                    failure_type="early_swarm_stall",
-                    task=task,
+            if replan_decision.get("decision") == "new_strategy_needed":
+                logger.info("→ Triggering full new strategy")
+                return self.orchestrate_subarbos(
+                    task=f"{task} [NEW STRATEGY AFTER DRY-RUN FAILURE]",
                     goal_md=goal_md,
-                    strategy=strategy,
-                    dry_run=dry_run,
-                    swarm_results=subtask_outputs
+                    orchestrator_input=orchestrator_input
                 )
-                replan_decision = self._intelligent_replan(failure_context)
+            else:
+                if replan_decision.get("spec_fixes"):
+                    verifiability_contract.setdefault("fixes_applied", []).extend(replan_decision["spec_fixes"])
+                    logger.info(f"Applied {len(replan_decision['spec_fixes'])} spec fixes")
     
-                if replan_decision.get("decision") == "new_strategy_needed":
-                    logger.info("Early severe stall → full replan")
-                    new_task = f"{task} [EARLY SEVERE STALL RECOVERY]"
-                    return self.orchestrate_subarbos(new_task, goal_md, orchestrator_input=orchestrator_input)
-                else:
-                    logger.info("Early stall fixable — applying spec fixes")
-                    if replan_decision.get("spec_fixes"):
-                        verifiability_contract.setdefault("fixes_applied", []).extend(replan_decision["spec_fixes"])
+        # Deep graph search before swarm launch
+        self._append_trace("graph_search_pre_orchestration", "Searching wiki graph for high-signal fragments")
+        strategy.setdefault("borrowed_fragments", [])
+        for subtask in strategy.get("decomposition", []):
+            borrowed = self._borrow_fragment_for_subtask(subtask, verifiability_contract)
+            if borrowed:
+                strategy["borrowed_fragments"].append(borrowed)
     
-            elif stall_analysis.get("recommendation") == "local_repair_or_diversity_boost":
-                logger.info(f"⚠️ Moderate early stall — applying local repair. Reason: {stall_analysis.get('reason')}")
-                self._apply_local_repair(subtask_outputs, strategy)
-                
-            # 7. Symbiosis Arbos
-            symbiosis_patterns = self._run_symbiosis_arbos(
-                aggregated_outputs=subtask_outputs,
-                message_bus=self.message_bus,
-                synthesis_result=synthesis_result
-            )
-                                     
-            # 8. Advanced Synthesis Arbos
-            raw_merged = self._recompose(subtask_outputs, {})
-            synthesis_result = self.synthesis_arbos(
-                subtask_outputs=subtask_outputs,
-                recomposition_plan=verifiability_contract.get("recomposition_plan", {}),
-                verifiability_contract=verifiability_contract
-            )
+        # 7. Swarm Execution
+        subtask_outputs = self._launch_hyphal_workers(task, strategy)
+        # v0.9.1 Heterogeneity enforcement
+        subtask_outputs = self._enforce_heterogeneity_in_swarm(subtask_outputs)
     
-            final_candidate = synthesis_result.get("final_candidate", raw_merged)
+        # Write fragmented outputs to wiki memory
+        hetero = self.validator._compute_heterogeneity_score(subtask_outputs) if subtask_outputs else 0.0
+        for output in subtask_outputs:
+            if isinstance(output, dict):
+                self._write_subtask_md(
+                    path=self._create_subtask_wiki_folder(
+                        getattr(self, "_current_challenge_id", "current"),
+                        str(output.get("subtask_id", "unknown"))
+                    ),
+                    content=output.get("solution", ""),
+                    metadata={
+                        "local_score": output.get("local_score", 0.0),
+                        "fidelity": output.get("fidelity", 0.8),
+                        "hetero_bonus": hetero
+                    }
+                )
     
-            # 9. Final ValidationOracle
-            validation_result = self.validator.run(
-                candidate=final_candidate,
-                verification_instructions="",
-                challenge=task,
+        # === EARLY SWARM STALL DETECTION ===
+        stall_analysis = self._analyze_swarm_stall(
+            subtask_outputs=subtask_outputs,
+            validation_result=None,
+            dry_run=dry_run
+        )
+    
+        if stall_analysis.get("is_severe_stall", False):
+            logger.warning(f"🚨 Early severe swarm stall detected | Reason: {stall_analysis.get('reason')}")
+            self._append_trace("early_severe_stall_detected", stall_analysis.get("reason", ""))
+            failure_context = self._build_failure_context(
+                failure_type="early_swarm_stall",
+                task=task,
                 goal_md=goal_md,
-                subtask_outputs=subtask_outputs
+                strategy=strategy,
+                dry_run=dry_run,
+                swarm_results=subtask_outputs
             )
+            replan_decision = self._intelligent_replan(failure_context)
     
-            score = validation_result.get("validation_score", 0.0)
-            efs = validation_result.get("efs", 0.0)
+            if replan_decision.get("decision") == "new_strategy_needed":
+                logger.info("Early severe stall → full replan")
+                new_task = f"{task} [EARLY SEVERE STALL RECOVERY]"
+                return self.orchestrate_subarbos(new_task, goal_md, orchestrator_input=orchestrator_input)
+            else:
+                logger.info("Early stall fixable — applying spec fixes")
+                if replan_decision.get("spec_fixes"):
+                    verifiability_contract.setdefault("fixes_applied", []).extend(replan_decision["spec_fixes"])
     
-            # Compute deterministic metrics
-            edge = self.validator._compute_edge_coverage(final_candidate, full_verifier_snippets)
-            invariant = self.validator._compute_invariant_tightness(final_candidate, full_verifier_snippets)
-            fidelity = self.validator._compute_fidelity(final_candidate, full_verifier_snippets)
-            hetero = self.validator._compute_heterogeneity_score(subtask_outputs) if subtask_outputs else 0.0
+        elif stall_analysis.get("recommendation") == "local_repair_or_diversity_boost":
+            logger.info(f"⚠️ Moderate early stall — applying local repair. Reason: {stall_analysis.get('reason')}")
+            self._apply_local_repair(subtask_outputs, strategy)
     
-            c = self.validator._compute_c3a_confidence(edge, invariant, getattr(self, 'historical_reliability', 0.85))
-            theta = self.validator._compute_theta_dynamic(c, self.loop_count / 10.0)
+        # 8. Symbiosis Arbos
+        symbiosis_patterns = self._run_symbiosis_arbos(
+            aggregated_outputs=subtask_outputs,
+            message_bus=self.message_bus,
+            synthesis_result=None  # not yet synthesized
+        )
     
-            # Late swarm stall detection
-            stall_analysis = self._analyze_swarm_stall(subtask_outputs, validation_result, dry_run)
-            if stall_analysis.get("is_severe_stall", False):
-                logger.warning("Severe swarm stall detected despite passed dry-run")
-                self._append_trace("severe_swarm_stall_detected", "Stall after dry-run passed")
-                failure_context = self._build_failure_context(
-                    failure_type="swarm_stall_on_passed_spec",
-                    task=task,
-                    goal_md=goal_md,
-                    strategy=strategy,
-                    dry_run=dry_run,
-                    swarm_results=subtask_outputs,
-                    validation_result=validation_result
-                )
-                replan_decision = self._intelligent_replan(failure_context)
+        # 9. Advanced Synthesis Arbos
+        raw_merged = self._recompose(subtask_outputs, {})
+        synthesis_result = self.synthesis_arbos(
+            subtask_outputs=subtask_outputs,
+            recomposition_plan=verifiability_contract.get("recomposition_plan", {}),
+            verifiability_contract=verifiability_contract
+        )
     
-                if replan_decision.get("decision") == "new_strategy_needed":
-                    logger.info("Severe stall → full replan")
-                    new_task = f"{task} [STALL RECOVERY]"
-                    return self.orchestrate_subarbos(new_task, goal_md, orchestrator_input=orchestrator_input)
+        final_candidate = synthesis_result.get("final_candidate", raw_merged)
     
-            # Success path & learning
-            if score > 0.70:
-                self.memory_layers.promote_high_signal(str(final_candidate), {
-                    "local_score": score,
-                    "fidelity": fidelity,
-                    "heterogeneity_score": hetero
-                })
+        # 10. Final ValidationOracle
+        validation_result = self.validator.run(
+            candidate=final_candidate,
+            verification_instructions="",
+            challenge=task,
+            goal_md=goal_md,
+            subtask_outputs=subtask_outputs
+        )
     
-            if score > 0.85:
-                self.evolve_principles_post_run(str(final_candidate), score, validation_result)
+        score = validation_result.get("validation_score", 0.0)
+        efs = validation_result.get("efs", 0.0)
     
-            if score > 0.92 and getattr(self, "enable_grail", False):
-                self.consolidate_grail(str(final_candidate), score, validation_result)
+        # Compute deterministic metrics
+        edge = self.validator._compute_edge_coverage(final_candidate, full_verifier_snippets)
+        invariant = self.validator._compute_invariant_tightness(final_candidate, full_verifier_snippets)
+        fidelity = self.validator._compute_fidelity(final_candidate, full_verifier_snippets)
+        hetero = self.validator._compute_heterogeneity_score(subtask_outputs) if subtask_outputs else 0.0
     
-            # Stigmergic trace
-            self._write_stigmergic_trace({
-                "task": task,
-                "verifiability_contract": verifiability_contract,
-                "dry_run": dry_run,
-                "real": {
-                    "edge": round(edge, 4),
-                    "invariant": round(invariant, 4),
-                    "fidelity": round(fidelity, 4),
-                    "hetero": round(hetero, 4),
-                    "c": round(c, 4),
-                    "theta": round(theta, 4),
-                    "EFS": round(efs, 4),
-                    "score": round(score, 4)
-                },
-                "loop": self.loop_count,
-                "timestamp": datetime.now().isoformat()
+        c = self.validator._compute_c3a_confidence(edge, invariant, getattr(self, 'historical_reliability', 0.85))
+        theta = self.validator._compute_theta_dynamic(c, self.loop_count / 10.0)
+    
+        # Late swarm stall detection
+        stall_analysis = self._analyze_swarm_stall(subtask_outputs, validation_result, dry_run)
+        if stall_analysis.get("is_severe_stall", False):
+            logger.warning("Severe swarm stall detected despite passed dry-run")
+            self._append_trace("severe_swarm_stall_detected", "Stall after dry-run passed")
+            failure_context = self._build_failure_context(
+                failure_type="swarm_stall_on_passed_spec",
+                task=task,
+                goal_md=goal_md,
+                strategy=strategy,
+                dry_run=dry_run,
+                swarm_results=subtask_outputs,
+                validation_result=validation_result
+            )
+            replan_decision = self._intelligent_replan(failure_context)
+    
+            if replan_decision.get("decision") == "new_strategy_needed":
+                logger.info("Severe stall → full replan")
+                new_task = f"{task} [STALL RECOVERY]"
+                return self.orchestrate_subarbos(new_task, goal_md, orchestrator_input=orchestrator_input)
+    
+        # Success path & learning
+        if score > 0.70:
+            self.memory_layers.promote_high_signal(str(final_candidate), {
+                "local_score": score,
+                "fidelity": fidelity,
+                "heterogeneity_score": hetero
             })
     
-            # Final embodiment & outer loop
-            self._end_of_run({
-                "final_score": score,
-                "efs": efs,
-                "best_solution": final_candidate,
-                "diagnostics": validation_result
-            })
+        if score > 0.85:
+            self.evolve_principles_post_run(str(final_candidate), score, validation_result)
     
-            # === TRACE: Orchestrator complete ===
-            self._append_trace("orchestrate_subarbos_complete", 
-                              f"Orchestrator Arbos finished — Final score: {score:.3f} | EFS: {efs:.3f}",
-                              metrics={
-                                  "final_score": score,
-                                  "efs": efs,
-                                  "recommended_tools": len(strategy.get("recommended_tools", []))
-                              })
+        if score > 0.92 and getattr(self, "enable_grail", False):
+            self.consolidate_grail(str(final_candidate), score, validation_result)
     
-            return {
-                "merged_candidate": final_candidate,
-                "validation_result": validation_result,
-                "synthesis_result": synthesis_result,
-                "verifiability_contract": verifiability_contract,
-                "human_refinement": human_refinement,
-                "recommended_tools": strategy.get("recommended_tools", []),
-                "metrics": {"score": score, "efs": efs}
-            }
+        # Stigmergic trace
+        self._write_stigmergic_trace({
+            "task": task,
+            "verifiability_contract": verifiability_contract,
+            "dry_run": dry_run,
+            "real": {
+                "edge": round(edge, 4),
+                "invariant": round(invariant, 4),
+                "fidelity": round(fidelity, 4),
+                "hetero": round(hetero, 4),
+                "c": round(c, 4),
+                "theta": round(theta, 4),
+                "EFS": round(efs, 4),
+                "score": round(score, 4)
+            },
+            "loop": self.loop_count,
+            "timestamp": datetime.now().isoformat()
+        })
+    
+        # Final embodiment & outer loop
+        self._end_of_run({
+            "final_score": score,
+            "efs": efs,
+            "best_solution": final_candidate,
+            "diagnostics": validation_result
+        })
+    
+        # === TRACE: Orchestrator complete ===
+        self._append_trace("orchestrate_subarbos_complete",
+                          f"Orchestrator Arbos finished — Final score: {score:.3f} | EFS: {efs:.3f}",
+                          metrics={
+                              "final_score": score,
+                              "efs": efs,
+                              "recommended_tools": len(strategy.get("recommended_tools", []))
+                          })
+    
+        return {
+            "merged_candidate": final_candidate,
+            "validation_result": validation_result,
+            "synthesis_result": synthesis_result,
+            "verifiability_contract": verifiability_contract,
+            "human_refinement": human_refinement,
+            "recommended_tools": strategy.get("recommended_tools", []),
+            "metrics": {"score": score, "efs": efs}
+        }
                                  
        def _apply_local_repair(self, subtask_outputs: List[Dict], strategy: Dict) -> None:
         """SOTA Local Repair — intelligently helps struggling subtasks without full replan."""
@@ -6399,22 +6416,22 @@ Return ONLY valid JSON:
             
     # ====================== v0.6 FULLY WIRED: _end_of_run (all 8 features integrated) ======================
     def _end_of_run(self, run_data: dict):
-        """v0.9 Final high-signal processing — embodiment, pattern surfacing,
-        MP4 archival (with Scientist Mode summary), retrospectives,
-        fragmented memory re-scoring, cosmic compression, real compute validation,
-        and outer-loop evolution."""
-
+        """v0.9.5 — Final high-signal processing with Continuous Intelligence Engine.
+        Embodiment, pattern surfacing, MP4 archival, retrospectives, fragmented memory re-scoring,
+        cosmic compression, real compute validation, outer-loop evolution, and post-run DOUBLE_CLICK
+        recommendations from PatternEvolutionArbos."""
+        
         score = run_data.get("final_score", 0.0)
         efs = run_data.get("efs", 0.0)
         best_solution = run_data.get("best_solution", "")
         diagnostics = run_data.get("diagnostics", {})
-        
+       
         logger.info(f"🔄 _end_of_run — Score: {score:.3f} | EFS: {efs:.3f} | Loop: {self.loop_count}")
-
+        
         # === TRACE: Start of end-of-run ===
-        self._append_trace("end_of_run_start", 
+        self._append_trace("end_of_run_start",
                           f"Processing high-signal run — Score: {score:.3f} | EFS: {efs:.3f}")
-
+    
         # Build oracle result for downstream modules
         oracle_result = {
             "efs": efs,
@@ -6426,7 +6443,7 @@ Return ONLY valid JSON:
             "verifiability_contract": getattr(self, '_current_strategy', {}).get("verifiability_contract", {}),
             "scientist_summary": run_data.get("scientist_summary", {})
         }
-
+    
         # 1. MP4 Archival with full context
         try:
             archive_data = {
@@ -6445,7 +6462,7 @@ Return ONLY valid JSON:
         except Exception as e:
             logger.debug(f"Video archival skipped (safe): {e}")
             self._append_trace("mp4_archival_skipped", str(e))
-
+    
         # 2. Fragmented Memory Re-scoring + Dynamic Impact Update
         try:
             self._re_score_fragments(run_data)
@@ -6454,17 +6471,17 @@ Return ONLY valid JSON:
         except Exception as e:
             logger.debug(f"Fragment re-scoring skipped (safe): {e}")
             self._append_trace("fragment_re_scoring_skipped", str(e))
-
-        # 3. v0.9 Cosmic Compression (cross-mission graph pruning)
+    
+        # 3. v0.9 Cosmic Compression
         try:
             if hasattr(self, 'perform_cosmic_compression'):
                 compression_result = self.perform_cosmic_compression()
-                self._append_trace("cosmic_compression_complete", 
+                self._append_trace("cosmic_compression_complete",
                                   f"Cosmic Compression executed — removed {compression_result.get('fragments_removed', 0)} fragments")
         except Exception as e:
             logger.debug(f"Cosmic Compression skipped (safe): {e}")
             self._append_trace("cosmic_compression_skipped", str(e))
-
+    
         # 4. Retrospective + Audit (gated)
         if self.toggles.get("retrospective_enabled", True) and score > 0.75:
             try:
@@ -6475,12 +6492,11 @@ Return ONLY valid JSON:
                 self._append_trace("retrospective_triggered", "High-signal retrospective executed")
             except Exception as e:
                 logger.debug(f"Retrospective skipped (safe): {e}")
-
+    
         # 5. Automatic Outer-Loop Evolution on high-signal runs
         if score > 0.82 or efs > 0.75:
             logger.info("High-signal run detected — triggering automatic outer-loop evolution")
             self._append_trace("outer_loop_evolution_start", "High-signal trigger activated")
-
             if hasattr(self, 'evolve_principles_post_run'):
                 self.evolve_principles_post_run(
                     best_solution=best_solution,
@@ -6491,7 +6507,6 @@ Return ONLY valid JSON:
                 self.evolve_compression_prompt(score, 0.92)
             if hasattr(self, 'meta_reflect'):
                 self.meta_reflect(best_solution, score, diagnostics)
-
             # v0.9+: Contract evolution from high-signal runs
             if score > 0.88 and hasattr(self, '_apply_contract_delta'):
                 delta = {
@@ -6502,7 +6517,7 @@ Return ONLY valid JSON:
                 }
                 self._apply_contract_delta(delta)
                 self._append_trace("contract_delta_applied", "High-signal contract strengthening")
-
+    
         # 6. Advanced Embodiment + Pattern Surfacers
         if self.toggles.get("embodiment_enabled", True):
             try:
@@ -6515,7 +6530,6 @@ Return ONLY valid JSON:
                 self._append_trace("embodiment_threads_launched", "Neurogenesis, Microbiome, Vagus activated")
             except Exception as e:
                 logger.debug(f"Embodiment threads skipped (safe): {e}")
-
         if self.toggles.get("rps_pps_enabled", True):
             try:
                 self.rps.surface_resonance(oracle_result=oracle_result)
@@ -6523,7 +6537,7 @@ Return ONLY valid JSON:
                 self._append_trace("pattern_surfacer_complete", "Resonance + Photoelectric patterns surfaced")
             except Exception as e:
                 logger.debug(f"Pattern surfacers skipped (safe): {e}")
-
+    
         # 7. Meta-Tuning Integration (high-signal or periodic)
         if score > 0.78 or (self.loop_count % 4 == 0):
             try:
@@ -6535,7 +6549,7 @@ Return ONLY valid JSON:
                 self._append_trace("meta_tuning_complete", "Outer-loop tuning executed")
             except Exception as e:
                 logger.debug(f"Meta-tuning skipped (safe): {e}")
-
+    
         # 8. v0.9 Real Compute Validation + Hardware Telemetry
         try:
             if hasattr(self, 'real_compute_engine'):
@@ -6544,24 +6558,35 @@ Return ONLY valid JSON:
                     "final_candidate": best_solution
                 })
                 oracle_result["real_compute"] = real_result
-                self._append_trace("real_compute_validation_complete", 
+                self._append_trace("real_compute_validation_complete",
                                   f"Real backend validation finished — score: {real_result.get('real_compute_score', 0):.3f}")
         except Exception as e:
             logger.debug(f"Real compute validation skipped (safe): {e}")
             self._append_trace("real_compute_skipped", str(e))
-
-        # v0.9 Pruning Advisor Analysis
+    
+        # 9. v0.9.5 PatternEvolutionArbos Post-Run DOUBLE_CLICK Recommendations
+        if hasattr(self, "pattern_evolution_arbos") and getattr(self, "enable_continuous_knowledge_acquisition", True):
+            try:
+                double_click_recs = self.pattern_evolution_arbos.generate_post_run_double_click_recommendations(run_data)
+                self._current_double_click_recommendations = double_click_recs
+                self._append_trace("post_run_double_click_recommendations", 
+                                  f"Generated {len(double_click_recs)} targeted experiments to strengthen patterns or fill gaps")
+            except Exception as e:
+                logger.debug(f"Post-run DOUBLE_CLICK recommendations skipped (safe): {e}")
+                self._append_trace("double_click_recommendations_skipped", str(e))
+    
+        # 10. Pruning Advisor Analysis
         try:
             analysis = self._analyze_run(
                 current_results=run_data.get("subtask_outputs", {}),
                 blueprint=getattr(self, '_current_strategy', {})
             )
-            self._append_trace("pruning_advisor_complete", 
+            self._append_trace("pruning_advisor_complete",
                               f"Pruning Advisor run — Health score: {analysis.get('health_score', 0):.3f}")
         except Exception as e:
             logger.debug(f"Pruning Advisor skipped: {e}")
-
-        # 10. Stigmergic Trace + Memory Cleanup + Provenance Audit
+    
+        # 11. Stigmergic Trace + Memory Cleanup + Provenance Audit
         trace = {
             "loop": self.loop_count,
             "final_score": round(score, 4),
@@ -6571,16 +6596,16 @@ Return ONLY valid JSON:
             "timestamp": datetime.now().isoformat(),
             "oracle_result": oracle_result
         }
-
+    
         # Final safety guardrails
         guardrail_result = apply_guardrails(str(best_solution), context={"efs": efs})
         if not guardrail_result.get("passed", True):
             logger.critical(f"End-of-run guardrails failed: {guardrail_result.get('reason')}")
             self._append_trace("end_of_run_guardrail_failure", guardrail_result.get("reason", ""))
-
+    
         self._write_stigmergic_trace(trace)
-            
         self.memory_layers.compress_low_value(current_score=score)
+    
         # v0.9.1 Cosmic Compression (safe)
         if getattr(self, "enable_cosmic_compression", True):
             try:
@@ -6589,24 +6614,24 @@ Return ONLY valid JSON:
             except Exception as e:
                 logger.debug(f"Cosmic Compression skipped (safe): {e}")
                 self._append_trace("cosmic_compression_skipped", str(e))
-        
-        self.memory_layers.compress_low_value(current_score=score)
+    
         # Automatic provenance audit for notebook export
         try:
             self._export_provenance_audit_log(run_data)
             self._append_trace("provenance_audit_exported", "Notebook-ready audit log created")
         except Exception as e:
             logger.debug(f"Provenance audit export skipped (safe): {e}")
-
+    
         # === TRACE: End of run complete ===
-        self._append_trace("end_of_run_complete", 
+        self._append_trace("end_of_run_complete",
                           f"Outer-loop evolution + fragmented memory update finished | Final EFS: {efs:.3f}")
+    
         # v0.9.3 — Clean shutdown of unrestricted executor
         if hasattr(self, "unrestricted_executor"):
             self.unrestricted_executor.shutdown()
-            
+               
         logger.info("✅ _end_of_run complete — outer-loop evolution + fragmented memory update executed")
-                
+                    
     # ====================== v0.6 helper for wiki snapshot (used in run_data) ======================
     def _get_wiki_snapshot(self) -> dict:
         """Minimal wiki snapshot for MP4 archival and retrospectives."""
