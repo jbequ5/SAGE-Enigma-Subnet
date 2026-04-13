@@ -1,37 +1,27 @@
-# agents/memory.py - v2.0 MAXIMUM CAPABILITY LongTermMemory + MemoryLayers + ByteRover MAU Pyramid
-# Fully verifier-first, EFS/c/θ/heterogeneity/contract-aware, SOTA-gated, and Grail-integrated
+# agents/memory.py - v0.9.7 MAXIMUM SOTA LongTermMemory + MemoryLayers + ByteRover MAU Pyramid
+# Fully verifier-first, EFS/c/θ/heterogeneity/contract-aware, SOTA-gated, Grail-integrated,
+# graph-aware, predictive-integrated, vault-routing ready, and fully expanded.
 
 from pathlib import Path
 import chromadb
 from chromadb.utils import embedding_functions
 import datetime
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 import networkx as nx
-from typing import List, Dict, Any, Optional
 import numpy as np
 from scipy.stats import gaussian_kde
 
 logger = logging.getLogger(__name__)
 
-import datetime
-import logging
-import chromadb
-from chromadb.utils import embedding_functions
-from typing import List, Dict, Any, Optional
-import json
-
-logger = logging.getLogger(__name__)
-
 class LongTermMemory:
-    """v0.9.5 SOTA — Verifier-first, reinforcement-aware, freshness-aware ChromaDB backend.
+    """v0.9.7 SOTA — Verifier-first, reinforcement-aware, freshness-aware ChromaDB backend.
     Hybrid scoring (vector similarity + MAU/EFS impact), metadata filtering, staleness decay,
-    batch operations, and direct support for PatternEvolutionArbos + Scientist Mode."""
+    batch operations, and direct support for PatternEvolutionArbos + Scientist Mode + Vaults."""
 
     def __init__(self, db_path: str = "memory_db", embedding_model: str = "all-MiniLM-L6-v2"):
         self.client = chromadb.PersistentClient(path=db_path)
-        # Consistent, high-quality embedding function
         self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
         
         self.collection = self.client.get_or_create_collection(
@@ -39,7 +29,7 @@ class LongTermMemory:
             embedding_function=self.embedding_fn,
             metadata={"hnsw:space": "cosine", "hnsw:construction_ef": 200, "hnsw:M": 32}
         )
-        logger.info(f"✅ LongTermMemory v0.9.5 initialized with {embedding_model} embeddings")
+        logger.info(f"✅ LongTermMemory v0.9.7 initialized with {embedding_model} embeddings")
 
     def add(self, text: str, metadata: Dict = None):
         """SOTA add with rich enriched metadata, reinforcement scoring, and deterministic ID."""
@@ -60,10 +50,10 @@ class LongTermMemory:
             "local_score": metadata.get("local_score", 0.5),
             "domain": metadata.get("domain", "general"),
             "type": metadata.get("type", "fragment"),
-            "provenance": metadata.get("provenance", "unknown")
+            "provenance": metadata.get("provenance", "unknown"),
+            "vault_entry": metadata.get("vault_entry", False)
         }
 
-        # Deterministic, collision-resistant ID
         doc_id = f"doc_{abs(hash(text[:500] + timestamp)) % 10**12}"
 
         try:
@@ -105,7 +95,6 @@ class LongTermMemory:
                 if (meta.get("reinforcement", 0.0) >= min_reinforcement and 
                     meta.get("freshness", 1.0) >= min_freshness):
                     
-                    # Hybrid score: vector similarity + reinforcement + freshness
                     sim_score = 1.0 - float(dist)
                     combined_score = (sim_score * 0.55) + (meta.get("reinforcement", 0.5) * 0.35) + (meta.get("freshness", 1.0) * 0.10)
                     
@@ -172,11 +161,11 @@ class LongTermMemory:
             logger.error(f"Clear failed: {e}")
 
 class MemoryLayers:
-    """v0.9.5 — Three-layer memory system with ByteRover MAU Pyramid + SOTA gating + Continuous Intelligence support.
-    Fully wired for ToolHunter, PatternEvolutionArbos, Scientist Mode, and fragmented scoring."""
+    """v0.9.7 SOTA — Three-layer memory system with ByteRover MAU Pyramid + full graph intelligence.
+    Fully wired for ToolHunter, PatternEvolutionArbos, Scientist Mode, Vaults, Predictive, and PD Arm."""
 
     def __init__(self):
-        self.long_term = LongTermMemory()  # Layer 3: Persistent vector DB (assumed existing)
+        self.long_term = LongTermMemory()  # Layer 3: Persistent vector DB
         self.short_term: List[Dict] = []   # Layer 1: Recent raw trajectories
         self.long_term_summaries: List[Dict] = []  # Layer 2: Compressed summaries
         self.tool_proposals: List[str] = []
@@ -188,7 +177,7 @@ class MemoryLayers:
         self.heterogeneity_boost = 1.15
         self.arbos = None             # wired from ArbosManager
         
-        # v0.9.5 Fragmented Memory Graph
+        # v0.9.7 Fragmented Memory Graph
         self.fragment_graph = nx.DiGraph()
         self.fragment_id_counter = 0
         self.impact_scores = {}       # fragment_id -> impact history
@@ -442,8 +431,6 @@ Return ONLY the distilled summary. No extra text."""
             elif any(d in str(domain).lower() for d in ["battery", "decoder", "optimization"]):
                 severity = max(severity, 0.68)
         return min(1.0, severity)
-
-    # ====================== UTILITY ======================
 
     def add_proposals(self, proposals: List[str]):
         self.tool_proposals.extend(proposals)
