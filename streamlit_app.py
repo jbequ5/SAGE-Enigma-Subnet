@@ -81,7 +81,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("<h1 style='text-align: center;'>🔒 ALLIED ENIGMA MINER — COMMAND DASHBOARD v1.0</h1>", unsafe_allow_html=True)
-st.markdown("<h3 style='text-align: center; color: #ffaa00;'>TOP SECRET • BUNKER COMMAND POST 1944 • SN63 QUANTUM INNOVATE</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #ffaa00;'>TOP SECRET • BUNKER COMMAND POST 1944 • SN63 ENIGMA</h3>", unsafe_allow_html=True)
 st.caption("""
 <span class='live-dot'></span> ENIGMA ROTORS SPINNING • LIVE DECRYPTION MISSION ACTIVE •
 SELF-OPTIMIZING EMBODIED ORGANISM • v0.9.5 CONTINUOUS INTELLIGENCE ENGINE • TRACE ENABLED
