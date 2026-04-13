@@ -1,10 +1,12 @@
-# agents/video_archiver.py - v2.0 MAXIMUM CAPABILITY VideoArchiver / VideoHunter
-# Fully verifier-first, EFS/c/θ/heterogeneity/contract-aware, Grail-integrated, and retrospective-ready
+# agents/video_archiver.py - v0.9.7 MAXIMUM SOTA VideoArchiver / VideoHunter
+# Fully verifier-first, EFS/c/θ/heterogeneity/contract-aware, Grail-integrated, 
+# graph-integrated, predictive-aware, vault-routing, PD Arm triggering, and retrospective-ready.
 
 import json
 from pathlib import Path
 from datetime import datetime
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -20,15 +22,15 @@ class VideoArchiver:
     
     def __init__(self):
         self.ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-        logger.info(f"✅ VideoArchiver v2.0 initialized — archive dir: {self.ARCHIVE_DIR} | memvid: {'available' if MEMVID_AVAILABLE else 'JSON fallback'}")
+        logger.info(f"✅ VideoArchiver v0.9.7 MAX SOTA initialized — archive dir: {self.ARCHIVE_DIR} | memvid: {'available' if MEMVID_AVAILABLE else 'JSON fallback'}")
 
     def archive_run_to_mp4(self, run_data: dict, run_id: str = None) -> str:
-        """High-signal archival with full oracle metrics, contract, and Grail context."""
+        """High-signal archival with full oracle metrics, contract, Grail context, graph snapshot, and predictive signals."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_id = run_id or f"run_{int(datetime.now().timestamp())}"
         out_path = self.ARCHIVE_DIR / f"{run_id}_{timestamp}.mv2"
 
-        # Enrich with real verifier/oracle data
+        # Enrich with real verifier/oracle data + graph + predictive
         frames = [
             {
                 "type": "mau_pyramid",
@@ -67,6 +69,18 @@ class VideoArchiver:
                 }
             },
             {
+                "type": "graph_snapshot",
+                "content": run_data.get("graph_snapshot", {})
+            },
+            {
+                "type": "predictive_signals",
+                "content": {
+                    "predictive_power": run_data.get("predictive_power", 0.0),
+                    "market_demand_signal": run_data.get("market_demand_signal", 0.0),
+                    "conversion_forecast": run_data.get("conversion_forecast", 0.0)
+                }
+            },
+            {
                 "type": "metadata",
                 "content": {
                     "run_id": run_id,
@@ -80,7 +94,7 @@ class VideoArchiver:
         try:
             if MEMVID_AVAILABLE:
                 memvid.encode_smart_frames(frames, str(out_path), fps=12, compression="smart")
-                logger.info(f"✅ Archived full run {run_id} → {out_path} (Smart Frames .mv2 with oracle metrics)")
+                logger.info(f"✅ Archived full run {run_id} → {out_path} (Smart Frames .mv2 with oracle + graph + predictive metrics)")
             else:
                 # Rich JSON fallback
                 fallback_path = self.ARCHIVE_DIR / f"{run_id}_{timestamp}.json"
