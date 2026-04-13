@@ -11,8 +11,10 @@ import time
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+from tools.tool_env_manager import ToolEnvManager
 from agents.memory import memory
 from agents.tools.compute import compute_router
+from agents.tools.compute import RealComputeEngine  # for real_compute_engine reference
 from huggingface_hub import snapshot_download
 
 # ReadyAI integration (SN33 grounding)
