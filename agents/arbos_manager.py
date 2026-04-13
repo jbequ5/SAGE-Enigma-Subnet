@@ -1077,9 +1077,7 @@ class ArbosManager:
         self.tool_hunter.business_dev = self.business_dev  # bidirectional wiring
         logger.info("✅ BusinessDev Wing fully wired into ArbosManager")
         self._start_continuous_business_dev_hunting()
-        self.pd_arm = ProductDevelopmentArm(self.intelligence, self)   # pass self for harness
-        self.intelligence = SolverIntelligenceLayer(self.memory_layers)
-        self.post_run_engine = PostRunIntelligenceEngine(self)
+
         
         self.memory_layers = MemoryLayers()
         self.memory_layers.arbos = self
@@ -1092,7 +1090,17 @@ class ArbosManager:
         self.real_compute_engine.memory_layers = self.memory_layers
         logger.info("✅ v0.9.5 RealComputeEngine + ToolHunter + MemoryLayers fully wired")
         
+        # v0.9.7 FULL INTELLIGENCE LAYER WIRING
+        self.intelligence = SolverIntelligenceLayer(
+            memory_layers=self.memory_layers,
+            fragment_tracker=self.fragment_tracker if hasattr(self, 'fragment_tracker') else None
+        )
+        
+        self.pd_arm = ProductDevelopmentArm(self.intelligence, self)   # pass self for harness access
+        
+        self.post_run_engine = PostRunIntelligenceEngine(self)         # Unified post-EM brain
 
+        logger.info("✅ Full v0.9.7 wiring complete: VaultRouter + Synthesis Arbos + PostRunIntelligenceEngine")
         # AutoHarness with constitution
         config_path = os.path.join("config", "constitution.yaml")
         os.makedirs("config", exist_ok=True)
@@ -2939,7 +2947,13 @@ After creating the contract, critique it internally for completeness and feasibi
             "recommended_tools": strategy.get("recommended_tools", []),
             "metrics": {"score": score, "efs": efs}
         }
-                                 
+
+    def synthesize_product(self, market_signals: Dict = None):
+        """Convenience method for manual product synthesis."""
+        if market_signals is None:
+            market_signals = {"predictive_power": self.predictive.predictive_power}
+        return self.pd_arm.synthesize_product([], market_signals)
+
        def _apply_local_repair(self, subtask_outputs: List[Dict], strategy: Dict) -> None:
         """SOTA Local Repair — intelligently helps struggling subtasks without full replan."""
         logger.info("🔧 Applying local repair to moderate stall")
@@ -6854,7 +6868,7 @@ Return ONLY valid JSON:
             self._append_trace("cosmic_compression_skipped", str(e))
 
         # === SOTA POST-RUN INTELLIGENCE ENGINE (added) ===
-        # Unified SOTA post-EM processing: VaultRouter + Predictive + Synthesis Arbos + BusinessDev
+        # Unified SOTA post-EM processing: VaultRouter + Predictive + Synthesis Arbos + BusinessDev + Flywheel closure
         if hasattr(self, 'post_run_engine'):
             self.post_run_engine.process_high_signal_run(run_data)
 
@@ -6904,7 +6918,139 @@ Return ONLY valid JSON:
                 delta = {
                     "provenance": "high_signal_end_of_run",
                     "delta_type": "contract_strengthening",
-                    "content": f"High EFS run ({efs:.
+                    "content": f"High EFS run ({efs:.3f}) → recommend tighter composability rules, more symbolic verifier snippets, and stronger artifact merge interfaces.",
+                    "source": "End-of-Run + Meta-Tuning"
+                }
+                self._apply_contract_delta(delta)
+                self._append_trace("contract_delta_applied", "High-signal contract strengthening")
+
+        # 6. Advanced Embodiment + Pattern Surfacers
+        if self.toggles.get("embodiment_enabled", True):
+            try:
+                threading.Thread(target=self.neurogenesis.spawn_if_high_delta,
+                               args=(oracle_result,), daemon=True).start()
+                threading.Thread(target=self.microbiome.ferment_novelty,
+                               args=(best_solution[:2000], oracle_result), daemon=True).start()
+                threading.Thread(target=self.vagus.monitor_hardware_state,
+                               args=(oracle_result,), daemon=True).start()
+                self._append_trace("embodiment_threads_launched", "Neurogenesis, Microbiome, Vagus activated")
+            except Exception as e:
+                logger.debug(f"Embodiment threads skipped (safe): {e}")
+        if self.toggles.get("rps_pps_enabled", True):
+            try:
+                self.rps.surface_resonance(oracle_result=oracle_result)
+                self.pps.surface_photoelectric(oracle_result=oracle_result)
+                self._append_trace("pattern_surfacer_complete", "Resonance + Photoelectric patterns surfaced")
+            except Exception as e:
+                logger.debug(f"Pattern surfacers skipped (safe): {e}")
+
+        # 7. Meta-Tuning Integration (high-signal or periodic)
+        if score > 0.78 or (self.loop_count % 4 == 0):
+            try:
+                meta_result = self.run_meta_tuning_cycle(
+                    stall_detected=self._is_stale_regime(self.recent_scores),
+                    oracle_result=oracle_result
+                )
+                logger.info("Meta-tuning cycle completed in _end_of_run")
+                self._append_trace("meta_tuning_complete", "Outer-loop tuning executed")
+            except Exception as e:
+                logger.debug(f"Meta-tuning skipped (safe): {e}")
+
+        # 8. v0.9 Real Compute Validation + Hardware Telemetry
+        try:
+            if hasattr(self, 'real_compute_engine'):
+                real_result = self.real_compute_engine.validate_with_real_backend({
+                    "verifier_snippets": getattr(self, '_current_strategy', {}).get("verifier_code_snippets", []),
+                    "final_candidate": best_solution
+                })
+                oracle_result["real_compute"] = real_result
+                self._append_trace("real_compute_validation_complete",
+                                  f"Real backend validation finished — score: {real_result.get('real_compute_score', 0):.3f}")
+        except Exception as e:
+            logger.debug(f"Real compute validation skipped (safe): {e}")
+            self._append_trace("real_compute_skipped", str(e))
+
+        # 9. v0.9.5 PatternEvolutionArbos Post-Run DOUBLE_CLICK Recommendations
+        if hasattr(self, "pattern_evolution_arbos") and getattr(self, "enable_continuous_knowledge_acquisition", True):
+            try:
+                double_click_recs = self.pattern_evolution_arbos.generate_post_run_double_click_recommendations(run_data)
+                self._current_double_click_recommendations = double_click_recs
+                self._append_trace("post_run_double_click_recommendations",
+                                  f"Generated {len(double_click_recs)} targeted experiments to strengthen patterns or fill gaps")
+            except Exception as e:
+                logger.debug(f"Post-run DOUBLE_CLICK recommendations skipped (safe): {e}")
+                self._append_trace("double_click_recommendations_skipped", str(e))
+
+        # 10. Pruning Advisor Analysis
+        try:
+            analysis = self._analyze_run(
+                current_results=run_data.get("subtask_outputs", {}),
+                blueprint=getattr(self, '_current_strategy', {})
+            )
+            self._append_trace("pruning_advisor_complete",
+                              f"Pruning Advisor run — Health score: {analysis.get('health_score', 0):.3f}")
+        except Exception as e:
+            logger.debug(f"Pruning Advisor skipped: {e}")
+
+        # 11. Stigmergic Trace + Memory Cleanup + Provenance Audit
+        trace = {
+            "loop": self.loop_count,
+            "final_score": round(score, 4),
+            "efs": round(efs, 4),
+            "heterogeneity": oracle_result.get("heterogeneity_score", 0.72),
+            "c3a": oracle_result.get("c3a_confidence", 0.75),
+            "timestamp": datetime.now().isoformat(),
+            "oracle_result": oracle_result,
+            "deterministic_first_score": oracle_result.get("deterministic_first_score", 0.0)  # v0.9.6
+        }
+
+        # Final safety guardrails
+        guardrail_result = apply_guardrails(str(best_solution), context={"efs": efs})
+        if not guardrail_result.get("passed", True):
+            logger.critical(f"End-of-run guardrails failed: {guardrail_result.get('reason')}")
+            self._append_trace("end_of_run_guardrail_failure", guardrail_result.get("reason", ""))
+
+        self._write_stigmergic_trace(trace)
+        self.memory_layers.compress_low_value(current_score=score)
+
+        # v0.9.5 Ensure graph is updated with final outputs (for PatternEvolutionArbos discovery)
+        for output in (subtask_outputs if 'subtask_outputs' in locals() else []) or []:
+            if isinstance(output, dict) and "content" in output:
+                self.memory_layers.add(output["content"], output.get("metadata", {}))
+            elif isinstance(output, dict) and "solution" in output:
+                self.memory_layers.add(str(output.get("solution", "")), output.get("metadata", {}))
+
+        # v0.9.5 Post-run DOUBLE_CLICK recommendations
+        if hasattr(self, "pattern_evolution_arbos"):
+            double_click_recs = self.pattern_evolution_arbos.generate_post_run_double_click_recommendations(run_data)
+            self._current_double_click_recommendations = double_click_recs
+            self._append_trace("double_click_recommendations_generated", f"Generated {len(double_click_recs)} targeted experiments")
+
+        # v0.9.1 Cosmic Compression (safe)
+        if getattr(self, "enable_cosmic_compression", True):
+            try:
+                compression_result = self.perform_cosmic_compression()
+                self._append_trace("cosmic_compression_complete", f"Removed {compression_result.get('fragments_removed', 0)} fragments")
+            except Exception as e:
+                logger.debug(f"Cosmic Compression skipped (safe): {e}")
+                self._append_trace("cosmic_compression_skipped", str(e))
+
+        # Automatic provenance audit for notebook export
+        try:
+            self._export_provenance_audit_log(run_data)
+            self._append_trace("provenance_audit_exported", "Notebook-ready audit log created")
+        except Exception as e:
+            logger.debug(f"Provenance audit export skipped (safe): {e}")
+
+        # === TRACE: End of run complete ===
+        self._append_trace("end_of_run_complete",
+                          f"Outer-loop evolution + fragmented memory update finished | Final EFS: {efs:.3f} | DFS: {oracle_result.get('deterministic_first_score', 0.0):.1f}%")
+
+        # v0.9.3 — Clean shutdown of unrestricted executor
+        if hasattr(self, "unrestricted_executor"):
+            self.unrestricted_executor.shutdown()
+              
+        logger.info("✅ _end_of_run complete — outer-loop evolution + fragmented memory update executed")
                     
     # ====================== v0.6 helper for wiki snapshot (used in run_data) ======================
     def _get_wiki_snapshot(self) -> dict:
