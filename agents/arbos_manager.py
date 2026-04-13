@@ -1076,6 +1076,8 @@ class ArbosManager:
         self.tool_hunter.business_dev = self.business_dev  # bidirectional wiring
         logger.info("✅ BusinessDev Wing fully wired into ArbosManager")
         self._start_continuous_business_dev_hunting()
+        self.pd_arm = ProductDevelopmentArm(self.intelligence, self)   # pass self for harness
+        self.intelligence = SolverIntelligenceLayer(self.memory_layers)
         
         self.memory_layers = MemoryLayers()
         self.memory_layers.arbos = self
@@ -4063,7 +4065,11 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
 
         # Final outer-loop processing
         self._end_of_run(run_data_for_end)
-
+        
+        # After high validation score or at end of cycle
+        if score > 0.82 or efs > 0.75:
+            self.pd_arm.synthesize_product([], {"predictive_power": self.predictive.predictive_power})
+            
         self._append_trace("execute_full_cycle_complete",
                           f"Cycle finished — Final score: {score:.3f} | EFS: {efs:.3f} | DFS: {validation_result.get('deterministic_first_score', 0.0):.1f}%",
                           metrics={
@@ -6874,6 +6880,7 @@ Return ONLY valid JSON:
         # 5. Automatic Outer-Loop Evolution on high-signal runs
         if score > 0.82 or efs > 0.75:
             logger.info("High-signal run detected — triggering automatic outer-loop evolution")
+            self.pd_arm.synthesize_product([], {"predictive_power": self.predictive.predictive_power})
             self._append_trace("outer_loop_evolution_start", "High-signal trigger activated")
             if hasattr(self, 'evolve_principles_post_run'):
                 self.evolve_principles_post_run(
