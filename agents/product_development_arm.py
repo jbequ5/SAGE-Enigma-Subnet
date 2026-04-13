@@ -42,12 +42,27 @@ class ProductDevelopmentArm:
         logger.info(f"✅ Synthesis Arbos completed: {created['name']} ({created['type']})")
         return created
 
-    def _read_best_vault_content(self, vault_data: List) -> List[Dict]:
-        """Read the richest recent content from vaults."""
+    def _read_best_vault_content_from_disk(self) -> List[Dict]:
+        """Actively scan the 4 vaults and return the most recent, highest-value entries."""
         insights = []
-        for entry in vault_data[:8]:  # use provided or fall back to real scan
-            insights.append(entry)
-        # If vault_data is empty, scan real files (future-proof)
+        for vault_name in ["publications", "assets", "services", "academy"]:
+            vault_dir = self.intelligence.vault_root / vault_name
+            if not vault_dir.exists():
+                continue
+            # Get the 5 most recent files
+            files = sorted(vault_dir.glob("*.md"), key=lambda x: x.stat().st_mtime, reverse=True)[:5]
+            for f in files:
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    insights.append({
+                        "vault": vault_name,
+                        "path": str(f),
+                        "content": content[:2500],   # substantial context
+                        "timestamp": f.stat().st_mtime,
+                        "filename": f.name
+                    })
+                except Exception as e:
+                    logger.debug(f"Failed to read vault file {f}: {e}")
         return insights
 
     def _llm_generate_proposals(self, insights: List[Dict], market_signals: Dict) -> List[Dict]:
