@@ -1,9 +1,12 @@
 # agents/fragment_tracker.py
 import json
-import math
+import logging
+from datetime import datetime
 from pathlib import Path
-from datetime import date
+from typing import Dict, List, Tuple, Any
 import networkx as nx
+
+logger = logging.getLogger(__name__)
 
 class FragmentTracker:
     """Persistent fragment metadata + NetworkX graph for v0.8+ Wiki Memory Strategy."""
