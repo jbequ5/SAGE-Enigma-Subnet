@@ -1009,6 +1009,8 @@ class ArbosManager:
             
         # Safe execution (RestrictedPython)
         self.safe_exec = self.validator.safe_exec
+        self.predictive = PredictiveIntelligenceLayer(self)
+        self.business_dev = BusinessDev(self)
 
         # Toggles - cleaned and complete
         self.toggles = {
