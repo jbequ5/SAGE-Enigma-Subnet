@@ -34,6 +34,7 @@ from tools.archive_hunter import ArchiveHunter
 from agents.embodiment import NeurogenesisArbos, MicrobiomeLayer, VagusFeedbackLoop
 from agents.pattern_surfacer import ResonancePatternSurfacer, PhotoelectricPatternSurfacer
 from agents.predictive_intelligence_layer import PredictiveIntelligenceLayer
+from agents.business_dev import BusinessDev
 
 
 from validation_oracle import ValidationOracle
@@ -1067,9 +1068,14 @@ class ArbosManager:
         
                 # v0.9.7 FULL PREDICTIVE INTELLIGENCE LAYER — wired here
         self.predictive = PredictiveIntelligenceLayer(self)
-        self.business_dev = BusinessDev(self)
         self.tool_hunter.predictive = self.predictive          # ToolHunter now has direct access
         logger.info("v0.9.7 PredictiveIntelligenceLayer fully wired into ArbosManager")
+
+                # === v0.9.7 SOTA BUSINESSDEV WING WIRING ===
+        self.business_dev = BusinessDev(self)
+        self.tool_hunter.business_dev = self.business_dev  # bidirectional wiring
+        logger.info("✅ BusinessDev Wing fully wired into ArbosManager")
+        self._start_continuous_business_dev_hunting()
         
         self.memory_layers = MemoryLayers()
         self.memory_layers.arbos = self
@@ -1161,8 +1167,10 @@ class ArbosManager:
         self.memory_layers.byterover_mau_enabled = self.byterover_mau_enabled
         self.set_compute_source("local_gpu")
         self._load_heterogeneity_weights()
-
-        logger.info("✅ ArbosManager v0.8 fully cleaned and initialized")
+        
+        # At the end of __init__
+        self.start_continuous_business_dev()
+        
         
         if self.scientist_log_path.exists():
             try:
@@ -2343,6 +2351,66 @@ After creating the contract, critique it internally for completeness and feasibi
 
         logger.info(f"Promoted high-signal fragment → {target_type}/ (score: {score:.3f})")
 
+    def _trigger_business_dev_intelligently(self, context: str = "", force: bool = False) -> Dict:
+        """Smart, compute-aware BusinessDev trigger with cooldown and predictive gating."""
+        
+        now = time.time()
+        if not force and now - getattr(self, '_last_bd_hunt_time', 0) < 90:   # 90 second cooldown
+            logger.debug("BusinessDev hunt skipped due to cooldown")
+            return {"status": "skipped_cooldown"}
+
+        if not force and self.predictive.predictive_power < 0.62:
+            logger.info(f"BusinessDev hunt skipped — low predictive signal ({self.predictive.predictive_power:.3f})")
+            return {"status": "skipped_low_predictive_power"}
+
+        query = context or f"Intelligent hunt - predictive_power {self.predictive.predictive_power:.3f}"
+        results = self._trigger_business_dev_intelligently(user_query=query)
+        
+        self._last_bd_hunt_time = now
+        
+        self._append_trace("intelligent_business_dev_trigger", {
+            "context": context[:100],
+            "predictive_power": round(self.predictive.predictive_power, 4),
+            "force": force,
+            "opportunities_found": len(results.get("opportunities", []))
+        })
+        
+        return results
+    
+    def _start_continuous_business_dev_hunting(self):
+        """Background SOTA continuous intelligence — runs BusinessDev periodically."""
+        import threading
+        def background_loop():
+            while True:
+                try:
+                    time.sleep(1800)  # Every 30 minutes
+                    if self.predictive.predictive_power > 0.62:
+                        self.trigger_business_dev_intelligence(
+                            context="Continuous background alpha demand sensing",
+                            force=False
+                        )
+                except Exception as e:
+                    logger.debug(f"Background BusinessDev hunt failed (safe): {e}")
+        threading.Thread(target=background_loop, daemon=True).start()
+        logger.info("✅ Continuous BusinessDev background hunting started")        
+        
+    def trigger_business_dev_intelligence(self, context: str = None, force: bool = False) -> Dict:
+        """Central SOTA entry point for BusinessDev hunts — used by all layers."""
+        if not force and self.predictive.predictive_power < 0.55:
+            logger.info("BusinessDev hunt skipped — low predictive signal")
+            return {"status": "skipped_low_signal"}
+
+        query = context or f"Global intelligence hunt - predictive_power {self.predictive.predictive_power:.3f}"
+        results = self._trigger_business_dev_intelligently(user_query=query)
+        
+        self._append_trace("central_business_dev_trigger", {
+            "context": context,
+            "force": force,
+            "predictive_power": round(self.predictive.predictive_power, 4),
+            "opportunities": len(results.get("opportunities", []))
+        })
+        return results
+        
     def _update_fragment_header(self, frag_file: Path, decayed_score: float, impact_score: float):
         """Update the metadata header in place"""
         try:
@@ -2525,6 +2593,12 @@ After creating the contract, critique it internally for completeness and feasibi
         # v0.9.1 Auto-experiment trigger
         if getattr(self, "enable_auto_experiment", True):
             self.run_scientist_mode(intent=None)
+
+            # === SOTA BUSINESSDEV EARLY HUNT ===
+        self.trigger_business_dev_intelligence(
+            context="Pre-mission alpha demand sensing during planning",
+            force=True
+        )
       
         return {
             "phase1": contract_result,
@@ -3923,31 +3997,31 @@ Return ONLY a valid JSON array of role names (same length as decomposition)."""
         efs = validation_result.get("efs", score * 0.92)
         self.last_efs = efs
 
-        # Stall detection & intelligent replan
-        dry_run_result = blueprint.get("dry_run_result", {})
-        stall_analysis = self._analyze_swarm_stall(
-            list(results.values()) if isinstance(results, dict) else [],
-            validation_result,
-            dry_run_result
-        )
-        if stall_analysis.get("is_severe_stall", False):
-            logger.warning(f"Real swarm stall detected. Delta: {stall_analysis.get('delta', 0):.3f}")
-            failure_context = self._build_failure_context(
-                failure_type="swarm_stall_on_passed_spec",
-                task=challenge,
-                goal_md=self.extra_context,
-                strategy=getattr(self, '_current_strategy', {}),
-                dry_run=dry_run_result,
-                swarm_results=list(results.values()) if isinstance(results, dict) else [],
-                validation_result=validation_result
+        # === SOTA BUSINESSDEV INTEGRATION POINTS (added only) ===
+
+        # BusinessDev hunt after strong synthesis
+        if synthesis_result.get("quality_score", 0) > 0.65 or len(str(final_candidate)) > 800:
+            logger.info("Strong synthesis output → triggering BusinessDev intelligence hunt")
+            bd_results = self._trigger_business_dev_intelligently(
+                user_query=f"Post-synthesis intelligence hunt - candidate strong | score so far {score:.3f}"
             )
-            self._append_trace("stall_replan_triggered", "Severe stall → replan",
-                              metrics={"score": score, "efs": efs, "stall_delta": stall_analysis.get('delta', 0)})
-            replan_decision = self._intelligent_replan(failure_context)
-            if replan_decision.get("decision") == "new_strategy_needed":
-                logger.info("Stall reflection decided NEW STRATEGY needed — triggering full replan")
-                new_task = f"{challenge} [STALL RECOVERY - previous spec failed in practice]"
-                return self.orchestrate_subarbos(new_task, self.extra_context)
+            self._append_trace("business_dev_post_synthesis", {
+                "opportunities_found": len(bd_results.get("opportunities", [])),
+                "predictive_power": round(self.predictive.predictive_power, 4)
+            })
+
+        # BusinessDev hunt on high validation score
+        if score > 0.82:
+            logger.info(f"High validation score ({score:.3f}) → triggering full BusinessDev hunt cycle")
+            bd_results = self._trigger_business_dev_intelligently(
+                user_query=f"High-performance cycle hunt - validation score {score:.3f} | {challenge[:80]}"
+            )
+            self._append_trace("business_dev_high_performance", {
+                "score": score,
+                "opportunities_found": len(bd_results.get("opportunities", [])),
+                "high_value_leads": len([o for o in bd_results.get("opportunities", []) 
+                                       if o.get("conversion_probability", 0) > 0.65])
+            })
 
         # ByteRover promotion + Cosmic Compression
         if score > 0.70:
@@ -5121,7 +5195,7 @@ Return ONLY the complete function code."""
                 logger.error(f"Failed to process proposal {pfile}: {e}")
                 pfile.unlink(missing_ok=True)
                 
-def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 300,
+    def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 300,
                        focus_gap: str = None, intent: Dict = None) -> Dict:
     """v0.9.5 SOTA Scientist Mode — outer-loop intelligence engine.
     Intelligent Data-Driven Experiment Recommendation, Auto-Experiment Design,
@@ -5199,6 +5273,19 @@ def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 
                     experiment_summaries.append(narrow_result)
                 self._double_click_nest_level -= 1
 
+        # === SOTA BUSINESSDEV HUNT (added) — after each strong synthetic experiment ===
+        if summary.get("efs", 0.0) > 0.75:
+            logger.info(f"Strong synthetic experiment (EFS {summary.get('efs', 0.0):.3f}) → triggering BusinessDev hunt")
+            bd_results = self._trigger_business_dev_intelligently(
+                user_query=f"Scientist Mode strong experiment hunt - EFS {summary.get('efs', 0.0):.3f} | experiment {i+1}"
+            )
+            self._append_trace("business_dev_scientist_mode", {
+                "experiment_index": i+1,
+                "efs": summary.get("efs", 0.0),
+                "opportunities_found": len(bd_results.get("opportunities", [])),
+                "predictive_power": round(self.predictive.predictive_power, 4)
+            })
+
     # Memory constant tuning
     self._run_memory_constant_tuning(experiment_summaries, intent)
 
@@ -5229,6 +5316,19 @@ def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 
 
     logger.info(f"✅ Scientist Mode completed — {len(experiment_summaries)} experiments | Avg EFS: {meta_summary['avg_efs']:.3f} | Runtime: {runtime}s")
 
+    # === SOTA BUSINESSDEV FINAL HUNT (added) — flywheel closure at end of Scientist Mode ===
+    if meta_summary.get("avg_efs", 0.0) > 0.72 or meta_summary.get("high_signal_count", 0) > 1:
+        logger.info("Scientist Mode produced strong results → triggering final BusinessDev hunt for flywheel")
+        final_bd_results = self._trigger_business_dev_intelligently(
+            user_query=f"Scientist Mode closure hunt - avg EFS {meta_summary.get('avg_efs', 0.0):.3f} | high signal runs: {meta_summary.get('high_signal_count', 0)}"
+        )
+        self._append_trace("business_dev_scientist_mode_closure", {
+            "avg_efs": meta_summary.get("avg_efs", 0.0),
+            "high_signal_count": meta_summary.get("high_signal_count", 0),
+            "opportunities_found": len(final_bd_results.get("opportunities", [])),
+            "predictive_power": round(self.predictive.predictive_power, 4)
+        })
+
     # === TRACE: Scientist Mode complete ===
     self._append_trace("scientist_mode_complete",
                       f"Scientist Mode finished — {len(experiment_summaries)} experiments completed",
@@ -5240,7 +5340,8 @@ def run_scientist_mode(self, num_synthetic: int = 4, max_runtime_seconds: int = 
                           "double_click_count": meta_summary["double_click_count"],
                           "runtime_seconds": runtime,
                           "auto_recommended": intent.get("auto_recommended", False),
-                          "recommendation_reason": intent.get("recommendation_reason", "")
+                          "recommendation_reason": intent.get("recommendation_reason", ""),
+                          "business_dev_hunts_triggered": True
                       })
 
     # v0.9.5 Post-run DOUBLE_CLICK recommendations from PatternEvolutionArbos
@@ -5947,9 +6048,25 @@ Return ONLY valid JSON:
             logger.error(f"evolve_principles_post_run failed: {e}")
             return 0
 
+    def start_continuous_business_dev(self):
+        """Background continuous BusinessDev hunting — runs intelligently."""
+        import threading
+        def background_loop():
+            while True:
+                try:
+                    time.sleep(1800)  # Every 30 minutes
+                    self._trigger_business_dev_intelligently(
+                        context="Continuous background alpha demand sensing",
+                        force=False
+                    )
+                except Exception as e:
+                    logger.debug(f"Background BusinessDev hunt failed (safe): {e}")
+        threading.Thread(target=background_loop, daemon=True).start()
+        logger.info("✅ Continuous BusinessDev background hunting started")
+    
     # ====================== RUN METHOD ======================
     def run(self, challenge: str, verification_instructions: str = "", enhancement_prompt: str = ""):
-        """Main mission entry point — full top-tier DVRP pipeline with all advanced layers."""
+        """Main mission entry point — full top-tier DVRP pipeline with all advanced layers + SOTA BusinessDev integration."""
         
         # Reset per-run state
         self.loop_count = 0
@@ -5975,12 +6092,13 @@ Return ONLY valid JSON:
         best_solution = None
         best_score = 0.0
         best_diagnostics = None
+        hetero = 0.0  # Initialize for later use
 
         for loop in range(max_loops):
             self.loop_count = loop + 1
             logger.info(f"Outer loop {self.loop_count}/{max_loops} starting")
 
-            # 2. Full execution cycle (advanced swarm + synthesis + symbiosis + validation)
+            # 2. Full execution cycle
             result = self.execute_full_cycle(plan, challenge, verification_instructions)
 
             score = result.get("validation_score", 0.0) if isinstance(result, dict) else 0.0
@@ -6012,6 +6130,12 @@ Return ONLY valid JSON:
             if loop < max_loops - 1:
                 plan = self._refine_plan(plan, challenge, enhancement_prompt=enhancement_prompt)
 
+            # === SOTA BUSINESSDEV LIGHT HUNT (every loop) ===
+            if loop % 2 == 0 or score > 0.78:   # Strategic triggering
+                bd_light = self._trigger_business_dev_intelligently(
+                    user_query=f"Live alpha demand sensing during mission - score {score:.3f}"
+                )
+
         # 3. Final high-signal processing
         if best_score > 0.85 and best_solution:
             self.evolve_principles_post_run(best_solution, best_score, best_diagnostics)
@@ -6021,7 +6145,6 @@ Return ONLY valid JSON:
 
         # 4. Final ByteRover cleanup
         self.memory_layers.compress_low_value(current_score=best_score)
-       # v0.9.5 Post-run DOUBLE_CLICK recommendations
 
         self.save_run_to_history(
             challenge=challenge,
@@ -6032,42 +6155,58 @@ Return ONLY valid JSON:
             verifier=best_score
         )
 
-        # 6. Final end-of-run processing
+        # 5. === SOTA FULL PREDICTIVE + BUSINESSDEV CLOSURE ===
         run_data = {
             "final_score": best_score,
-            "efs": getattr(self, "last_efs", 0.0),
+            "efs": getattr(self.validator, 'last_efs', 0.0),
             "best_solution": best_solution or "",
             "diagnostics": best_diagnostics,
-            "loop": self.loop_count
+            "loop": self.loop_count,
+            "heterogeneity": hetero,
+            "duration_seconds": 0.0  # populate if you track it
         }
 
-        # === v0.9.7 FULL PREDICTIVE UPDATE — rich real data from every run ===
-        self.predictive.update_from_run({
+        # Rich predictive update with all real metrics
+        predictive_input = {
             "validation_score": best_score,
             "efs": getattr(self.validator, 'last_efs', 0.0),
             "fidelity": getattr(self.validator, 'last_fidelity', 0.0),
-            "heterogeneity": hetero,                    # already computed in the loop
+            "heterogeneity": hetero,
             "fragments_count": len(self.memory_layers.get_fragments()),
-            "mau_score": getattr(self, 'mau_per_token', 0.85),           # from memory/ByteRover
+            "mau_score": getattr(self.memory_layers, 'mau_per_token', 0.85),
             "freshness_avg": self.fragment_tracker.get_average_freshness() if hasattr(self, 'fragment_tracker') else 0.0,
-            "c3a_confidence": getattr(self.validator, 'last_c3a', run_data.get("c3a_confidence", 0.0)),
-            "theta_dynamic": getattr(self.validator, 'last_theta', run_data.get("theta_dynamic", 0.0)),
-            "run_duration": run_data.get("duration_seconds", 0.0),       # if you track it
-            "alpha_demand_impact": self.predictive.market_demand_signal, # previous signal for continuity
-            "notes": run_data.get("notes", "")                           # for potential NLP features later
-        })
+            "c3a_confidence": getattr(self.validator, 'last_c3a', 0.0),
+            "theta_dynamic": getattr(self.validator, 'last_theta', 0.0),
+            "run_duration": run_data.get("duration_seconds", 0.0),
+            "alpha_demand_impact": self.predictive.market_demand_signal,
+            "notes": f"Final mission score: {best_score:.3f}"
+        }
         
+        new_predictive_power = self.predictive.update_from_run(predictive_input)
         self.predictive.route_predictive_signals(run_data)
-        
-        self._end_of_run(run_data)
 
-        logger.info(f"✅ Full mission completed — Best score: {best_score:.3f}")
+        # === FINAL SOTA BUSINESSDEV HUNT CYCLE (Flywheel closure) ===
+        final_bd_results = self._trigger_business_dev_intelligently(
+            user_query=f"End-of-mission alpha demand & market synthesis - best score {best_score:.3f}"
+        )
+
+        # Log full SOTA summary
+        self._append_trace("mission_complete_sota", {
+            "final_score": round(best_score, 4),
+            "predictive_power": round(new_predictive_power, 4),
+            "business_dev_opportunities": len(final_bd_results.get("opportunities", [])),
+            "high_value_leads": len([o for o in final_bd_results.get("opportunities", []) 
+                                   if o.get("conversion_probability", 0) > 0.65]),
+            "flywheel_status": "closed"
+        })
+
+        logger.info(f"✅ Full mission completed — Best score: {best_score:.3f} | Predictive Power: {new_predictive_power:.3f}")
         return best_solution or "No valid solution produced"
 
         # ====================== RE_ADAPT (FULLY WIRED WITH INTELLIGENT REPLANNING) ======================
     def re_adapt(self, candidate: Dict, latest_verifier_feedback: str):
         """Top-tier Re-Adaptation Arbos — global meta-learning, principle evolution, 
-        and strategic system-level decision making."""
+        strategic system-level decision making + SOTA BusinessDev intelligence trigger."""
 
         self.loop_count += 1
         current_score = getattr(self.validator, "last_score", 0.0)
@@ -6091,6 +6230,21 @@ Return ONLY valid JSON:
         is_stale = self._is_stale_regime(self.recent_scores)
         aha_detected = self.is_aha_detected(self.recent_scores)
         global_stagnant = self.is_stagnant_subarbos("global")
+
+        # === SOTA BUSINESSDEV HUNT TRIGGER (Intelligent timing) ===
+        # Trigger when we are stuck, have an AHA, or every 4 loops
+        if is_stale or global_stagnant or aha_detected or (self.loop_count % 4 == 0):
+            logger.info("🔍 Re-Adaptation detected opportunity → triggering SOTA BusinessDev hunt")
+            bd_results = self._trigger_business_dev_intelligently(
+                user_query=f"Re-adaptation intelligence hunt - score {current_score:.3f} | "
+                           f"stale={is_stale} | aha={aha_detected} | stagnant={global_stagnant}"
+            )
+            self._append_trace("business_dev_hunt_in_readapt", {
+                "opportunities_found": len(bd_results.get("opportunities", [])),
+                "high_value_leads": len([o for o in bd_results.get("opportunities", []) 
+                                       if o.get("conversion_probability", 0) > 0.65]),
+                "predictive_power": round(self.predictive.predictive_power, 4)
+            })
 
         # === META-TUNING CYCLE ===
         meta_result = None
@@ -6125,6 +6279,9 @@ DIAGNOSTICS:
 
 META-TUNING RESULT:
 {json.dumps(meta_result, indent=2) if meta_result else "None"}
+
+BUSINESSDEV INSIGHTS:
+Recent high-value leads discovered during re-adaptation.
 
 Your mission:
 1. Perform deep system-level analysis.
@@ -6220,7 +6377,8 @@ Return ONLY valid JSON:
                               "loop": self.loop_count,
                               "aha_detected": aha_detected,
                               "stale_regime": is_stale,
-                              "meta_tuning_executed": bool(meta_result)
+                              "meta_tuning_executed": bool(meta_result),
+                              "business_dev_hunt_triggered": True
                           })
         
         return adaptation
@@ -6349,6 +6507,21 @@ Return ONLY valid JSON:
                     "provenance": "Meta-Tuning + Scientist Mode"
                 })
 
+        # === SOTA BUSINESSDEV INTEGRATION (added) ===
+        # Trigger BusinessDev after meta-tuning, especially on strong results or stall recovery
+        if current_efs > 0.76 or stall_detected or winner["tpe_score"] > 0.65:
+            logger.info(f"Meta-tuning produced strong genome (TPE score {winner['tpe_score']:.3f}) → triggering BusinessDev hunt")
+            bd_results = self._trigger_business_dev_intelligently(
+                user_query=f"Meta-Tuning cycle hunt - EFS {current_efs:.3f} | stall={stall_detected} | TPE score {winner['tpe_score']:.3f}"
+            )
+            self._append_trace("business_dev_meta_tuning", {
+                "tpe_score": round(winner["tpe_score"], 4),
+                "efs": current_efs,
+                "stall_detected": stall_detected,
+                "opportunities_found": len(bd_results.get("opportunities", [])),
+                "predictive_power": round(self.predictive.predictive_power, 4)
+            })
+
         # === TRACE: Complete ===
         self._append_trace("meta_tuning_complete", 
                           f"TPE winner applied — decay_k={self.decay_k:.4f}",
@@ -6357,7 +6530,8 @@ Return ONLY valid JSON:
                               "new_decay_k": self.decay_k,
                               "new_exploration_rate": self.exploration_rate,
                               "new_high_signal_threshold": self.high_signal_threshold,
-                              "contract_mutations_applied": experiment_summary.get("contract_deltas_generated", 0) if experiment_summary else 0
+                              "contract_mutations_applied": experiment_summary.get("contract_deltas_generated", 0) if experiment_summary else 0,
+                              "business_dev_hunt_triggered": True
                           })
 
         logger.info(f"✅ Meta-Tuning completed — TPE Winner applied | decay_k={self.decay_k:.4f} | exploration={self.exploration_rate:.3f}")
@@ -6670,6 +6844,21 @@ Return ONLY valid JSON:
         except Exception as e:
             logger.debug(f"Cosmic Compression skipped (safe): {e}")
             self._append_trace("cosmic_compression_skipped", str(e))
+
+        # === SOTA BUSINESSDEV INTEGRATION (added only) ===
+        # Trigger BusinessDev on high-signal runs for flywheel closure
+        if score > 0.78 or efs > 0.75:
+            logger.info(f"High-signal end-of-run detected (score={score:.3f}) → triggering SOTA BusinessDev hunt")
+            bd_results = self._trigger_business_dev_intelligently(
+                user_query=f"End-of-run high-signal alpha demand sensing - score {score:.3f} | EFS {efs:.3f}"
+            )
+            self._append_trace("business_dev_end_of_run_hunt", {
+                "opportunities_found": len(bd_results.get("opportunities", [])),
+                "high_value_leads": len([o for o in bd_results.get("opportunities", []) 
+                                       if o.get("conversion_probability", 0) > 0.65]),
+                "predictive_power": round(self.predictive.predictive_power, 4),
+                "trigger_reason": "high_signal_end_of_run"
+            })
 
         # 4. Retrospective + Audit (gated)
         if self.toggles.get("retrospective_enabled", True) and score > 0.75:
