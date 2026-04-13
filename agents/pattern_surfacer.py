@@ -1,15 +1,18 @@
-# agents/pattern_surfacer.py - v2.0 MAXIMUM CAPABILITY Resonance + Photoelectric Pattern Surfacer
-# Fully verifier-first, EFS/c/heterogeneity-driven, contract-aware, and Grail-promoting
+# agents/pattern_surfacer.py - v0.9.7 MAXIMUM SOTA Resonance + Photoelectric Pattern Surfacer
+# Fully verifier-first, EFS/c/heterogeneity-driven, contract-aware, graph-integrated,
+# predictive-aware, vault-routing, PD Arm triggering, and Grail-promoting.
 
 import json
 from pathlib import Path
 from datetime import datetime
 import logging
+from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 class ResonancePatternSurfacer:
-    """Microtubule-inspired fractal resonance coupling — now deeply oracle-driven and contract-aware."""
+    """Microtubule-inspired fractal resonance coupling — now deeply oracle-driven, 
+    contract-aware, graph-integrated, and Grail-promoting."""
     def __init__(self):
         self.resonance_count = 0
         self.output_dir = Path("goals/brain/grail_patterns/resonance")
@@ -53,6 +56,25 @@ class ResonancePatternSurfacer:
             out_file.write_text(json.dumps(pattern, indent=2))
 
             logger.info(f"🌌 RPS surfaced strong resonance pattern (strength: {pattern['resonance_strength']:.3f} | EFS={efs:.3f} | Hetero={hetero:.3f})")
+
+            # SOTA: Route high-signal resonance to Vaults
+            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'intelligence'):
+                run_data = {
+                    "insight_score": pattern['resonance_strength'],
+                    "predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0),
+                    "efs": efs,
+                    "heterogeneity": hetero,
+                    "key_takeaway": f"RPS surfaced strong resonance pattern (strength {pattern['resonance_strength']:.3f})",
+                    "flywheel_step": "embodiment_to_vaults"
+                }
+                self.arbos.intelligence.route_to_vaults(run_data)
+
+            # Trigger Product Development Arm synthesis for resonance curriculum/tool
+            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'pd_arm'):
+                self.arbos.pd_arm.synthesize_product(
+                    vault_data=[], 
+                    market_signals={"predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0)}
+                )
 
             return pattern
 
@@ -104,6 +126,25 @@ class PhotoelectricPatternSurfacer:
             out_file.write_text(json.dumps(pattern, indent=2))
 
             logger.info(f"⚡ PPS surfaced strong photoelectric breakthrough (strength: {pattern['pps_strength']:.3f} | fidelity={fidelity:.3f})")
+
+            # SOTA: Route high-signal photoelectric to Vaults
+            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'intelligence'):
+                run_data = {
+                    "insight_score": pattern['pps_strength'],
+                    "predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0),
+                    "efs": efs,
+                    "heterogeneity": oracle_result.get("heterogeneity_score", 0.72),
+                    "key_takeaway": f"PPS surfaced strong photoelectric breakthrough (strength {pattern['pps_strength']:.3f})",
+                    "flywheel_step": "embodiment_to_vaults"
+                }
+                self.arbos.intelligence.route_to_vaults(run_data)
+
+            # Trigger Product Development Arm synthesis
+            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'pd_arm'):
+                self.arbos.pd_arm.synthesize_product(
+                    vault_data=[], 
+                    market_signals={"predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0)}
+                )
 
             return pattern
 
