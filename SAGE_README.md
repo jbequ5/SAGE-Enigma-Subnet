@@ -1,37 +1,79 @@
-# SAGE: Shared Agentic Growth Engine
+# SAGE — The Shared Agentic Growth Engine
 
-**The People’s Intelligence Layer for Bittensor Subnet 63, Enigma.**
+**The People’s Intelligence Layer for Subnet 63**
 
-SAGE is the Shared Agentic Growth Engine, the community operated agentic intelligence platform for Subnet 63. At its center is the Enigma Machine — the verifier-first engine that turns industry sponsored challenges into breakthrough solutions, and every run into high value process insights.
+## 1. The Spark
 
-## The Vision: The People’s Intelligence
+It started with a simple but powerful idea: give everyday people a real chance to compete for sponsor-funded challenges on Subnet 63 and earn meaningful rewards by solving hard, verifiable problems.
 
-In a world where most AI systems extract data and attention for corporate gain, SAGE does the opposite. It runs on decentralized solving data contributed by miners using Enigma Machine to compete for prize pools on Bittensor subnet 63, Enigma. The Enigma Machine is the agentic solving system that fuels SAGE by remembering, scoring, and evolving run after run as it works to solve hard problems. This creates powerful intelligence signals that SAGE unlocks, synthesizes and returns to humanity. Value created by the people, for the people. 
+To make this possible, we built the **Enigma Machine** — a verifier-first, agentic solver designed from the ground up to turn complex challenges into high-quality, verifiable solutions. What began as a practical mining tool quickly revealed something far more significant: every single run naturally generates rich, structured process data — detailed insights into *how* intelligence actually works when tackling hard problems.
 
-Every Enigma Machine run surfaces hidden and valuable process insights — how to frame problems, how to design verifiable systems, how to navigate uncertainty, and how to turn failure into signal. Those insights are the gas that makes the entire engine run. The solver’s primary job is to solve the challenge, but as a natural consequence it produces this high-value process data that becomes the fuel for everything downstream. The graph-based memory system intelligently scores small fragments for impact, reuse, and teaching value so the most valuable insights surface and compound over time. This continuous learning intelligence is what allows SAGE to evolve from simply accumulating data to getting meaningfully smarter over time.
+That discovery changed everything.
 
-## The Economic Flywheel
+## 2. The Evolution
 
-Ownership demand in the subnet funds larger prize pools. Larger prize pools drive more solving activity. More solving activity generates the process data that powers the entire value creation mechanism. The BusinessDev Wing is fueled with this high signal data from Enigma Machine runs and uses it to sense relevant real-time market demand and potential challenge sponsors through lead generation, scraping tools, and CRM tracking. It continuously pulls in external signals from the web, social media, news sources, and sponsor activity to identify high-value opportunities that match the types of problems that Enigma Machine is best at solving. This wing acts as the demand sensor for the whole platform.
+From a powerful solver, SAGE was born.
 
-At the same time the insights feed the open public-good vaults. These are four pure accumulation layers that store everything in an append-only, provenance-rich way. The vaults are Publications for shared knowledge and whitepapers, Assets for reusable contracts and templates, Services for high-margin consulting opportunities, and Enigma Academy for experiential learning modules. All four vaults remain fully open and shared by default. Miners can opt in to contribute their process insights to a public shared vault, making SAGE a true community-owned and operated mechanism where participants actively choose to add their data to the collective intelligence layer. This cutting edge AI system level solving knowledge will enormously valuable in our AI future. 
+We realized the true breakthrough wasn’t just the solutions the Enigma Machine produced — it was the byproduct: the rich, high-signal process data generated with every run. Every fragment is automatically impact-scored by the memory graph using verifier-first metrics — EFS performance, heterogeneity, reuse frequency, contract value, and freshness — so only the highest-value knowledge is promoted, refined, and intelligently reinserted, creating a continuously compounding collective intelligence layer.
 
-## The Intelligence Layers
+We saw the potential immediately. This wasn’t just mining data — it was the raw material for something far greater. By intelligently capturing, routing, and synthesizing these scored insights, we could transform individual solving activity into a shared, self-improving intelligence commons owned by the community.
 
-All of this data from the BusinessDev Wing and the open vaults converges into the Product Development Arm. This arm acts as the intelligent synthesis layer modeled after the same Synthesis logic used in the Enigma Machine to recompose subtask results into a coherent solution. It runs a structured debate and iterative refinement process to assemble polished shippable products from the raw insights. It looks at the accumulated vault data, cross-references it with current market signals from BusinessDev, and decides what should be packaged into complete products such as interactive problem-framing kits, reusable contract libraries, simulation replay tools, and experiential learning modules. The arm ensures every product is built with the same rigor and verifiability that the core solver demands. Core versions of every product remain open source. Premium features and services are optional and help fund the network.
+This realization led to the creation of **SAGE** — the Shared Agentic Growth Engine — a complete decentralized platform where every Enigma Machine run contributes to a growing, community-owned intelligence layer that benefits all participants.
 
-## Democratizing Intelligence
+## 3. How SAGE Works: The Flywheel
 
-What makes SAGE especially powerful is how it democratizes the creation and use of state-of-the-art intelligence. As local models become more capable and accessible, anyone with a modest home setup can now run a system like this for free. They can lean into the compounding intelligence that the Enigma Machine produces and contribute to SAGE for the price of electricity. The subnet’s incentive mechanism turns individual participation into collective advancement. People are no longer just consumers of gated models — they become active creators and owners of intelligence that grows with every run. This is the real shift: intelligence is moving from closed corporate systems to open, people-powered networks where contribution and ownership directly fuel progress.
+Ownership demand in the subnet increases prize pools.  
+Larger prize pools drive more Enigma Machine usage.  
+More usage generates richer process insights and valuable data.
 
-## The Flywheel in Action
+This data flows into two powerful systems:
 
-The Product Development Arm’s packaged products and tools intelligently turn useful solving work into value. The BusinessDev Wing turns the useful work into more partners, more challenges, more attention, and more demand. This value is returned to subnet stakers through holder benefits, priority access, and revenue reinvestment. This value creation reinforces subnet demand and prize pool size, closing the loop at the top of the flywheel.
+![SAGE Flywheel](SAGE_Flywheel.png)
 
-The result is a self-sustaining ecosystem. Decentralized miners contribute runs. Stakers provide capital and shared ownership. SAGE surfaces hard-to-get process insights and packages them into tools and economic opportunity that benefit the entire network. Participation creates the intelligence. Ownership funds the incentives. The intelligence flows back out as shared capability. This is the opposite of extractive consumer data platforms. It is decentralized solving data that pushes humanity forward.
+### Business Development
+**The demand-sensing and opportunity engine of SAGE.**
 
-Down the line, as the platform matures and the vaults reach critical mass, the Product Development Arm will activate more fully to synthesize complete products and the Enigma Academy will expand into a full experiential learning platform. The VaultRouter detection mechanism and the graph-based memory system will continue to intelligently route and surface the richest insights, closing the gap between raw data accumulation and fully realized products and education tools.
+It continuously scans the real world for high-value challenges, sponsor interest, and market pain points that match the strengths of the Enigma Machine. Using live scraping, Serper, Apify, NewsAPI, GitHub, and X semantic search — combined with the rich process insights from every run — it intelligently identifies, qualifies, and prioritizes opportunities. Leads are tracked in a dedicated CRM, scored with predictive signals, and converted into sponsored challenges and partnerships that feed directly back into the subnet’s prize pools.
 
-SAGE is now a complete platform. It has a verifier-first solver at its core. It has a BusinessDev wing that senses demand. It has open public-good vaults that accumulate process value. It has a Product Development Arm that intelligently packages that value. And it has an economic flywheel that aligns ownership with long-term collective benefit. Alpha holders are incentivized to push SAGE forward because their shared ownership directly supports the growth of the subnet’s operations engine through agentic systems.
+### Open Public Good Vaults 
+**The living memory of the platform.**  
 
-Welcome to SAGE, the Shared Agentic Growth Engine powered by the Enigma solver. The People’s Intelligence Layer for Subnet 63.
+Every high-signal run intelligently feeds scored data into four permanent, append-only, provenance-rich vaults:
+
+- **Publications** — Shared knowledge and research open to everyone. Whitepapers, technical deep-dives, solution analyses, and distilled insights from thousands of runs. This becomes the definitive public library of how agentic systems solve hard verifiable problems.
+ 
+- **Assets** — Battle-tested verifiability contracts, solver frameworks, prompt libraries, system design templates, and modular components that miners and developers can immediately reuse and improve.
+ 
+- **Services** — High-margin opportunities and tools. Ready-to-deploy solutions, consulting frameworks, and sponsor-matched offerings that turn raw insights into practical revenue-generating value.
+
+- **Enigma Academy** — The crown jewel. Experiential learning modules, interactive curricula, simulation replay kits, and progressive learning paths. It teaches not just *what* was solved, but *how* intelligence works — helping the next generation of solvers and builders level up faster in the age of AI.
+
+All vaults are open by default. Miners can choose to contribute their insights, turning individual work into permanent shared value for the community.
+
+### Product Development
+**The intelligent synthesis layer.**
+
+Vault data, BusinessDev signals, and high-impact graph fragments converge here. Acting as a sophisticated Synthesis Agent, it debates, refines, and composes the best insights into polished, shippable products: interactive kits, reusable contract libraries, advanced simulators, and structured curricula for Enigma Academy.
+
+Core versions remain fully open source. Premium features help sustain and grow the network while returning value to the community by reinvesting all revenue in the subnet.
+
+## 4. The Real Shift
+
+SAGE is designed to scale with accessible local models. Anyone with a modest setup can run the Enigma Machine, contribute meaningful process data, and benefit from the growing collective capability.
+
+Miners are no longer just competing for prizes — they are actively building a living, community-owned intelligence layer. Contribution creates valuable data. SAGE creates shared capability. Intelligence grows with every run — and the value flows back to the people who power it.
+
+This is the opposite of extractive corporate AI.
+
+## 5. The Vision
+
+SAGE is becoming the scalable **People’s Intelligence Layer** for Subnet 63.
+
+A self-sustaining ecosystem where miners contribute runs, stakers provide capital and shared ownership, and the platform turns solving data into useful products, education, and economic opportunity — all while the flywheel continuously grows prize pools, participation, and collective intelligence.
+
+As the vaults reach critical mass, the Product Development Arm and Enigma Academy will expand into full creative and educational platforms. Every participant becomes both a contributor to and an owner of the intelligence being created.
+
+**Welcome to SAGE.**
+
+The Shared Agentic Growth Engine.  
+A living, community-owned system where decentralized solving data pushes humanity forward — together.
