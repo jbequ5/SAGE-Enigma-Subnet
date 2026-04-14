@@ -8,7 +8,7 @@ It started with a simple but powerful idea: give everyday people a real chance t
 
 To make this possible, we built the **Enigma Machine** — a verifier-first, agentic solver designed from the ground up to turn complex challenges into high-quality, verifiable solutions. What began as a practical mining tool quickly revealed something far more significant: every single run naturally generates rich, structured process data — detailed insights into *how* intelligence actually works when tackling hard problems.
 
-That discovery changed everything.
+That discovery changed the value proposition.
 
 ## 2. The Evolution
 
