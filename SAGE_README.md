@@ -31,7 +31,7 @@ This data flows into two powerful systems:
 <div align="center">
   <img src="SAGE_Flywheel.png" 
        alt="SAGE Flywheel" 
-       width="500" 
+       width="780" 
        style="max-width: 100%; height: auto; border-radius: 8px;">
 </div>
 
