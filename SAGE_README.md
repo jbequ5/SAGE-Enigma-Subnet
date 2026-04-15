@@ -1,6 +1,6 @@
 # SAGE — The Shared Agentic Growth Engine
 
-**The People’s Intelligence Layer for Subnet 63, Enigma**
+**Powered By The Enigma Machine**
 
 # Why?
 
@@ -37,7 +37,7 @@ This data flows into two powerful systems that ultimately feed the Product Devel
        style="max-width: 100%; height: auto; border-radius: 8px;">
 </div>
 
-### Open Public Good Vaults
+### Solve Vaults
 **The living memory of the platform**
 
 Every high-signal run feeds scored data into four permanent, append-only, provenance-rich vaults:
@@ -94,6 +94,7 @@ As the vision takes shape, here is how we bring the SAGE to life.
 
 ## The Structure
 The shared index consists of the same vaults your local Enigma Machine instance already uses: the Solve Vault (Assets, Publications, Academy, and Services), the Business Vault (Business Development (BD) Outputs), and the Product Vault (Product Development (PD) Outputs). When you push a fragment, it enters the index using the identical structure and scoring logic your own machine applies locally. The index does not create new categories or different rules — it simply holds a discoverable, high-signal mirror of the same vaults everyone else is building. This consistency is deliberate: the gas that powers your solo runs is the same gas that powers the entire network.
+
 
 ## The Scoring
 Scoring is reliable because it is deterministic and provenance-based. Every fragment receives a raw_value based on its vault type (performance (EFS) - heavy for solving data in the Solve Vault, commercial utility for BD outputs in the Business Vault, synthesis quality for PD outputs in the Product Vault). Then a refined value_added layer calculates the incremental improvement this fragment provides beyond the fragments it depended on, using local Shapley sampling to fairly attribute credit. The final score combines both, so a fragment is judged not just on how good it is in isolation, but on how much new value it actually adds to the commons. The math is fixed, transparent, and grounded in verifiable execution results — no raw LLM opinion, no hidden bias. You can always see the full scoring_breakdown for any fragment, and the system re-scores on reuse so the numbers evolve with real downstream impact. This is why the gas stays pure and the compounding effect is trustworthy.
