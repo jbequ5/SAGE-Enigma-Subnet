@@ -37,11 +37,6 @@ This data flows into two powerful systems that ultimately feed the Product Devel
        style="max-width: 100%; height: auto; border-radius: 8px;">
 </div>
 
-### Business Development
-**The demand-sensing and opportunity engine of SAGE**
-
-It continuously scans the real world for high-value challenges, sponsor interest, and market pain points that match the strengths of the Enigma Machine. Using live scraping (Serper, Apify, NewsAPI, GitHub, and X) — combined with the rich process insights from every run — it intelligently identifies, qualifies, and prioritizes opportunities. Leads are tracked in a dedicated CRM, scored with predictive signals, and converted into sponsored challenges and partnerships that feed directly back into the subnet’s prize pool value.
-
 ### Open Public Good Vaults
 **The living memory of the platform**
 
@@ -57,12 +52,15 @@ Every high-signal run feeds scored data into four permanent, append-only, proven
 
 All vaults are open by default. Miners can choose to contribute, turning individual work into permanent shared value.
 
-### Product Development
+### Business Development Vault
+**The demand-sensing and opportunity engine of SAGE**
+
+It continuously scans the real world for high-value challenges, sponsor interest, and market pain points that match the strengths of the Enigma Machine. Using live scraping (Serper, Apify, NewsAPI, GitHub, and X) — combined with the rich process insights from every run — it intelligently identifies, qualifies, and prioritizes opportunities. Leads are tracked in a dedicated CRM, scored with predictive signals, and converted into sponsored challenges and partnerships that feed directly back into the subnet’s prize pool value. All output is scored, compiled, and actively pruned in a Business Vault.
+
+### Product Development Vault
 **The intelligent synthesis layer**
 
-Vault data, BusinessDev signals, and high-impact graph fragments converge here. It debates, refines, and composes the best insights into polished, shippable products: interactive kits, reusable frameworks, simulators, and structured curricula for Enigma Academy.
-
-Core versions remain fully open source. Premium features help sustain and grow the network while returning value to the community by reinvesting all revenue in the subnet.
+All vault data and high-impact graph fragments converge here. It debates, refines, and composes the best insights into polished, shippable products: interactive kits, reusable frameworks, simulators, and structured curricula for Enigma Academy. Core versions remain fully open source. Premium features help sustain and grow the network while returning value to the community by reinvesting all revenue in the subnet. All outputs are scored and stored in a Product Vault. 
 
 ## The Real Shift
 
@@ -83,8 +81,6 @@ A successful SAGE becomes something profoundly meaningful for humanity.
 As the vaults reach critical mass, the Product Development Arm will continuously transform raw solving data and market insights into real-world value: interactive problem-solving kits that help people tackle complex challenges, reusable verifier-first frameworks anyone can apply, advanced simulators that make intelligent behavior understandable, and structured curricula in Enigma Academy that teach regular people how to think with, understand, and build upon AI systems in their own lives and work. 
 
 The value created is continuously reinjected back into the ecosystem — growing prize pools, expanding participation, and increasing the quality and usefulness of shared intelligence. In its mature form, SAGE will stand as a new kind of public infrastructure: a decentralized, self-improving intelligence commons that turns cutting-edge problem-solving knowledge into tools, education, and capability truly accessible to all. 
-
-
 
 It evolves into the **People’s Intelligence Layer**. 
 
@@ -111,11 +107,11 @@ Participation is required to access the index, and this gate is what makes the s
 ## The Full Picture
 This is how the People’s Intelligence becomes real. When you use the index, you are not just borrowing data — you are accessing the collective breakthroughs of the entire network, sharpened by the same scoring and gates that protect your own local vaults. When you contribute, you are not just adding to a database — you are creating gas that others will build on, that will improve future runs, products, and proposals, and that will come back to you through:
 
-**Impact tracking** - Every contribution you make is tracked and celebrated - watch your impact log grow as your fragments power real deals, adopted products, and breakthoughs across the network. As fragments are pulled and evolved, your mark on it never fades.
-
-**Badges** - Earn meaningful badges like "Impact Architect" and "Deal Closer" that unlock priority access, and public recognition in a "Hall of Contributors"
-
-**Revenue/Community Pool** - Suggest a non-binding share of downstream revenue generated by your fragments - a transparent starting point for the team to value your contribution.
+- **Impact tracking** - Every contribution you make is tracked and celebrated - watch your impact log grow as your fragments power real deals, adopted products, and breakthoughs across the network. As fragments are pulled and evolved, your mark on it never fades.
+  
+- **Badges** - Earn meaningful badges like "Impact Architect" and "Deal Closer" that unlock priority access, and public recognition in a "Hall of Contributors"
+  
+- **Revenue/Community Pool** - Suggest a non-binding share of downstream revenue generated by your fragments - a transparent starting point for the team to value your contribution.
 
 The system rewards real value added, not just participation. The flywheel turns because every high-signal fragment you push strengthens SAGE, and every pull you make makes your own solving, BD, and PD more powerful.
 
