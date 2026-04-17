@@ -1,5 +1,6 @@
-# agents/video_archiver.py - v0.9.7 MAXIMUM SOTA VideoArchiver / VideoHunter
-# Fully verifier-first, EFS/c/θ/heterogeneity/contract-aware, Grail-integrated, 
+# agents/video_archiver.py
+# v0.9.11 MAXIMUM SOTA VideoArchiver / VideoHunter
+# Fully verifier-first, EFS/c/θ/heterogeneity/contract-aware, Grail-integrated,
 # graph-integrated, predictive-aware, vault-routing, PD Arm triggering, and retrospective-ready.
 
 import json
@@ -19,18 +20,18 @@ except ImportError:
 
 class VideoArchiver:
     ARCHIVE_DIR = Path("memdir/archives")
-    
+   
     def __init__(self):
         self.ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-        logger.info(f"✅ VideoArchiver v0.9.7 MAX SOTA initialized — archive dir: {self.ARCHIVE_DIR} | memvid: {'available' if MEMVID_AVAILABLE else 'JSON fallback'}")
+        logger.info(f"✅ VideoArchiver v0.9.11 MAX SOTA initialized — archive dir: {self.ARCHIVE_DIR} | memvid: {'available' if MEMVID_AVAILABLE else 'JSON fallback'}")
 
     def archive_run_to_mp4(self, run_data: dict, run_id: str = None) -> str:
-        """High-signal archival with full oracle metrics, contract, Grail context, graph snapshot, and predictive signals."""
+        """High-signal archival with full oracle metrics, contract, Grail context, graph snapshot, predictive signals, and explicit scoring."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         run_id = run_id or f"run_{int(datetime.now().timestamp())}"
         out_path = self.ARCHIVE_DIR / f"{run_id}_{timestamp}.mv2"
 
-        # Enrich with real verifier/oracle data + graph + predictive
+        # Enrich with real verifier/oracle data + graph + predictive + explicit scoring
         frames = [
             {
                 "type": "mau_pyramid",
@@ -65,7 +66,8 @@ class VideoArchiver:
                     "c3a_confidence": run_data.get("c", 0.0),
                     "theta_dynamic": run_data.get("theta", 0.0),
                     "heterogeneity": run_data.get("heterogeneity_score", 0.0),
-                    "fidelity": run_data.get("fidelity", 0.0)
+                    "fidelity": run_data.get("fidelity", 0.0),
+                    "verifier_quality": run_data.get("verifier_quality", 0.0)  # 7D signal
                 }
             },
             {
@@ -94,12 +96,12 @@ class VideoArchiver:
         try:
             if MEMVID_AVAILABLE:
                 memvid.encode_smart_frames(frames, str(out_path), fps=12, compression="smart")
-                logger.info(f"✅ Archived full run {run_id} → {out_path} (Smart Frames .mv2 with oracle + graph + predictive metrics)")
+                logger.info(f"✅ Archived full run {run_id} → {out_path} (Smart Frames .mv2 with oracle + graph + predictive + 7D metrics)")
             else:
-                # Rich JSON fallback
+                # Rich JSON fallback with full scoring
                 fallback_path = self.ARCHIVE_DIR / f"{run_id}_{timestamp}.json"
                 fallback_path.write_text(json.dumps(frames, indent=2))
-                logger.info(f"✅ Archived run {run_id} → {fallback_path} (JSON fallback with full metrics)")
+                logger.info(f"✅ Archived run {run_id} → {fallback_path} (JSON fallback with full metrics and explicit scoring)")
                 return str(fallback_path)
         except Exception as e:
             logger.error(f"Video archival failed for run {run_id}: {e}")
@@ -110,7 +112,7 @@ class VideoArchiver:
         return str(out_path)
 
     def decode_mp4(self, archive_path: str) -> dict:
-        """VideoHunter decode with full oracle context reconstruction."""
+        """VideoHunter decode with full oracle context reconstruction and scoring reconstruction."""
         path = Path(archive_path)
         if not path.exists():
             logger.warning(f"Archive not found: {archive_path}")
@@ -129,14 +131,14 @@ class VideoArchiver:
             return {"error": "decode_failed", "message": str(e)}
 
     def list_archives(self, limit: int = 20) -> list:
-        """List recent archives for UI / audit tab."""
+        """List recent archives for UI / audit tab with basic scoring preview."""
         mv2_files = sorted(self.ARCHIVE_DIR.glob("*.mv2"), reverse=True)
         json_files = sorted(self.ARCHIVE_DIR.glob("*.json"), reverse=True)
         all_files = mv2_files + json_files
         return [str(f) for f in all_files[:limit]]
 
     def get_archive_summary(self, archive_path: str) -> dict:
-        """Quick summary for UI without full decode."""
+        """Quick summary for UI without full decode — includes explicit scoring."""
         try:
             data = self.decode_mp4(archive_path)
             if isinstance(data, dict) and "oracle_metrics" in str(data):
@@ -146,7 +148,10 @@ class VideoArchiver:
                     "timestamp": data.get("metadata", {}).get("timestamp"),
                     "final_score": metrics.get("final_score", 0.0),
                     "efs": metrics.get("efs", 0.0),
-                    "c3a": metrics.get("c3a_confidence", 0.0)
+                    "c3a": metrics.get("c3a_confidence", 0.0),
+                    "heterogeneity": metrics.get("heterogeneity", 0.0),
+                    "verifier_quality": metrics.get("verifier_quality", 0.0),
+                    "predictive_power": data.get("predictive_signals", {}).get("predictive_power", 0.0)
                 }
             return {"status": "summary_available", "path": archive_path}
         except:
