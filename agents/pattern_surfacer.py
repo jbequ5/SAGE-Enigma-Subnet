@@ -1,4 +1,5 @@
-# agents/pattern_surfacer.py - v0.9.7 MAXIMUM SOTA Resonance + Photoelectric Pattern Surfacer
+# agents/pattern_surfacer.py
+# v0.9.11 MAXIMUM SOTA Resonance + Photoelectric Pattern Surfacer
 # Fully verifier-first, EFS/c/heterogeneity-driven, contract-aware, graph-integrated,
 # predictive-aware, vault-routing, PD Arm triggering, and Grail-promoting.
 
@@ -11,24 +12,34 @@ from typing import Dict, Optional
 logger = logging.getLogger(__name__)
 
 class ResonancePatternSurfacer:
-    """Microtubule-inspired fractal resonance coupling — now deeply oracle-driven, 
+    """Microtubule-inspired fractal resonance coupling — now deeply oracle-driven,
     contract-aware, graph-integrated, and Grail-promoting."""
+
     def __init__(self):
         self.resonance_count = 0
         self.output_dir = Path("goals/brain/grail_patterns/resonance")
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.arbos = None  # Will be wired from ArbosManager
 
     def surface_resonance(self, oracle_result: dict = None, verifiability_contract: dict = None):
         """Surface resonance only on strong, verifier-sound signals."""
         try:
-            efs = oracle_result.get("efs", 0.65) if oracle_result else 0.65
-            hetero = oracle_result.get("heterogeneity_score", 0.72) if oracle_result else 0.72
-            c = oracle_result.get("c3a_confidence", 0.75) if oracle_result else 0.75
-            dry_run_passed = oracle_result.get("dry_run_passed", True) if oracle_result else True
-            score = oracle_result.get("validation_score", 0.0) if oracle_result else 0.0
+            if oracle_result is None:
+                oracle_result = {}
 
-            # Strict quality gate — only surface on high-signal, contract-compliant runs
-            if not dry_run_passed or efs < 0.62 or hetero < 0.68 or score < 0.78:
+            efs = oracle_result.get("efs", 0.65)
+            hetero = oracle_result.get("heterogeneity_score", 0.72)
+            c = oracle_result.get("c3a_confidence", 0.75)
+            dry_run_passed = oracle_result.get("dry_run_passed", True)
+            score = oracle_result.get("validation_score", 0.0)
+            verifier_quality = oracle_result.get("verifier_quality", 0.0)  # 7D signal
+
+            # Strict multi-signal quality gate — only surface on high-signal, contract-compliant runs
+            if (not dry_run_passed or 
+                efs < 0.62 or 
+                hetero < 0.68 or 
+                score < 0.78 or 
+                verifier_quality < 0.65):
                 logger.debug("Resonance surfacing skipped — insufficient oracle signal")
                 return None
 
@@ -40,6 +51,7 @@ class ResonancePatternSurfacer:
                 "heterogeneity_score": round(hetero, 3),
                 "c3a_confidence": round(c, 3),
                 "validation_score": round(score, 3),
+                "verifier_quality": round(verifier_quality, 3),
                 "detected_invariants": [
                     "fractal_self_similarity_across_loops",
                     "phase_lock_between_heterogeneity_and_EFS",
@@ -55,13 +67,14 @@ class ResonancePatternSurfacer:
             out_file = self.output_dir / f"resonance_{self.resonance_count}_{int(datetime.now().timestamp())}.json"
             out_file.write_text(json.dumps(pattern, indent=2))
 
-            logger.info(f"🌌 RPS surfaced strong resonance pattern (strength: {pattern['resonance_strength']:.3f} | EFS={efs:.3f} | Hetero={hetero:.3f})")
+            logger.info(f"🌌 RPS surfaced strong resonance pattern (strength: {pattern['resonance_strength']:.3f} | "
+                        f"EFS={efs:.3f} | Hetero={hetero:.3f} | VerifierQ={verifier_quality:.3f})")
 
-            # SOTA: Route high-signal resonance to Vaults
-            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'intelligence'):
+            # SOTA: Route high-signal resonance to Vaults + PD Arm
+            if self.arbos and hasattr(self.arbos, 'intelligence'):
                 run_data = {
                     "insight_score": pattern['resonance_strength'],
-                    "predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0),
+                    "predictive_power": getattr(self.arbos, 'predictive', None).predictive_power if hasattr(self.arbos, 'predictive') else 0.0,
                     "efs": efs,
                     "heterogeneity": hetero,
                     "key_takeaway": f"RPS surfaced strong resonance pattern (strength {pattern['resonance_strength']:.3f})",
@@ -69,11 +82,10 @@ class ResonancePatternSurfacer:
                 }
                 self.arbos.intelligence.route_to_vaults(run_data)
 
-            # Trigger Product Development Arm synthesis for resonance curriculum/tool
-            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'pd_arm'):
+            if self.arbos and hasattr(self.arbos, 'pd_arm'):
                 self.arbos.pd_arm.synthesize_product(
-                    vault_data=[], 
-                    market_signals={"predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0)}
+                    vault_data=[],
+                    market_signals={"predictive_power": getattr(self.arbos, 'predictive', None).predictive_power if hasattr(self.arbos, 'predictive') else 0.0}
                 )
 
             return pattern
@@ -85,20 +97,26 @@ class ResonancePatternSurfacer:
 
 class PhotoelectricPatternSurfacer:
     """Kruse LWM-inspired photoelectric coupling — focuses on sudden high-fidelity signal propagation."""
+
     def __init__(self):
         self.pps_count = 0
         self.output_dir = Path("goals/brain/grail_patterns/photoelectric")
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.arbos = None  # Will be wired from ArbosManager
 
     def surface_photoelectric(self, oracle_result: dict = None, verifiability_contract: dict = None):
         """Surface 'photoelectric' breakthroughs on sudden high-fidelity jumps."""
         try:
-            efs = oracle_result.get("efs", 0.65) if oracle_result else 0.65
-            fidelity = oracle_result.get("fidelity", 0.78) if oracle_result else 0.78
-            c = oracle_result.get("c3a_confidence", 0.75) if oracle_result else 0.75
-            score = oracle_result.get("validation_score", 0.0) if oracle_result else 0.0
+            if oracle_result is None:
+                oracle_result = {}
 
-            if fidelity < 0.88 or efs < 0.60 or score < 0.82:
+            efs = oracle_result.get("efs", 0.65)
+            fidelity = oracle_result.get("fidelity", 0.78)
+            c = oracle_result.get("c3a_confidence", 0.75)
+            score = oracle_result.get("validation_score", 0.0)
+            verifier_quality = oracle_result.get("verifier_quality", 0.0)
+
+            if fidelity < 0.88 or efs < 0.60 or score < 0.82 or verifier_quality < 0.68:
                 logger.debug("Photoelectric surfacing skipped — insufficient fidelity jump")
                 return None
 
@@ -110,6 +128,7 @@ class PhotoelectricPatternSurfacer:
                 "fidelity": round(fidelity, 3),
                 "c3a_confidence": round(c, 3),
                 "validation_score": round(score, 3),
+                "verifier_quality": round(verifier_quality, 3),
                 "detected_invariants": [
                     "redox-like_signal_propagation_in_grail",
                     "sudden_high_fidelity_breakthrough",
@@ -125,13 +144,14 @@ class PhotoelectricPatternSurfacer:
             out_file = self.output_dir / f"photoelectric_{self.pps_count}_{int(datetime.now().timestamp())}.json"
             out_file.write_text(json.dumps(pattern, indent=2))
 
-            logger.info(f"⚡ PPS surfaced strong photoelectric breakthrough (strength: {pattern['pps_strength']:.3f} | fidelity={fidelity:.3f})")
+            logger.info(f"⚡ PPS surfaced strong photoelectric breakthrough (strength: {pattern['pps_strength']:.3f} | "
+                        f"fidelity={fidelity:.3f} | VerifierQ={verifier_quality:.3f})")
 
-            # SOTA: Route high-signal photoelectric to Vaults
-            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'intelligence'):
+            # SOTA: Route high-signal photoelectric to Vaults + PD Arm
+            if self.arbos and hasattr(self.arbos, 'intelligence'):
                 run_data = {
                     "insight_score": pattern['pps_strength'],
-                    "predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0),
+                    "predictive_power": getattr(self.arbos, 'predictive', None).predictive_power if hasattr(self.arbos, 'predictive') else 0.0,
                     "efs": efs,
                     "heterogeneity": oracle_result.get("heterogeneity_score", 0.72),
                     "key_takeaway": f"PPS surfaced strong photoelectric breakthrough (strength {pattern['pps_strength']:.3f})",
@@ -139,11 +159,10 @@ class PhotoelectricPatternSurfacer:
                 }
                 self.arbos.intelligence.route_to_vaults(run_data)
 
-            # Trigger Product Development Arm synthesis
-            if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'pd_arm'):
+            if self.arbos and hasattr(self.arbos, 'pd_arm'):
                 self.arbos.pd_arm.synthesize_product(
-                    vault_data=[], 
-                    market_signals={"predictive_power": getattr(self.arbos.predictive, 'predictive_power', 0.0)}
+                    vault_data=[],
+                    market_signals={"predictive_power": getattr(self.arbos, 'predictive', None).predictive_power if hasattr(self.arbos, 'predictive') else 0.0}
                 )
 
             return pattern
@@ -153,6 +172,6 @@ class PhotoelectricPatternSurfacer:
             return None
 
 
-# Global instances — now receive rich oracle_result and contract where possible
+# Global instances — will be properly wired from ArbosManager
 rps = ResonancePatternSurfacer()
 pps = PhotoelectricPatternSurfacer()
