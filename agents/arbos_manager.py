@@ -1164,7 +1164,8 @@ def __init__(self, goal_file: str = "goals/killer_base.md"):
     self.constants = self._load_constants_tuning()
     self.compute = compute_router
     self.compute.set_model_registry(getattr(self, 'model_registry', None))
-
+# After other agents are initialized
+    self.commons_meta_agent = CommonsMetaAgent(self)
     self.trace_log: List[Dict] = []
     self.compute_router.oracle = self.validator
     self.compute_router.set_tool_env_manager(self.tool_env_manager)
