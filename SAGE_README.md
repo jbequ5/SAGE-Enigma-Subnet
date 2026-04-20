@@ -67,11 +67,3 @@ The shared intelligence is strictly protected. Fragments can only enter through 
 
 Fragments and high-value artifacts can only leave through tiered access and selective encryption: contributors must meet minimum contribution scores to unlock deeper queries or high-signal fragments. High-value artifacts remain encrypted until the contributor’s score qualifies them. All access is logged and auditable. There is no open leakage — the system is designed to keep intelligence inside the community while rewarding honest participation.
 
-## Integration with Enigma Machine
-
-The Enigma Machine feeds high-signal fragments directly into the shared Solving Strategy Layer. It receives improved strategies, contract templates, and co-pilot suggestions from Synapse. This tight feedback loop makes each mission both a solution attempt and a permanent upgrade to the overall system.
-
-## Execution Reality
-
-In practice, the full cycle runs efficiently on standard GPU hardware with predictable latency and cost. Dry-run gates and stall detection keep wasted compute low, while the memory and tuning layers keep mission costs predictable as the system improves over time. Early testing shows consistent completion within prize-pool windows with measurable gains in solution quality per mission. All solutions will be submitted through miners run by the subnet owners.
-
