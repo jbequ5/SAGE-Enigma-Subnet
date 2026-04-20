@@ -66,4 +66,4 @@ SAGE is built so that solving intelligence does not stay locked in closed labs o
 
 Local innovation is enhanced by collective breakthroughs. Honest contribution is rewarded through transparent provenance and scoring. As more participants join and Enigma models become accessible to everyone, the flywheel strengthens — turning decentralized effort into collective capability that benefits the entire community and the broader Bittensor ecosystem.
 
-This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who 
+This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
