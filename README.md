@@ -1,5 +1,5 @@
 # SAGE — Shared Agentic Growth Engine
-*The Community Owned Intelligence System for Bittensor Subnet 63*
+*The Community Intelligence Layer for Bittensor Subnet 63*
 
 ## The Problem
 Most advanced AI remains closed and controlled by a few organizations. On Subnet 63, miners solve hard, verifiable problems for prize pools, but the resulting insights and strategies are typically lost after each run. Valuable solving data is generated but not systematically captured or improved.
@@ -36,4 +36,18 @@ Provenance ensures every fragment Synapse uses is counted toward the contributor
 ## Planned Evolution – Enigma Models
 Once all three layers are working and stable, and Synapse has demonstrated consistent confidence through its self-audit loop, we will begin distilling the accumulated high-signal trajectories into specialized Enigma models. These models will be smaller and smarter for this class of verifiable solving problems, designed to run locally on modest hardware.
 
-As Enigma models get smarter and smaller, contribution grows, eventually
+As Enigma models get smarter and smaller, contribution grows, eventually reaching far more people. This continuously improves democratized access to state-of-the-art solving intelligence.
+
+## Safety and Control
+Self-improvement in Synapse is governed by explicit rules, human review gates for significant changes, versioned updates, and reversible tweaks. The system is designed to improve steadily while remaining transparent and auditable.
+
+## Roadmap
+- **Phase 1 (Current focus)**: Self-audit loop, impact attribution, and basic proactive suggestions.
+- **Phase 2**: Full sponsor intelligence layer and marketplace operations.
+- **Phase 3**: Distillation into specialized Enigma models + enhanced co-pilot capabilities.
+- **Phase 4**: Scaled self-accelerating model with broader ecosystem integration.
+
+## Why SAGE Matters – The People’s Intelligence Layer
+SAGE is built so that solving intelligence does not stay locked in closed labs or disappear after a single run. By using clear economic incentives and transparent provenance tracking, we create a system where honest contribution is rewarded, local innovation is enhanced by shared intelligence, and the resulting value flows back to the people who build it. As more participants join and Enigma models become accessible to everyone, the flywheel strengthens — turning decentralized effort into collective capability that benefits the entire community and the broader Bittensor ecosystem.
+
+This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
