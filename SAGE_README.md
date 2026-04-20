@@ -67,3 +67,11 @@ The shared intelligence is strictly protected. Fragments can only enter through 
 
 Fragments and high-value artifacts can only leave through tiered access and selective encryption: contributors must meet minimum contribution scores to unlock deeper queries or high-signal fragments. High-value artifacts remain encrypted until the contributor’s score qualifies them. All access is logged and auditable. There is no open leakage — the system is designed to keep intelligence inside the community while rewarding honest participation.
 
+
+### Why This Flywheel Is Different
+
+This is not another shared database or static knowledge repository. This is a true self-reinforcing intelligence flywheel that does not exist anywhere else today. Every Enigma Machine run feeds real, scored, provenance-tracked data into a shared Solving Strategy Layer. Synapse’s self-audit loop then measures actual performance with the Advice Success Score and continuously improves the entire system. The best intelligence flows into the Economic Layer, creating real sponsor proposals and tools that generate revenue and expand the subnet. That value flows back as stronger incentives, drawing in more participants and richer data.
+
+The result is a compounding cycle where intelligence gets measurably smarter with every mission, every self-audit, and every reuse. Local innovation is enhanced by collective breakthroughs. Honest contribution is rewarded. And the entire system grows stronger together.
+
+This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
