@@ -12,10 +12,10 @@ Every function is engineered to make the flywheel real and unstoppable: better d
 
 Synapse is built around four tightly coupled subsystems that operate as a single, self-reinforcing intelligence engine:
 
-1. Graph Mining Engine  
-2. Chat Interface & Proactive Co-Pilot  
+1. Graph Mining   
+2. Chat Interface & Proactive Co-Pilot (User Interface) 
 3. Meta-RL Improvement Loop  
-4. Strategy Upgrading & Artifact Evolution Engine
+4. Strategy Upgrading & Artifact Evolution
 
 All subsystems operate on the same live data model: the Solving Strategy Layer’s ranked fragments, each carrying full provenance, EFS scores, refined value-added metrics, and utilization/replay/impact scores.
 
@@ -104,13 +104,3 @@ The flywheel accelerates dramatically at this stage: better fragment scoring and
 
 This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
 
----
-
-This is the complete, ready-to-use markdown file. It is deep, technically accurate, and emphasizes value creation and the accelerating flywheel with Enigma models.
-
-Would you like me to:
-- Draft the root README navigation that ties all four documents together?
-- Create a short one-page system summary?
-- Or move on to anything else?
-
-Let me know how you'd like to proceed. The documentation suite is now in excellent shape.How the
