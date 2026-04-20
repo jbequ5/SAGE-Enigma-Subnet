@@ -1,4 +1,4 @@
-# THE ENIGMA MACHINE — Arbos Inspired Intelligent Solver for Frontier Challenges on SN 63
+# THE ENIGMA MACHINE — Arbos Inspired Intelligent Solver for Subnet 63
 
 **English-first • Verifier-first • Self-improving • Maximum Heterogeneity • Real Compute Backends**
 
