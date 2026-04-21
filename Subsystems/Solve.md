@@ -12,7 +12,7 @@ The Solve Subsystem is the intake and quality-control layer of SAGE. It is the f
 **Core Scoring Rule**:  
 Final fragment score = 0.6 × Base EFS + 0.4 × Refined Value-Added.
 
-This 60/40 split ensures fragments are judged on both immediate quality and predicted future impact.
+This 60/40 split ensures fragments are judged on both immediate quality and predicted future impact, strongly discouraging piggybacking.
 
 ## 1. Fragment Creation and Atomization
 
