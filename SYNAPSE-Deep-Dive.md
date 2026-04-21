@@ -10,11 +10,11 @@ Every function is engineered to make the flywheel real and unstoppable: better d
 
 ## Core Architecture
 
-Synapse is built around four tightly coupled subsystems that operate as a single, self-reinforcing intelligence engine:
+Synapse is built around four tightly coupled procceses that operate as a single, self-reinforcing intelligence engine:
 
 1. **Graph Mining & Pattern Discovery**  
 2. **Chat Interface & Proactive Co-Pilot**  
-3. **Meta-RL Improvement Loop** (the crown jewel)  
+3. **Meta-RL Improvement Loop** 
 4. **Strategy Upgrading & Artifact Evolution**
 
 All subsystems operate on the same live data model: the Strategy Subsystem’s ranked fragments, each carrying full provenance, EFS scores, refined value-added metrics, utilization/replay/impact scores, and task/domain tags.
@@ -78,7 +78,7 @@ Synapse does not just retrieve — it actively upgrades.
 - Only qualifying contributors (based on contribution score) can decrypt and use them locally in their Enigma Machine runs.
 
 **Why it works**:
-The upgrade process is tied directly to the meta-RL loop, so only improvements that have demonstrated real performance gains are promoted.
+The upgrade process is tied directly to the Meta-RL loop, so only improvements that have demonstrated real performance gains are promoted.
 
 ## Tunable Surface
 
