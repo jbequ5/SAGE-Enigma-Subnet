@@ -16,22 +16,34 @@ SAGE is a practical, community-owned intelligence layer built on Subnet 63. It c
 
 We use clear economic incentives and transparent provenance tracking to build this **for the people, by the people**, ensuring that honest contribution is directly rewarded and that the resulting intelligence compounds to benefit the entire community.
 
-## The Three Core Layers
+## The Five Subsystems
 
-**Solving Strategy Layer**  
-The central repository that ingests, scores, and organizes high-signal fragments from every Enigma Machine run. Each fragment carries full provenance, utilization metrics, replay statistics, and refined value-added scores so contribution can be accurately tracked and fairly rewarded.
+**Solve Subsystem**  
+The entry point that ingests raw outputs from every participating Enigma Machine run and ensures only high-quality fragments enter the shared intelligence. Fragments pass strict deterministic gates and carry full provenance so contribution can be accurately tracked and fairly rewarded from the very first step.
 
-**Intelligence Layer (Synapse)**  
-The active meta-agent that performs deep graph mining across the Solving Strategy Layer, runs regular self-audits to evaluate the real-world performance of its previous recommendations, and proposes safe, versioned improvements to its own logic and strategies. All changes are auditable and subject to explicit safety review gates.
+**Strategy Subsystem**  
+The central intelligence hub that mines, ranks, and enriches fragments into highly valuable shared intelligence. By the time data reaches this subsystem it has already been filtered and ranked. The Meta-Agent Synapse actively learns from this high-value intelligence through its meta-RL loop, running self-audits using the Advice Success Score and continuously reinjecting improvements (new strategies, refined scoring weights, updated contract templates) across the platform.
 
-**Economic Layer**  
-The value creation layer. It begins locally with individual Enigma Machine outputs and is enhanced by Synapse. It turns the strongest results into sponsor proposals, practical tools, curricula, or services. Revenue, impact, and marketplace activity are tracked transparently and flow back to contributors and alpha holders through contribution scoring and governance.
+**Economic Subsystem**  
+The value creation subsystem and economic capstone. It receives raw BD and PD artifacts (sponsor proposals, tools, curricula, services) and actively upgrades them by injecting ranked intelligence from the Strategy Subsystem and adversarial insights from the Defense Subsystem. Landed proposals and upgraded tools collect real performance data when used in subsequent EM challenges, feeding richer data back into the Solve Subsystem and strengthening the flywheel. The Sage Marketplace turns this upgraded intelligence into real revenue streams that fund larger prize pools and expand the subnet’s reach.
+
+**Training Subsystem**  
+The curated data engine that prepares high-quality input for learning and distillation. It pulls from Solve, Strategy, and Defense subsystems via the DataCurationEngine to produce a clean, versioned dataset optimized for the four meta-RL objectives (Recognition of Value, Implementation of Strategy, Prediction of Impact, and Training Utility). This dataset powers the neural net scoring head and the future Enigma model distillation pipeline.
+
+**Defense Subsystem (RedTeamVault)**  
+The proactive hardening subsystem that attacks the entire SAGE system to discover and fix weaknesses. It enforces strict no-leakage rules: fragments can only enter through deterministic gates, high-value artifacts are protected by tiered access and selective encryption, and all access is logged and auditable. It actively defends against scoring gaming, Sybil attacks, and data leakage while continuously hardening the system. Participants can have high confidence that their contributions remain protected and that the shared intelligence stays inside the community while rewarding honest participation.
 
 ## How SAGE Works
 
-The Solving Strategy Layer and Economic Layer both begin at the local level with individual Enigma Machine runs. Local outputs and ideas are significantly enhanced when Synapse applies its capabilities.
+The subsystems form two main pipelines that operate in tandem:
 
-Synapse provides a powerful chat interface and proactive co-pilot that miners can use during runs for real-time strategy suggestions and stall assistance. Business and sponsor integration is supported through data-driven insights that deliver better and faster results on challenges, plus tooling for intelligent challenge design that helps advance roadmaps and co-creation opportunities.
+**Core Intelligence Pipeline** (Solve → Strategy → Defense → Training)  
+Raw fragments are gated, mined into ranked intelligence, hardened through red-teaming, and curated into clean training data for continuous self-improvement.
+
+**Economic Value Pipeline** (Economic + Strategy + Defense)  
+Raw BD/PD artifacts are upgraded using intelligence and adversarial insights from Strategy and Defense, then measured for real-world impact. Landed proposals collect real performance data that feeds back into the Solve Subsystem, creating a powerful closed loop.
+
+The Meta-Agent Synapse orchestrates the meta-RL loop across all subsystems, learning from every mission, every attack, and every upgrade to continuously reinject improvements. Synapse provides a powerful chat interface and proactive co-pilot that miners can use during runs for real-time strategy suggestions and stall assistance. Business and sponsor integration is supported through data-driven insights and intelligent challenge design tooling.
 
 Provenance tracking ensures every fragment Synapse uses is counted toward the contributor’s impact and reward. The system is designed so that local innovation is amplified by collective intelligence while protecting against leakage.
 
@@ -39,24 +51,24 @@ Provenance tracking ensures every fragment Synapse uses is counted toward the co
 
 - **Miners and Contributors**: Better runs, proactive help via the chat interface and co-pilot, visible impact through provenance tracking, and fair rewards. Every improvement is tracked for later monetization in the pipeline.
 
-- **Alpha Holders**: Increased alpha value directly correlated to the real value created by SAGE — through higher solver success rates, marketplace revenue, and new sponsor challenges that expand the subnet’s reach and attractiveness.
+- **Alpha Holders**: Increased alpha value directly correlated to the real value created by SAGE — through higher solver success rates, marketplace revenue from landed proposals and upgraded tools, and new sponsor challenges that expand the subnet’s reach and attractiveness.
 
 - **Sponsors and Partners**: Better and faster results on their challenges, plus data-driven tooling for intelligent challenge design that helps advance their roadmap and creates co-creation opportunities.
 
 ## Planned Evolution – Enigma Models
 
-Once all three layers are stable and Synapse has demonstrated consistent confidence through its self-audit loop, we will begin distilling the accumulated high-signal trajectories into specialized Enigma models. These models will be smaller, smarter, and optimized for verifiable solving problems, designed to run locally on modest hardware.
+Once the subsystems are stable and Synapse has demonstrated consistent confidence through its self-audit loop, we will begin distilling the accumulated high-signal trajectories into specialized Enigma models. These models will be smaller, smarter, and optimized for verifiable solving problems, designed to run locally on modest hardware.
 
 As Enigma models become smarter and more accessible, contribution grows, eventually reaching far more people. This continuously democratizes state-of-the-art solving intelligence.
 
 ## Safety and Control
 
-Self-improvement in Synapse is governed by explicit rules, human review gates for significant changes, versioned updates, and reversible tweaks. The system is designed to improve steadily while remaining transparent, auditable, and safe.
+Self-improvement in Synapse is governed by explicit rules, human review gates for significant changes, versioned updates, and reversible tweaks. The Defense Subsystem actively protects against leakage, scoring gaming, and unauthorized access. The system is designed to improve steadily while remaining transparent, auditable, and safe.
 
 ## Roadmap
 
-- **Phase 1 (Current focus)**: Self-audit loop, impact attribution, and basic proactive suggestions.  
-- **Phase 2**: Full sponsor intelligence layer and marketplace operations.  
+- **Phase 1 (Current focus)**: Self-audit loop, impact attribution, basic proactive suggestions, and smart stopping.  
+- **Phase 2**: Full sponsor intelligence layer, marketplace operations, and landed proposals that collect real performance data.  
 - **Phase 3**: Distillation into specialized Enigma models + enhanced co-pilot capabilities.  
 - **Phase 4**: Scaled self-accelerating model with broader ecosystem integration.
 
