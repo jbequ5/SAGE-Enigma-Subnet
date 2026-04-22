@@ -26,15 +26,13 @@ It sits downstream of Strategy and upstream of Synapse’s meta-RL loop, closing
 
 2. **Contribution Scoring** (Full Explicit Formula)
 
-   \[
-   \text{ContributionScore}_t = \lambda \cdot \text{ContributionScore}_{t-1} + (1 - \lambda) \cdot \text{new_impact}
-   \]
+   $$
+   \text{ContributionScore} t = \lambda \cdot \text{ContributionScore} {t-1} + (1 - \lambda) \cdot \text{new impact}$$
 
    where λ = 0.92 (exponential decay factor, tunable by Synapse meta-RL), and
 
-   \[
-   \text{new_impact} = 0.40 \cdot \text{fragment_impact} + 0.25 \cdot \text{reuse_count} + 0.20 \cdot \text{artifact_upgrade_value} + 0.15 \cdot \text{telemetry_quality}
-   \]
+$$
+   \text{new impact} = 0.40 \cdot \text{fragment impact} + 0.25 \cdot \text{reuse count} + 0.20 \cdot \text{artifact upgrade value} + 0.15 \cdot \text{telemetryquality}$$
 
    All four terms are normalized to [0,1]:
    - fragment_impact = downstream EFS lift caused by the fragment (from Strategy’s impact tracking)
@@ -46,9 +44,7 @@ It sits downstream of Strategy and upstream of Synapse’s meta-RL loop, closing
 
    Prize pool share for participant i:
 
-   \[
-   \text{RewardShare}_i = \frac{\text{ContributionScore}_i}{\sum_j \text{ContributionScore}_j}
-   \]
+   $$\text{RewardShare} i = \frac{\text{ContributionScore} i}{\sum j \text{ContributionScore} j}$$
 
    Rewards include prize pool allocation, priority access to upgraded artifacts, and sponsorship opportunities.
 
@@ -100,7 +96,8 @@ Solve → Economic (weak impact signals only)
 
 ## 7. Current Limitations and Planned Improvements
 
-**Current (v0.9.12+)**: Explicit contribution scoring formula with all terms defined, artifact upgrade recipe with impact measurement, marketplace mechanics, global re-scoring propagation, AHE integration, dual-level meta-tuning.  
+Explicit contribution scoring formula with all terms defined, artifact upgrade recipe with impact measurement, marketplace mechanics, global re-scoring propagation, AHE integration, dual-level meta-tuning.  
+
 **Planned**: On-chain reward distribution, dynamic marketplace pricing based on impact, automated artifact monetization suggestions, full integration with Bittensor token mechanics.
 
 ## Why the Economic Subsystem Matters
