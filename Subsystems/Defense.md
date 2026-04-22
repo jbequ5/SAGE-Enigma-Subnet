@@ -82,17 +82,9 @@ All mitigations are continuously monitored and improved by the AHE itself.
 
 ## 6. Current Limitations and Planned Improvements
 
-**Current (v0.9.12+)**: Full 6-phase AHE loop, RedTeamVault, attacks on all subsystems, global re-scoring integration, meta-RL tuning of attack/fix policies, provenance logging.  
+Full 6-phase AHE loop, RedTeamVault, attacks on all subsystems, global re-scoring integration, meta-RL tuning of attack/fix policies, provenance logging.  
 **Planned**: On-demand red-team API for external researchers, automated generation of synthetic adversarial training data for Enigma models, integration with cloud-scale Operations for large-fleet hardening.
 
 ## Why the Defense Subsystem Matters
 
 The Defense Subsystem is the immune system of SAGE. By continuously attacking every layer with the 6-phase AHE loop, generating adversarial examples, and hardening the system in real time, it ensures that the 60/40 scoring, ranking, contribution scoring, orchestration policies, and meta-RL learning remain robust against gaming, poisoning, and distribution shift. It is the layer that makes the entire People’s Intelligence Layer trustworthy and self-hardening over time.
-
----
-
-This is the **full post-CC review SOTA version** of the Defense Subsystem. It meets the same rigor level as the Strategy and Economic specs: every phase is defined with clear steps, all attack vectors are comprehensive, integration with the 60/40 scoring and other subsystems is explicit, and the document is rebuildable.
-
-Copy and paste this directly into `subsystems/Defense-Subsystem.md`.
-
-Would you like me to continue with the **Training Subsystem** spec next, or do you want any adjustments to this Defense document first? Just say the word.
