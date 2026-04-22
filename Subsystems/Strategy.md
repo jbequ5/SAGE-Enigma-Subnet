@@ -22,9 +22,8 @@ This subsystem is what makes SAGE more than the sum of individual runs. It is th
 
 Every fragment that passes Solve’s gating arrives with its complete provenance block and the **60/40 final score**:
 
-\[
-\text{Final Score from Solve} = 0.6 \times \text{Base EFS} + 0.4 \times \text{Refined Value-Added}
-\]
+$$
+\text{Final Score from Solve} = 0.6 \times \text{Base EFS} + 0.4 \times \text{Refined Value-Added}$$
 
 Strategy immediately adds the fragment as a node in its NetworkX directed graph. Edges are created based on:
 - Shared subtask type or domain
@@ -36,9 +35,8 @@ Strategy immediately adds the fragment as a node in its NetworkX directed graph.
 
 Each fragment receives a **RankScore** that determines its position in the queryable knowledge graph. The explicit ranking formula is:
 
-\[
-\text{RankScore} = w_1 \cdot \text{EFS}_{60/40} + w_2 \cdot \text{utilization_score} + w_3 \cdot \text{graph_centrality} + w_4 \cdot \text{freshness} - w_5 \cdot \text{replay_penalty}
-\]
+$$
+\text{RankScore} = w_1 \cdot \text{EFS}_{60/40} + w_2 \cdot \text{utilization_score} + w_3 \cdot \text{graph_centrality} + w_4 \cdot \text{freshness} - w_5 \cdot \text{replay_penalty}$$
 
 Current default weights (tuned by Synapse meta-RL and stored in `tuning.md`):
 - \( w_1 = 0.45 \) (EFS_{60/40} from Solve — the dominant term)
@@ -67,21 +65,18 @@ When a strong pattern is detected, Strategy generates a new meta-fragment that s
 
 Strategy applies a lighter ByteRover MAU reinforcement when fragments are reused or promoted:
 
-\[
-\text{reinforcement} = \text{base} + \text{hetero_bonus}
-\]
+$$
+\text{reinforcement} = \text{base} + \text{hetero_bonus}$$
 
 where
 
-\[
-\text{base} = \text{RankScore} \times \text{fidelity}^{1.5} \times \text{symbolic_coverage}
-\]
+$$
+\text{base} = \text{RankScore} \times \text{fidelity}^{1.5} \times \text{symbolic_coverage}$$
 
 and
 
-\[
-\text{hetero_bonus} = 0.25 \times \text{heterogeneity_score} \times \text{RankScore}^{1.2} \times \text{fidelity}^{1.5}
-\]
+$$
+\text{hetero_bonus} = 0.25 \times \text{heterogeneity_score} \times \text{RankScore}^{1.2} \times \text{fidelity}^{1.5}$$
 
 (The coefficients are intentionally lighter than in Solve because Strategy is focused on ranking rather than raw promotion.)
 
@@ -93,9 +88,8 @@ When an Enigma Machine run or Synapse’s meta-RL loop queries Strategy, it retu
 
 Every time a fragment is used (successfully or unsuccessfully) in a new run, Strategy updates its scores with the following rule:
 
-\[
-\text{new_utilization} = \lambda \cdot \text{old_utilization} + (1 - \lambda) \cdot \text{outcome_signal}
-\]
+$$
+\text{new_utilization} = \lambda \cdot \text{old_utilization} + (1 - \lambda) \cdot \text{outcome_signal}$$
 
 where:
 - outcome_signal = +1 for successful reuse (EFS lift), -1 for failure
@@ -128,7 +122,7 @@ Strategy → Economic (impact signals for artifact upgrading)
 
 ## Current Limitations and Planned Improvements
 
-**Current (v0.9.12+)**: Explicit ranking formula using 60/40 score, graph construction, enrichment, feedback loop, global re-scoring propagation, AHE integration, dual-level meta-tuning.  
+Explicit ranking formula using 60/40 score, graph construction, enrichment, feedback loop, global re-scoring propagation, AHE integration, dual-level meta-tuning.  
 **Planned**: Temporal graph edges for cross-run learning, automated meta-fragment utility prediction, dynamic tuning of the ranking weights themselves.
 
 ## Why the Strategy Subsystem Matters
