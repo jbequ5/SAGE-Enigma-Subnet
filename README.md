@@ -20,7 +20,7 @@ Built **for the people, by the people**, using decentralized incentives to compo
 - [Enigma-Machine-Deep-Dive.md](Enigma-Machine-Deep-Dive.md) — Deep technical dive into the Enigma Machine (verifier-first design, DVR pipeline, hybrid compute, memory system, and how it feeds SAGE)
   
 **Operations — Running & Scaling SAGE**
-- [Operations-Subsystem.md](subsystems/Operations-Subsystem.md) — How to run, orchestrate, and scale Enigma Machine instances (from single local run to full swarm). Includes the Operations Wizard, Smart LLM Router, flight test, and autonomous mode.
+- [Operations.md](..Operations.md) — How to run, orchestrate, and scale Enigma Machine instances (from single local run to full swarm). Includes the Operations Wizard, Smart LLM Router, flight test, and autonomous mode.
   
 **Meta-Agent**
 - [SYNAPSE-Deep-Dive.md](SYNAPSE-Deep-Dive.md) — Deep-Dive on SAGE's Meta-Agent - Synapse.
@@ -29,12 +29,12 @@ Built **for the people, by the people**, using decentralized incentives to compo
 
 These deep technical reports are written to be rigorous enough to rebuild or audit each piece of the system from scratch. They are living documents that will evolve with the code.
 
-- [Solve-Subsystem.md](subsystems/Solve-Subsystem.md)
-- [Strategy-Subsystem.md](subsystems/Strategy-Subsystem.md)
-- [Economic-Subsystem.md](subsystems/Economic-Subsystem.md)
-- [Operations-Subsystem.md](subsystems/Operations-Subsystem.md)
-- [Defense-Subsystem.md](subsystems/Defense-Subsystem.md)
-- [Intelligence-Subsystem.md](subsystems/Intelligence-Subsystem.md)
+- [Solve.md](subsystems/Solve.md)
+- [Strategy.md](subsystems/Strategy.md)
+- [Economics.md](subsystems/Economics.md)
+- [Operations.md](..Operations.md)
+- [Defense.md](subsystems/Defense.md)
+- [Intelligence.md](subsystems/Intelligence.md)
 
 See the individual documents for setup instructions, how to run the Enigma Machine, contribution guidelines, and technical details.
 
