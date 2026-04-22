@@ -1,4 +1,4 @@
-# Operations Subsystem — Technical Specification
+# Operations — Technical Specification
 
 **Deep Technical Report**  
 **SAGE — Shared Agentic Growth Engine**  
@@ -7,7 +7,7 @@
 
 ## Abstract
 
-The Operations Subsystem is the intelligent conductor layer of SAGE. It manages the execution of Enigma Machine (EM) instances at scale — from a single local run to a full swarm of parallel operators — while integrating the existing 0.9.10 full setup UI (wizard) as the primary entry point.
+Operations is the intelligent conductor layer of SAGE. It manages the execution of Enigma Machine (EM) instances at scale — from a single local run to a full swarm of parallel operators — while integrating the existing 0.9.10 full setup UI (wizard) as the primary entry point.
 
 It provides:
 - Wizard-first UX for solo miners with shared config for all instances.
@@ -20,9 +20,9 @@ It provides:
 
 This subsystem keeps the system dead-simple for a solo miner while delivering SOTA operations intelligence through hierarchical self-improvement.
 
-## 1. Integration with 0.9.10 Full Setup UI (Wizard)
+## 1. Integration with Full Setup UI (Wizard)
 
-The existing 0.9.10 wizard remains the official human-friendly entry point:
+The existing wizard remains the official human-friendly entry point:
 - User runs the wizard once (or uses a saved config).
 - Wizard collects global settings (API keys, preferred models, default contract queue, telemetry export path, miner input strategy templates, etc.).
 - Output is saved as a single shared `operations_config.json`.
@@ -187,7 +187,7 @@ routing policy, miner input strategy effectiveness, recovery thresholds). Local 
 
 This creates a clean hierarchical meta-learning system.
 
-## Why the Operations Subsystem Matters
+## Why the Operations Matters
 
-The Operations Subsystem turns SAGE from a single-run tool into a scalable, self-improving parallel data factory. By integrating the familiar 0.9.10 wizard, adding compute-aware routing with intelligent downscaling, a lightweight ping-only flight test, per-instance miner input strategy assignment for A/B testing, full API support, and a dedicated telemetry feed to Synapse, it delivers SOTA operations intelligence while remaining dead-simple for a solo miner to run fully autonomously. The hierarchical learning loop (inner EM solving + outer orchestration learning) accelerates the entire SAGE flywheel faster than any individual miner could achieve alone.
+Operations turns SAGE from a single-run tool into a scalable, self-improving parallel data factory. By integrating the familiar wizard, adding compute-aware routing with intelligent downscaling, a lightweight ping-only flight test, per-instance miner input strategy assignment for A/B testing, full API support, and a dedicated telemetry feed to Synapse, it delivers SOTA operations intelligence while remaining dead-simple for a solo miner to run fully autonomously. The hierarchical learning loop (inner EM solving + outer orchestration learning) accelerates the entire SAGE flywheel faster than any individual miner could achieve alone.
 
