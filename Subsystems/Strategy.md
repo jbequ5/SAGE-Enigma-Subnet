@@ -22,9 +22,8 @@ This subsystem is what makes SAGE more than the sum of individual runs. It compo
 
 Every fragment that passes Solve’s gating arrives with its complete provenance block and the **60/40 final score** from Solve:
 
-\[
-\text{Final Score from Solve} = 0.6 \times \text{Base EFS} + 0.4 \times \text{Refined Value-Added}
-\]
+$$
+\text{Final Score from Solve} = 0.6 \times \text{Base EFS} + 0.4 \times \text{Refined Value-Added}$$
 
 Strategy immediately adds the fragment as a node in its NetworkX directed graph. Edges are created based on:
 - Shared subtask type or domain tag
@@ -38,23 +37,22 @@ Each node stores the full provenance hash, the 60/40 score, and initial utilizat
 
 Each fragment receives a **RankScore** that determines its position in the queryable knowledge graph. The explicit ranking formula is:
 
-\[
-\text{RankScore} = w_1 \cdot \text{EFS}_{60/40} + w_2 \cdot \text{utilization_score} + w_3 \cdot \text{graph_centrality} + w_4 \cdot \text{freshness} - w_5 \cdot \text{replay_penalty}
-\]
+$$
+\text{RankScore} = w1 \cdot \text{EFS} {60/40} + w2 \cdot \text{utilization score} + w3 \cdot \text{graph centrality} + w4 \cdot \text{freshness} - w5 \cdot \text{replay penalty}$$
 
 **Definitions of each term** (all normalized to [0,1] where applicable):
 
 - EFS_{60/40} = the final 60/40 score received from Solve (dominant signal)
-- utilization_score = exponential moving average of successful reuses:  
-  \[
-  \text{utilization_score}_t = \lambda \cdot \text{utilization_score}_{t-1} + (1-\lambda) \cdot \text{outcome_signal}
-  \]
+- utilization_score = exponential moving average of successful reuses:
+  
+  $$\text{utilization score} t = \lambda \cdot \text{utilization score} {t-1} + (1-\lambda) \cdot \text{outcome signal}$$
+  
   where λ = 0.85 (decay factor) and outcome_signal = +1 for EFS lift above threshold, -1 for failure.
 - graph_centrality = normalized PageRank (damping factor 0.85) or eigenvector centrality of the node in the current graph.
-- freshness = exponential decay based on age:  
-  \[
-  \text{freshness} = e^{-\frac{\text{age_days}}{30}}
-  \]
+- freshness = exponential decay based on age:
+  
+  $$\text{freshness} = e^{-\frac{\text{age days}}{30}}$$
+  
 - replay_penalty = 1.0 if cosine similarity (on embeddings) to any of the last 50 fragments exceeds 0.92, otherwise 0.0 (linear ramp between 0.85 and 0.92 similarity).
 
 Current default weights (tuned by Synapse meta-RL and stored in `tuning.md`):
@@ -86,21 +84,18 @@ When a strong pattern is detected, Strategy generates a new meta-fragment:
 
 Strategy applies a lighter ByteRover MAU reinforcement when fragments are reused or promoted:
 
-\[
-\text{reinforcement} = \text{base} + \text{hetero_bonus}
-\]
+$$
+\text{reinforcement} = \text{base} + \text{hetero bonus}$$
 
 where
 
-\[
-\text{base} = \text{RankScore} \times \text{fidelity}^{1.5} \times \text{symbolic_coverage}
-\]
+$$
+\text{base} = \text{RankScore} \times \text{fidelity}^{1.5} \times \text{symbolic coverage}$$
 
 and
 
-\[
-\text{hetero_bonus} = 0.25 \times \text{heterogeneity_score} \times \text{RankScore}^{1.2} \times \text{fidelity}^{1.5}
-\]
+$$
+\text{hetero bonus} = 0.25 \times \text{heterogeneity score} \times \text{RankScore}^{1.2} \times \text{fidelity}^{1.5}$$
 
 (The coefficients are lighter than in Solve because Strategy focuses on ranking and enrichment rather than raw promotion.)
 
@@ -117,9 +112,8 @@ This enables a single run to borrow proven ideas from the entire community witho
 
 Every time a fragment is used (successfully or unsuccessfully) in a new run, Strategy updates its scores with:
 
-\[
-\text{new_utilization} = 0.85 \cdot \text{old_utilization} + 0.15 \cdot \text{outcome_signal}
-\]
+$$
+\text{new utilization} = 0.85 \cdot \text{old utilization} + 0.15 \cdot \text{outcome signal}$$
 
 where outcome_signal = +1 for successful reuse that produced EFS lift above threshold, -1 for failure, or the actual normalized EFS delta when available.
 
