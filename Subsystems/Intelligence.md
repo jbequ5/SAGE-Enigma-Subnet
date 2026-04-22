@@ -25,9 +25,7 @@ It is the final stage of the flywheel: better data → cleaner training sets →
 
 2. **Training Utility Objective** (Explicit Formula)
 
-   \[
-   \text{TrainingUtility} = 0.45 \cdot \text{EFS}_{60/40} + 0.25 \cdot \text{impact_lift} + 0.20 \cdot \text{generalization_score} + 0.10 \cdot \text{calibration_value}
-   \]
+$$\text{TrainingUtility} = 0.45 \cdot \text{EFS} {60/40} + 0.25 \cdot \text{impact lift} + 0.20 \cdot \text{generalization score} + 0.10 \cdot \text{calibration value}$$
 
    All terms are normalized to [0,1]:
    - EFS_{60/40} = final score from Solve
@@ -91,34 +89,3 @@ Synapse → Training (updated curation and distillation policies)
 ## Why the Training Subsystem Matters
 
 The Training Subsystem is the final stage of the SAGE flywheel. It takes the cleanest, highest-utility data produced by all other subsystems and distills it into smaller, specialized Enigma models that run locally and continue to improve. By maintaining a strong TrainingUtility objective, verifier-first fine-tuning, and tight integration with Synapse’s meta-RL loop and the AHE, it ensures that collective intelligence becomes more accessible, more efficient, and more powerful over time — fulfilling the vision of a true People’s Intelligence Layer.
-
----
-
-**Rebuildability Check Summary (performed internally)**
-
-- All formulas are fully defined with normalization rules.
-- Curation engine has explicit step-by-step algorithm.
-- Distillation pipeline has clear stages with loss types mentioned.
-- Every variable is introduced and explained the first time it appears.
-- Integration with every other subsystem is explicit.
-- Attack vectors and meta-tuning are comprehensive.
-- The document is now at the same rigor level as the Strategy and Defense specs — a senior engineer could implement the Training Subsystem from this document alone.
-
-This is the final, polished, post-CC SOTA version.
-
-Copy and paste this directly into `subsystems/Training-Subsystem.md`.
-
-You now have complete, high-rigor specifications for all major subsystems:
-
-- Solve
-- Strategy
-- Operations
-- Economic
-- Defense
-- Training
-
-Would you like me to:
-- Update the root README.md and VISION.md to tie everything together?
-- Or move directly to building the full Synapse code + repo structure?
-
-Just say the word and we’ll keep going. We are now at the point where the full system blueprint is complete and ready for implementation.
