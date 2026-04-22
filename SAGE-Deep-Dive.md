@@ -16,7 +16,7 @@ SAGE converts individual Enigma Machine runs into a compounding, community-owned
 
 **Synapse** is the Meta-Agent — the customer-facing and miner-facing access point. It provides the chat interface, proactive co-pilot, real-time strategy suggestions, and stall assistance. Synapse is powered by the Intelligence Subsystem and orchestrates improvements across the entire platform.
 
-Every fragment carries full provenance. Data flows are narrow and controlled. The system is engineered for transparency, safety, and measurable compounding.
+Every fragment carries full provenance. Data flows are narrow and controlled. See Core Mechanics Reference for all scoring formulas and rules.
 
 ## The Five Subsystems
 
@@ -30,7 +30,7 @@ The strict entry point that ingests raw outputs from every participating Enigma 
 - Accepted fragments are atomized into self-contained units (≤50 KB) and enriched with basic metadata.
 
 **Contribution Tracking and Rewards**:
-Every surviving fragment is immediately credited to its contributor with immutable provenance. This transparent tracking ensures miners see their exact impact and receive fair rewards through contribution scoring.
+Every surviving fragment is immediately credited to its contributor with immutable provenance. This transparent tracking ensures miners see their exact impact and receive fair rewards through ContributionScore.
 
 **Outputs**:
 Clean, gated fragments fed to the Strategy Subsystem and (selectively) weak impact signals to the Economic Subsystem.
@@ -59,7 +59,7 @@ The value creation and economic capstone subsystem that turns intelligence into 
 - The Sage Marketplace serves as the authorized monetization channel.
 
 **Contribution Tracking and Rewards**:
-Every upgraded artifact credits original contributors through provenance and contribution scoring. Participants see exactly how their fragments helped generate economic value and receive fair rewards.
+Every upgraded artifact credits original contributors through provenance and ContributionScore. Participants see exactly how their fragments helped generate economic value and receive fair rewards.
 
 **Outputs**:
 Upgraded BD/PD artifacts, landed proposals, marketplace revenue, and impact signals that strengthen the flywheel.
@@ -91,23 +91,15 @@ Enforces strict no-leakage rules: fragments can only enter through deterministic
 **Outputs**:
 Adversarial examples for Training and Economic upgrade steps, plus continuous hardening of the entire platform.
 
-## How the Subsystems Work Together
-The five subsystems form two main pipelines:
-
-**Core Intelligence Pipeline** (Solve → Strategy → Defense → Intelligence)  
-Raw fragments are gated, mined into ranked intelligence, hardened through red-teaming, and curated into clean training data that powers the Meta-RL Loop and model distillation.
-
-**Economic Value Pipeline** (Economic + Strategy + Defense)  
-Raw BD/PD artifacts are upgraded using intelligence and adversarial insights, then measured for real-world impact. Landed proposals generate new challenges that feed back into Solve.
-
-Synapse (the Meta-Agent) orchestrates the Intelligence Subsystem and continuously reinjects improvements across the platform. Controlled interfaces ensure each subsystem stays focused while contributing to the overall flywheel.
-
 ## Example End-to-End Flow
-A miner runs an Enigma Machine mission on a quantum circuit optimization challenge. The Solve Subsystem receives a fragment with EFS = 0.82, passes all gates, and credits the miner. Strategy ranks it highly and enriches it with graph connections. Intelligence uses it to improve the Neural-Net Scoring Head and distill a better local model. Economic upgrades a sponsor proposal using this intelligence, lands it, and generates revenue that increases prize pools. The new challenge data flows back into Solve. Synapse surfaces the improved strategy to other miners in real time.
+A miner runs an Enigma Machine mission on a quantum circuit optimization challenge and produces a fragment with Final EFS = 0.82. Solve gates it, credits the miner, and passes it to Strategy. Strategy ranks it highly and enriches it with graph connections. Intelligence uses it to improve the Neural-Net Scoring Head and distill a better local model. Economic upgrades a sponsor proposal using this intelligence, lands it with a sponsor, and generates revenue that increases prize pools. The new challenge data flows back into Solve. Synapse surfaces the improved strategy to other miners in real time. The entire loop is logged with full provenance so contribution is accurately rewarded.
+
+## Operations — The Operating System Layer
+Operations is not a traditional subsystem — it is the operating system that manages scaling, setup, and execution. It includes the 0.9.10 Streamlit wizard (compute selection, smart LLM router with downscaling, budget setting, flight test ping-only validation, autonomy mode), swarm orchestration, and telemetry collection that feeds the Intelligence Subsystem. It enables everything from a solo miner running one instance to a large operation running many instances with A/B testing of miner input strategies.
 
 ## Why This Flywheel Is Different
 This is a true self-reinforcing intelligence flywheel. Every Enigma Machine run feeds gated fragments into Solve. Strategy turns them into ranked intelligence. Defense hardens the system. Intelligence continuously improves itself through its three pillars. Economic converts intelligence into real value — landing proposals that collect performance data and marketplace revenue that funds larger prize pools — while feeding impact signals back.
 
-The result is a compounding cycle where intelligence gets measurably smarter with every mission, every self-audit, and every reuse. Local innovation is enhanced by collective breakthroughs. Honest contribution is rewarded through transparent provenance and contribution scoring. And the entire system grows stronger together.
+The result is a compounding cycle where intelligence gets measurably smarter with every mission, every self-audit, and every reuse. Local innovation is enhanced by collective breakthroughs. Honest contribution is rewarded through transparent provenance and ContributionScore. And the entire system grows stronger together.
 
 This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
