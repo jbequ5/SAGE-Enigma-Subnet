@@ -33,3 +33,5 @@ The existing wizard remains the official human-friendly entry point and is the r
 The wizard can be fully bypassed via CLI or API for headless/large-scale operation:
 ```bash
 python em_operations.py --autonomous --config operations_config.json --max-instances 24 --strategy-set "quantum_phd,conservative,diversity_max"
+```
+
