@@ -12,15 +12,21 @@ Every Enigma Machine run can be turned into structured, provenance-tracked input
 SAGE is a practical, community-owned intelligence layer. It captures solving data from Enigma Machine runs, improves that data through systematic self-evaluation in its Intelligence Subsystem, and converts the best outputs into usable strategies, proposals, tools, and services via the Economic Subsystem. We are using economic incentives to build this for the people, by the people, and to return maximum value to contributors.
 
 ## How SAGE Works
-SAGE consists of five interconnected subsystems that operate in a self-reinforcing flywheel:
+SAGE consists of five interconnected subsystems that operate in a self-reinforcing flywheel. The system is intentionally split into two repositories for clarity and safety:
 
+- **sage-core**: Execution runtime focused on lightweight, efficient local operation (Enigma Machine, Solve, lightweight local Strategy and Defense during runs for qualified users, Economic raw artifact generation, Operations).
+- **sage-intelligence**: Central privileged brain containing Synapse (the Meta-Agent) and the full Intelligence Subsystem.
+
+Local EM instances remain lightweight to enable high parallelism and efficient Solve data production. They apply Solve gates locally, run lightweight Strategy and Defense passes when qualified, and push gated fragments, telemetry, and raw Econimics artifacts to secure feed vaults. sage-intelligence pulls from the vaults to run global Strategy (graph mining and ranking on the full aggregated dataset), global Defense coordination, daily Meta-RL loops, and all intelligence functions, then pushes global approximations, meta-weights, distilled models, and consistent Defense packages back down.
+
+The subsystems are:
 - **Solve Subsystem** gates and credits raw fragments from every run.
-- **Strategy Subsystem** mines and ranks those fragments into usable intelligence.
-- **Intelligence Subsystem** (powered by Synapse, the Meta-Agent) continuously self-improves through its Meta-RL Loop, Neural-Net Scoring Head, and Training/Distillation Pipeline.
-- **Defense Subsystem** proactively red-teams the entire system to discover and fix weaknesses.
+- **Strategy Subsystem** mines and ranks those fragments into usable intelligence (lightweight locally, full global processing centrally).
+- **Intelligence Subsystem** (powered by Synapse, the Meta-Agent) continuously self-improves through its Meta-RL Loop (including meta-stall detection), Neural-Net Scoring Head, and Training/Distillation Pipeline.
+- **Defense Subsystem** proactively red-teams the entire system to discover and fix weaknesses (lightweight locally during runs, global coordination centrally).
 - **Economic Subsystem** upgrades BD/PD artifacts and routes them through the Sage Marketplace to generate real revenue.
 
-**Synapse** is the Meta-Agent — the customer-facing and miner-facing access point. It provides the chat interface, proactive co-pilot, real-time strategy suggestions, and stall assistance. Synapse is powered by the Intelligence Subsystem and orchestrates improvements across the platform.
+**Synapse** is the Meta-Agent — the customer-facing and miner-facing access point. It provides the chat interface, proactive co-pilot, real-time strategy suggestions, and stall assistance. Synapse is powered by the Intelligence Subsystem and orchestrates improvements across the platform using the global view of all data.
 
 Every fragment carries full provenance. Contribution is transparently tracked and fairly rewarded through ContributionScore. High-value artifacts are protected by tiered access and selective encryption, ensuring no leakage while still allowing honest participants to benefit.
 
