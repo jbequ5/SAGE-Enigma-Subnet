@@ -25,6 +25,35 @@ The upgrade process is controlled, scripted, and centrally executed in the sage-
 **Contribution Tracking and Rewards**:
 Every upgraded artifact credits original contributors through immutable provenance and the ContributionScore formula. Participants see exactly how their fragments helped generate economic value and receive fair rewards proportional to their contribution. This transparent mechanism makes honest participation directly tied to marketplace revenue and landed proposals.
 
+## Sage Marketplace Design and Mechanics
+The Sage Marketplace is the authorized, on-chain-enabled monetization channel for upgraded SAGE outputs. It is designed to be transparent, fair, and attractive to both buyers (sponsors, companies, researchers) and sellers (the community).
+
+**Key Mechanics**:
+- **Listing Process**: Upgraded artifacts are automatically listed after validation. Listings include full provenance, performance metrics (EFS impact, verifier pass rate), contributor credits, and expected ROI projections. Creators can set pricing (fixed, auction, or subscription) or opt for direct sponsor negotiation.
+- **Buying Process**: Buyers browse a clean dashboard with searchable categories, performance filters, and provenance transparency. Purchases can be made with TAO or fiat rails (via integrated payment providers). Smart contracts handle automatic revenue distribution.
+- **Revenue Distribution**: Revenue is split transparently: a percentage goes to original contributors (proportional to ContributionScore), a portion funds larger subnet prize pools, a small governance fee supports platform maintenance, and the remainder can be directed to specific community initiatives or sponsor co-creation funds.
+- **Governance and Transparency**: All listings, purchases, and distributions are logged on-chain where possible. Buyers receive full audit trails and performance guarantees. Contributors can track exactly how their fragments contributed to revenue.
+- **Tiered Access**: High-value or early-access listings are available only to high-contribution users or verified sponsors, protecting premium intelligence while rewarding participation.
+
+**Why it works**: The Marketplace turns collective intelligence into a self-sustaining revenue engine that directly funds the flywheel while providing sponsors with measurable ROI and the community with clear economic incentives.
+
+## Business Proposals Workflow
+Business proposals are a flagship product of the Economic Subsystem — high-value, verifiable sponsor deliverables that advance roadmaps and generate revenue.
+
+**Workflow**:
+1. A miner or the system generates a raw proposal artifact during an EM run.
+2. It is pushed to feed vaults and picked up by central Economic.
+3. Global Strategy supplies relevant ranked fragments; global Defense supplies hardening rules.
+4. Synapse upgrades the proposal into a complete, sponsor-ready package (detailed solution, embedded test suites, verifier code, projected EFS impact, implementation roadmap).
+5. The upgraded proposal is validated, listed in the Marketplace, or directly pitched to the target sponsor via Synapse’s intelligent matching.
+6. Upon landing, revenue is distributed, new challenges are created, and impact signals feed back into Meta-RL and the idea bank.
+
+**Concrete Examples**:
+- **Quantum Error Correction Proposal**: A raw draft is upgraded with stabilizer code fragments from global Strategy and hardened against common attack vectors. The final proposal includes executable test suites, projected EFS lift, and a phased implementation roadmap. It lands with a hardware sponsor, generating revenue that funds a new high-value challenge.
+- **Battery Optimization Tool**: A local run produces a prototype optimizer. Economic upgrades it with cross-domain patterns and verifier rules. The resulting tool is listed in the Marketplace as a subscription service, generating recurring revenue while the usage data improves future models.
+
+These proposals are not generic outputs — they are verifiable, high-impact deliverables that sponsors can immediately use to advance their roadmaps.
+
 ## Key Formulas
 **ContributionScore** (used across Economic and other subsystems):
 $$
@@ -49,8 +78,6 @@ A miner generates a raw sponsor proposal for a quantum error correction challeng
 - Marketplace revenue that funds larger prize pools and attracts more sponsors.
 - Real performance data and impact signals that strengthen the Intelligence Flywheel and accelerate all three core flywheels.
 - Transparent contribution tracking that rewards honest participants and builds long-term trust with partners and investors.
-
-This subsystem is SAGE’s primary value-creation engine. It turns collective intelligence into tangible economic outcomes that benefit sponsors (faster solutions), alpha holders (subnet growth), miners (direct rewards), and the broader ecosystem (expanded opportunities).
 
 ## No Leakage and Strong Protection
 High-value upgraded artifacts are protected by tiered access and selective encryption. Only participating miners and authorized high-contribution users can access them inside their local Enigma Machine runs. All access is logged and auditable. The system ensures intelligence stays inside the community while delivering clear, measurable value to external partners and investors.
