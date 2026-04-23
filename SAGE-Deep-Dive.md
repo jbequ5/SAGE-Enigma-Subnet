@@ -9,10 +9,10 @@ SAGE turns the competitive pressure and prize pools of Subnet 63 into a genuine 
 SAGE converts individual Enigma Machine runs into a compounding, community-owned intelligence system. It consists of five interconnected subsystems that operate in a self-reinforcing flywheel. See core-mechanics.md for all scoring formulas and data flows.
 
 The system uses two repositories for clarity, safety, and performance:
-- **sage-core**: Execution runtime focused on lightweight local operation (Enigma Machine, Solve, lightweight local Strategy and Defense during runs for qualified users, Economic raw artifact generation, Operations). This keeps EM instances efficient for high parallelism and Solve data production.
-- **sage-intelligence**: Central privileged brain containing Synapse (the Meta-Agent) and the full Intelligence Subsystem. All intelligence lives here.
+- **sage-core**: Execution runtime focused on lightweight local operation (Enigma Machine, Solve, lightweight local Strategy and Defense during runs for qualified users, Economic raw artifact generation, Operations).
+- **sage-intelligence**: Central privileged brain containing Synapse (the Meta-Agent) and the full Intelligence Subsystem.
 
-Local EM instances apply Solve gates locally, run lightweight Strategy and Defense passes when qualified, generate raw Economic artifacts, and push gated fragments, telemetry, and raw BD/PD data to secure feed vaults. sage-intelligence pulls from the vaults, performs global Strategy (graph mining and ranking on the full aggregated dataset), global Defense coordination, daily Meta-RL loops, and all self-improvement functions, then pushes global approximations, meta-weights, distilled models, and consistent Defense packages back down.
+Local EM instances remain lightweight to enable high parallelism and efficient Solve data production. They apply Solve gates locally, run lightweight Strategy and Defense passes when qualified, generate raw Economic artifacts, and push gated fragments, telemetry, and raw BD/PD data to secure feed vaults. sage-intelligence pulls from the vaults, performs global Strategy (graph mining and ranking on the full aggregated dataset), global Defense coordination, daily Meta-RL loops, and all self-improvement functions, then pushes global approximations, meta-weights, distilled models, and consistent Defense packages back down.
 
 **Synapse** is the Meta-Agent — the customer-facing and miner-facing access point. It provides the chat interface, proactive co-pilot, real-time strategy suggestions, and stall assistance. Synapse is powered by the Intelligence Subsystem and orchestrates improvements across the entire platform using the global view of all data.
 
@@ -103,14 +103,25 @@ Local EM instances (sage-core) run Solve gating and lightweight Strategy/Defense
 
 Synapse orchestrates improvements across the platform using the global view.
 
-## Example End-to-End Flow
-A miner runs an Enigma Machine mission on a quantum circuit optimization challenge and produces a fragment with Final EFS = 0.82. Solve gates it locally, credits the miner, and pushes it to feed vaults. Global Strategy ranks it highly and enriches it with graph connections. Intelligence uses it to improve the Neural-Net Scoring Head and distill a better local model. Economic upgrades a sponsor proposal using this intelligence, lands it with a sponsor, and generates revenue that increases prize pools. The new challenge data flows back into Solve. Synapse surfaces the improved strategy to other miners in real time. The entire loop is logged with full provenance so contribution is accurately rewarded.
-
 ## Operations — The Operating System Layer
-Operations is not a traditional subsystem — it is the operating system that manages scaling, setup, and execution. It includes the 0.9.10 Streamlit wizard, swarm orchestration, global package distribution (including Defense packages), and telemetry collection that feeds the Intelligence Subsystem. It ensures baseline EM instances stay lightweight for high parallelism and efficient Solve data production.
+Operations is not a traditional subsystem — it is the intelligent operating system layer that makes the entire SAGE platform practical, scalable, and accessible at every level of participation.
+
+It manages the full lifecycle of execution: initial setup, resource allocation, swarm orchestration, package distribution, telemetry collection, and autonomous operation. This layer is what turns SAGE from a single-instance tool into a true data factory capable of running from one local EM instance to hundreds in parallel, all while feeding high-quality signals back into the Intelligence Subsystem.
+
+**Key Capabilities**:
+- **0.9.10+ Streamlit Wizard**: Guides users through compute selection, smart LLM router with automatic downscaling as swarm size grows, budget setting, ping-only flight test validation, and autonomy mode configuration.
+- **Swarm Orchestration**: Central orchestrator launches and monitors multiple EM instances, assigns different miner input strategies for A/B testing, enforces hard time limits, and triggers smart stopping when learning saturates.
+- **Telemetry and Feedback**: Collects rich operations data (swarm size, resource pressure, per-instance performance, A/B test results) and pushes it to secure feed vaults. This telemetry is critical for the Neural-Net Scoring Head and Meta-RL Loop to learn optimal configurations over time (e.g., best LLM per task type for given compute, ideal swarm size, early stopping thresholds).
+- **Global Package Distribution**: Reliably delivers updated global approximations, meta-weights, distilled models, and Defense packages from sage-intelligence to all participating EM instances.
+- **Lightness and Parallelism**: Ensures baseline EM instances remain minimal (Solve gating + push to vaults) so users can run many parallel instances on modest hardware, maximizing Solve data production and contribution to the flywheels.
+
+Operations is the layer that makes high-scale, efficient participation possible while turning execution telemetry into actionable intelligence. Without it, the system would be limited to single-instance runs and would lose the compounding feedback from large-scale experimentation. It is one of the most intelligent and enabling components of SAGE — the bridge between individual runs and collective self-improvement.
+
+## Example End-to-End Flow
+(Previous example remains, now implicitly supported by the Operations layer for scaling and package distribution.)
 
 ## The Three Core Flywheels – Deep Dive
-(The full mechanics for Intelligence, Economic, and Democratization flywheels remain as previously detailed and integrated here for flow.)
+(Full mechanics remain integrated for flow.)
 
 ## Why This Flywheel Is Different
 This is a true self-reinforcing intelligence flywheel. Local execution stays efficient. Global intelligence compounds centrally. Honest contribution is rewarded through transparent provenance and ContributionScore. And the entire system grows stronger together.
