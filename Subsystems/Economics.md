@@ -2,7 +2,7 @@
 
 **Deep Technical Report**  
 **SAGE — Shared Agentic Growth Engine**  
-**Version 0.9.13 Hardened**  
+**Version 0.9.13-FeedbackUpdate1**  
 **Last Updated:** April 23, 2026
 
 ## Role in SAGE
@@ -23,22 +23,27 @@ The upgrade process is controlled, scripted, and centrally executed in the sage-
 7. Route to Sage Marketplace for monetization or direct sponsor delivery.
 
 **Contribution Tracking and Rewards**:
-Every upgraded artifact credits original contributors through immutable provenance and the ContributionScore formula. Participants see exactly how their fragments helped generate economic value and receive fair rewards proportional to their contribution. This transparent mechanism makes honest participation directly tied to marketplace revenue and landed proposals.
+Every upgraded artifact credits original contributors through immutable provenance and the ContributionScore formula (see core-mechanics.md). Participants see exactly how their fragments helped generate economic value and receive fair rewards proportional to their contribution. This transparent mechanism makes honest participation directly tied to marketplace revenue and landed proposals.
 
 ## Sage Marketplace Design and Mechanics
-The Sage Marketplace is the authorized, on-chain-enabled monetization channel for upgraded SAGE outputs. It is designed to be transparent, fair, and attractive to both buyers (sponsors, companies, researchers) and sellers (the community).
+The Sage Marketplace is the authorized, transparent monetization channel for upgraded SAGE outputs. It is designed to be professional, trustworthy, and attractive to both buyers (sponsors, companies, researchers) and the community.
 
 **Key Mechanics**:
-- **Listing Process**: Upgraded artifacts are automatically listed after validation. Listings include full provenance, performance metrics (EFS impact, verifier pass rate), contributor credits, and expected ROI projections. Creators can set pricing (fixed, auction, or subscription) or opt for direct sponsor negotiation.
-- **Buying Process**: Buyers browse a clean dashboard with searchable categories, performance filters, and provenance transparency. Purchases can be made with TAO or fiat rails (via integrated payment providers). Smart contracts handle automatic revenue distribution.
-- **Revenue Distribution**: Revenue is split transparently: a percentage goes to original contributors (proportional to ContributionScore), a portion funds larger subnet prize pools, a small governance fee supports platform maintenance, and the remainder can be directed to specific community initiatives or sponsor co-creation funds.
-- **Governance and Transparency**: All listings, purchases, and distributions are logged on-chain where possible. Buyers receive full audit trails and performance guarantees. Contributors can track exactly how their fragments contributed to revenue.
-- **Tiered Access**: High-value or early-access listings are available only to high-contribution users or verified sponsors, protecting premium intelligence while rewarding participation.
+- **Listing Process**: Upgraded artifacts are automatically proposed for listing after validation. Each listing includes full provenance chain, performance metrics (EFS impact, verifier pass rate, historical usage), contributor credits, and projected ROI. Creators can set pricing (fixed price, auction, subscription, or custom sponsor deal) or opt for direct negotiation.
+- **Buyer Journey**: Clean dashboard with searchable categories (Quantum, Battery, Optimization, Security, Education, etc.), advanced filters (EFS threshold, domain match, price range), provenance transparency, and one-click purchase. Buyers receive immediate access to downloadable packages and usage analytics.
+- **Pricing Models**: Fixed one-time purchase, recurring subscription (ideal for tools/curricula), performance-based (revenue share on downstream value), or custom enterprise deals.
+- **Guarantees & Performance Reporting**: All purchases include verifiable test suites, usage tracking, and refund/revision clauses if promised EFS impact is not met in sponsor validation. Post-purchase dashboards show real-world performance metrics.
+- **Revenue Distribution**: Revenue is split transparently and automatically:
+  - Percentage to original contributors (proportional to ContributionScore)
+  - Portion to larger subnet prize pools
+  - Small governance fee for platform maintenance
+  - Remainder can support community initiatives or sponsor co-creation funds
+- **Governance and Transparency**: All listings, purchases, and distributions are auditable. High-value or early-access listings are restricted to high-contribution users or verified sponsors.
 
 **Why it works**: The Marketplace turns collective intelligence into a self-sustaining revenue engine that directly funds the flywheel while providing sponsors with measurable ROI and the community with clear economic incentives.
 
 ## Business Proposals Workflow
-Business proposals are a flagship product of the Economic Subsystem — high-value, verifiable sponsor deliverables that advance roadmaps and generate revenue.
+Business proposals are a flagship product — high-value, verifiable sponsor deliverables that advance roadmaps and generate revenue.
 
 **Workflow**:
 1. A miner or the system generates a raw proposal artifact during an EM run.
@@ -49,40 +54,28 @@ Business proposals are a flagship product of the Economic Subsystem — high-val
 6. Upon landing, revenue is distributed, new challenges are created, and impact signals feed back into Meta-RL and the idea bank.
 
 **Concrete Examples**:
-- **Quantum Error Correction Proposal**: A raw draft is upgraded with stabilizer code fragments from global Strategy and hardened against common attack vectors. The final proposal includes executable test suites, projected EFS lift, and a phased implementation roadmap. It lands with a hardware sponsor, generating revenue that funds a new high-value challenge.
-- **Battery Optimization Tool**: A local run produces a prototype optimizer. Economic upgrades it with cross-domain patterns and verifier rules. The resulting tool is listed in the Marketplace as a subscription service, generating recurring revenue while the usage data improves future models.
+- **Quantum Error Correction Proposal**: Raw draft upgraded with stabilizer code fragments from global Strategy and hardened against common attack vectors. Final package includes executable test suites, projected EFS lift on real hardware, and phased implementation roadmap. Lands with a quantum hardware sponsor, generating revenue that funds a new high-value challenge.
+- **Battery Optimization Tool**: Local prototype upgraded with cross-domain patterns (materials + control theory) and verifier rules. Resulting tool is listed as a subscription service with usage analytics. Generates recurring revenue while the real-world performance data improves future models and strategies.
+- **Cybersecurity Red-Team Framework**: Upgraded proposal includes attack vectors from Defense, verifiable test scenarios, and integration guides. Sold to a major infrastructure sponsor, producing both revenue and new defensive challenges for the subnet.
 
-These proposals are not generic outputs — they are verifiable, high-impact deliverables that sponsors can immediately use to advance their roadmaps.
+These proposals are not generic outputs — they are verifiable, high-impact deliverables that sponsors can immediately use.
 
 ## Key Formulas
-**ContributionScore** (used across Economic and other subsystems):
-$$
-\text{ContributionScore} = 0.40 \cdot \text{EFS}_{60/40} + 0.25 \cdot \text{utilization} + 0.20 \cdot \text{graph\_centrality} + 0.15 \cdot \text{refined\_value\_added}
-$$
-
-**RewardShare** for marketplace revenue is proportional to ContributionScore, with a minimum floor for honest contributors and additional bonuses for high-impact fragments.
-
-## Example End-to-End Flow
-A miner generates a raw sponsor proposal for a quantum error correction challenge and pushes it to feed vaults. Global Strategy supplies the highest-ranked fragments on stabilizer codes and verifier patterns. Global Defense provides hardening rules. Synapse upgrades the proposal into a complete, verifiable package with embedded test suites, refined strategies, and economic impact projections. The upgraded proposal lands with a sponsor, generates revenue that funds larger prize pools, and creates a new high-value challenge. The new challenge data flows back into Solve, while impact signals strengthen the Meta-RL Loop and idea bank. The entire loop is logged with full provenance so contribution is accurately rewarded.
+See **core-mechanics.md** for:
+- ContributionScore
+- RewardShare (proportional to ContributionScore with minimum floor for honest contributors)
+- EFS 60/40 split and global re-scoring tolerance
 
 ## Integration with Other Subsystems
 - **Strategy**: Supplies ranked, globally-enriched intelligence for upgrades.
-- **Defense**: Supplies adversarial examples and consistent hardening rules from global coordination.
-- **Intelligence**: Provides improved Neural-Net Scoring Head predictions, distilled models, and meta-weights that make upgrades higher quality and more impactful.
-- **Solve**: Receives new high-value challenges generated from landed proposals, closing the data loop.
-- **Synapse**: Orchestrates the upgrade step, surfaces marketplace opportunities, and uses economic impact signals in meta-stall reflection and the idea bank.
-- **Operations**: Ensures efficient package distribution and telemetry collection that feeds economic impact measurement.
-
-## Outputs and Flywheel Contribution
-- Upgraded BD/PD artifacts and landed sponsor proposals that deliver real roadmap value.
-- Marketplace revenue that funds larger prize pools and attracts more sponsors.
-- Real performance data and impact signals that strengthen the Intelligence Flywheel and accelerate all three core flywheels.
-- Transparent contribution tracking that rewards honest participants and builds long-term trust with partners and investors.
+- **Defense**: Supplies adversarial examples and consistent hardening rules.
+- **Intelligence**: Provides improved predictions, distilled models, and meta-weights.
+- **Solve**: Receives new high-value challenges generated from landed proposals.
+- **Synapse**: Orchestrates upgrade steps and surfaces marketplace opportunities.
+- **Operations**: Ensures efficient telemetry and package distribution.
 
 ## No Leakage and Strong Protection
 High-value upgraded artifacts are protected by tiered access and selective encryption. Only participating miners and authorized high-contribution users can access them inside their local Enigma Machine runs. All access is logged and auditable. The system ensures intelligence stays inside the community while delivering clear, measurable value to external partners and investors.
 
 ## Why the Economic Subsystem Matters
 The Economic Subsystem is the capstone that turns collective intelligence into real economic value. By upgrading artifacts with proven global strategies and hardening them against attacks, it creates sponsor proposals and tools that generate revenue, expand the subnet, advance sponsor roadmaps, and increase alpha value — while ensuring honest contributors are fairly rewarded. This is what makes the flywheel self-sustaining and turns the People’s Intelligence Layer into a powerful economic engine that benefits the entire community and attracts serious partners and investors.
-
-This subsystem is SAGE’s clearest demonstration of practical value creation: intelligence compounds into revenue, revenue funds bigger challenges, bigger challenges produce richer data, and the cycle accelerates.
