@@ -97,9 +97,49 @@ A miner runs an Enigma Machine mission on a quantum circuit optimization challen
 ## Operations — The Operating System Layer
 Operations is not a traditional subsystem — it is the operating system that manages scaling, setup, and execution. It includes the 0.9.10 Streamlit wizard (compute selection, smart LLM router with downscaling, budget setting, flight test ping-only validation, autonomy mode), swarm orchestration, and telemetry collection that feeds the Intelligence Subsystem. It enables everything from a solo miner running one instance to a large operation running many instances with A/B testing of miner input strategies.
 
-## Why This Flywheel Is Different
+## Why This System Is Different
 This is a true self-reinforcing intelligence flywheel. Every Enigma Machine run feeds gated fragments into Solve. Strategy turns them into ranked intelligence. Defense hardens the system. Intelligence continuously improves itself through its three pillars. Economic converts intelligence into real value — landing proposals that collect performance data and marketplace revenue that funds larger prize pools — while feeding impact signals back.
 
+## The Three Core Flywheels – Deep Dive
+
+### 1. The Intelligence Flywheel
+**Mechanics**: Raw solving data → high-quality fragments → ranked intelligence → continuous self-improvement → better strategies and models → richer data.
+
+**Step-by-Step Flow**:
+1. EM Run produces fragments with provenance metadata, local 60/40 EFS, and verifier snippets.
+2. Solve Subsystem gates them (EFS floor, replay match, refined value-added, official origin) and credits the miner with immutable provenance hash.
+3. Strategy Subsystem ranks and enriches using RankScore (0.40·Final EFS + 0.25·utilization_EMA + 0.20·graph_centrality + 0.15·refined_value_added).
+4. Intelligence Subsystem evaluates every fragment with the Neural-Net Scoring Head on the four objectives (Recognition of Value, Implementation of Strategy, Prediction of Impact, Training Utility) and runs the Meta-RL Improvement Loop to compute calibration error and propose safe tweaks.
+5. Synapse pushes updated global approximations, refined strategies, and distilled models back to all EM instances.
+6. Next runs start stronger, produce higher-quality fragments, and the cycle compounds.
+
+**Compounding Effect**: The NN’s calibration error becomes the primary learning signal. Over time, Prediction of Impact and Training Utility scores become more accurate, raising average EFS and producing even better fragments for the next cycle.
+
+### 2. The Economic Flywheel
+**Mechanics**: Intelligence → upgraded BD/PD artifacts → marketplace revenue + landed sponsors → larger prize pools + new challenges → more participation → richer data.
+
+**Step-by-Step Flow**:
+1. Raw BD/PD artifact (proposal, tool, curriculum, service) arrives from a local EM run.
+2. Economic Subsystem queries Strategy for top-k ranked fragments and Defense for hardening rules.
+3. Synapse injects proven strategies, verifier rules, and economic impact data in a controlled upgrade step.
+4. Upgraded artifact is validated and routed to the Sage Marketplace or directly to sponsors.
+5. Landed proposals generate revenue that funds larger prize pools and new high-value challenges.
+6. New challenges drive more EM runs, producing richer fragments that feed the Intelligence Flywheel.
+
+**Compounding Effect**: Each successful landing creates a measurable EFS impact signal that improves the NN’s Prediction of Impact objective, making future upgrades more effective and increasing conversion probability over time.
+
+### 3. The Democratization Flywheel
+**Mechanics**: High-utility fragments → curated training data → distilled smaller Enigma models → accessible local solving → more participants → richer data & faster improvement.
+
+**Step-by-Step Flow**:
+1. Neural-Net Scoring Head flags fragments with high Training Utility.
+2. Training/Distillation Pipeline curates, balances, and augments the data.
+3. Pipeline applies KL divergence + 0.3 × 7D verifier self-check loss + meta-RL alignment to distill smaller models.
+4. Distilled Enigma models are made available for local deployment on modest hardware.
+5. More people participate easily, increasing run volume and fragment quality.
+6. Extra data accelerates the Intelligence Flywheel, producing even better next-generation models.
+
+**Compounding Effect**: As model performance improves, participation grows exponentially, creating more high-utility fragments that improve the Training Utility objective and the overall meta-RL loop.
 The result is a compounding cycle where intelligence gets measurably smarter with every mission, every self-audit, and every reuse. Local innovation is enhanced by collective breakthroughs. Honest contribution is rewarded through transparent provenance and ContributionScore. And the entire system grows stronger together.
 
 This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
