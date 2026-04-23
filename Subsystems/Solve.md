@@ -2,8 +2,8 @@
 
 **Deep Technical Report**  
 **SAGE — Shared Agentic Growth Engine**  
-**Version 0.9.12+ Hardened**  
-**Last Updated:** April 21, 2026
+**Version 0.9.13 Hardened**  
+**Last Updated:** April 23, 2026
 
 ## Abstract
 
@@ -13,6 +13,8 @@ The Solve Subsystem is the intake and quality-control layer of SAGE. It is the f
 Final fragment score = 0.6 × Base EFS + 0.4 × Refined Value-Added.
 
 This 60/40 split ensures fragments are judged on both immediate quality and predicted future impact, strongly discouraging piggybacking.
+
+Solve runs locally in every EM instance in the sage-core repository to keep instances lightweight and enable high parallelism. Only gated fragments are pushed to secure feed vaults for central processing by global Strategy and Intelligence in the sage-intelligence repository.
 
 ## 1. Fragment Creation and Atomization
 
@@ -28,21 +30,19 @@ Final fragment score:
 
 $$
 \text{Final Score} = 0.6 \times \text{Base EFS} + 0.4 \times \text{Refined Value-Added}
-\
 $$
 
 **Base EFS (60%)** — Immediate execution quality:
 
-
 $$
-\text{Base EFS} = 0.40 \cdot \text{validation score} + 0.20 \cdot \text{verifier 7D average} + 0.20 \cdot \text{composability score} + 0.20 \cdot \theta\text{dynamic}$$
-
+\text{Base EFS} = 0.40 \cdot \text{validation score} + 0.20 \cdot \text{verifier 7D average} + 0.20 \cdot \text{composability score} + 0.20 \cdot \theta\text{dynamic}
+$$
 
 **θ_dynamic** (dynamic uncertainty gate):
 
 $$
-\theta\text{dynamic} = 1.0 - \left( \text{calibration error} \times 0.6 + \text{score variance} \times 0.25 + \text{replan rate} \times 0.15 \right)$$
-
+\theta\text{dynamic} = 1.0 - \left( \text{calibration error} \times 0.6 + \text{score variance} \times 0.25 + \text{replan rate} \times 0.15 \right)
+$$
 
 - calibration_error = average absolute difference between predicted and actual EFS over recent runs (normalized to [0,1])
 - score_variance = standard deviation of recent EFS scores (normalized)
@@ -51,7 +51,8 @@ $$
 **Refined Value-Added (40%)** — Predicted future impact:
 
 $$
-\text{Refined Value-Added} = \alpha \cdot \text{historical EFS lift} + \beta \cdot \text{calibration accuracy} + \gamma \cdot \text{reuse multiplier}$$
+\text{Refined Value-Added} = \alpha \cdot \text{historical EFS lift} + \beta \cdot \text{calibration accuracy} + \gamma \cdot \text{reuse multiplier}
+$$
 
 Current default coefficients (tuned by Synapse meta-RL):
 - α = 0.50 (historical_EFS_lift)
@@ -67,17 +68,20 @@ After initial scoring, every fragment is re-scored using the latest global weigh
 After final scoring and global re-scoring, Solve applies ByteRover MAU reinforcement:
 
 $$
-\text{reinforcement} = \text{base} + \text{hetero bonus}$$
+\text{reinforcement} = \text{base} + \text{hetero bonus}
+$$
 
 where
 
 $$
-\text{base} = \text{score} \times \text{fidelity}^{1.5} \times \text{symbolic coverage}$$
+\text{base} = \text{score} \times \text{fidelity}^{1.5} \times \text{symbolic coverage}
+$$
 
 and
 
 $$
-\text{hetero bonus} = 0.3 \times \text{heterogeneity score} \times \text{score}^{1.2} \times \text{fidelity}^{1.5}$$
+\text{hetero bonus} = 0.3 \times \text{heterogeneity score} \times \text{score}^{1.2} \times \text{fidelity}^{1.5}
+$$
 
 High-reinforcement fragments are promoted aggressively; low-reinforcement fragments are compressed or pruned.
 
@@ -92,11 +96,11 @@ Solve runs this deterministic decision tree:
 5. Refined value-added gate (ensures positive predicted future impact)
 6. Final MAU reinforcement decision
 
-Fragments passing all gates are marked high-signal and forwarded. Failures are either minimally compressed (provenance-only) or fully pruned based on decay score.
+Fragments passing all gates are marked high-signal and forwarded to secure feed vaults for global processing. Failures are either minimally compressed (provenance-only) or fully pruned based on decay score.
 
 ## 7. Cosmic Compression and Memory Management
 
-Low-value fragments are sent to Cosmic Compression: a targeted LLM prompt distills the fragment to 1–3 key sentences plus provenance tags. The original is archived for audit; the compressed version is stored in long-term memory. High-value fragments bypass compression and are promoted immediately.
+Low-value fragments are sent to Cosmic Compression: a targeted LLM prompt distills the fragment to 1–3 key sentences plus provenance tags. The original is archived for audit; the compressed version is stored in long-term memory. High-value fragments bypass compression and are promoted immediately to global Strategy.
 
 ## 8. Provenance and Contribution Tracking
 
@@ -104,7 +108,7 @@ Every surviving fragment carries a complete immutable metadata block. The block 
 
 ## 9. AHE — Adversarial Hardening Engine Integration
 
-The Adversarial Hardening Engine (AHE) is Synapse’s built-in white-hat hacker. It runs a six-phase loop to attack Solve (and every other subsystem):
+The Adversarial Hardening Engine (AHE) is Synapse’s built-in white-hat hacker. It runs a six-phase loop to attack Solve (and every other subsystem) on the global dataset:
 
 1. Plan attack + define evaluation criteria
 2. Predict outcomes
@@ -113,7 +117,7 @@ The Adversarial Hardening Engine (AHE) is Synapse’s built-in white-hat hacker.
 5. Evaluate vs. planned and predicted metrics
 6. Log, learn, distribute validated fixes (3–5 re-tests required)
 
-AHE forces Solve to defend against spam, gaming, poisoning, and distribution shift in real time.
+AHE forces Solve to defend against spam, gaming, poisoning, and distribution shift in real time. Local Defense during runs provides immediate protection and feeds findings upward.
 
 ## 10. Meta-Tuning at EM and Synapse Levels
 
@@ -121,11 +125,11 @@ AHE forces Solve to defend against spam, gaming, poisoning, and distribution shi
 
 **Global Synapse level**: The full meta-RL loop aggregates data from all participating EM instances and tunes the 60/40 ratio, the four Base EFS weights, the three Refined Value-Added coefficients, θ_dynamic coefficients, and global re-score tolerance.
 
-This dual-level meta-tuning keeps the entire scoring system trending toward optimal gating, anti-piggybacking protection, and intelligence extraction over time.
+This dual-level meta-tuning keeps the entire scoring system trending toward optimal gating, anti-piggybacking protection, and intelligence extraction over time. Updated meta-weights are pushed down from sage-intelligence to local Strategy gates.
 
 ## Data Flow Summary
 
-Solve → Strategy Subsystem (ranked fragments)  
+Solve (local) → secure feed vaults → Global Strategy (sage-intelligence)  
 Solve → Defense Subsystem (adversarial analysis)  
 Solve → Training Subsystem (high-utility fragments)  
 Solve → Economic Subsystem (weak impact signals only)
@@ -142,9 +146,9 @@ All mitigations are continuously monitored and hardened by the AHE.
 
 ## Current Limitations and Planned Improvements
 
-**Current (v0.9.12+)**: 60/40 scoring split with explicit global re-scoring tolerance, ByteRover MAU, AHE integration, dual-level meta-tuning.  
+**Current (v0.9.13)**: 60/40 scoring split with explicit global re-scoring tolerance, ByteRover MAU, AHE integration, dual-level meta-tuning, local gating for EM lightness.  
 **Planned**: Dynamic tuning of the 60/40 ratio itself, stronger temporal graph edges, automated fragment utility prediction for Training.
 
 ## Why the Solve Subsystem Matters
 
-Solve is the gatekeeper that protects the entire SAGE flywheel. The 60/40 scoring rule — 60% immediate quality + 40% predicted future impact — combined with global re-scoring tolerance and the full set of deterministic gates, makes Solve a rigorously intelligent foundation that continuously trends toward optimal quality control and prevents piggybacking. The combination of 7D verifier self-check, hardened EFS formula, ByteRover MAU reinforcement, deterministic decision tree, AHE adversarial hardening, and dual-level meta-tuning ensures that only high-signal, high-utility fragments advance.
+Solve is the gatekeeper that protects the entire SAGE flywheel. The 60/40 scoring rule — 60% immediate quality + 40% predicted future impact — combined with global re-scoring tolerance and the full set of deterministic gates, makes Solve a rigorously intelligent foundation that continuously trends toward optimal quality control and prevents piggybacking. The combination of 7D verifier self-check, hardened EFS formula, ByteRover MAU reinforcement, deterministic decision tree, AHE adversarial hardening, and dual-level meta-tuning ensures that only high-signal, high-utility fragments advance to global Strategy and the Intelligence Subsystem.
