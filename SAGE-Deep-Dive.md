@@ -38,13 +38,7 @@ This tells the story of how SAGE actually works — from the smallest worker all
 
 ### Visual Hierarchy
 
-Level 6: Economic & Flywheel Closure ↑ Impact signals & revenue      ↓ Upgraded proposals & templates └─ Marketplace + Sponsor Value Creation
-Level 5: Synapse — Human Interface ↑ User context                  ↓ Real-time assistance & co-pilot └─ Meta-Agent (chat, proactive help, stall resolution)
-Level 4: Intelligence — Brain & Self-Improvement ↑ Calibration data & fragments  ↓ Meta-weights, distilled models, templates └─ Meta-RL Loop + NN Scoring Head + Distillation + Hyperagent
-Level 3: Core Processing & Gating ↑ Gated & ranked fragments      ↓ Improved local rules & approximations ├─ Strategy (global ranking, graph mining, enrichment) └─ Solve (local gating, provenance, 7D verifier)
-Level 2: Tactical Swarm Orchestration (Operations) ↑ Per-approach telemetry        ↓ Approach profiles + meta-weights └─ Multi-Approach Planner + Orchestrator (N profiles, controlled communication, dynamic rebalancing)
-Level 1: EM Instance Orchestration ↑ Enriched fragments + telemetry ↓ Assigned profile + templates └─ Single Enigma Machine Instance (one approach profile)
-Level 0: Atomic Workers (Real Execution) ↑ Raw fragments                 ↓ Local tools & knowledge └─ Sub-swarm Workers + KAS calls
+![SAGE System Hierarchy](hierarchy.png) 
 
 **Flow Legend**  
 **↑ Upward** = Raw data, enriched fragments, telemetry, calibration signals  
