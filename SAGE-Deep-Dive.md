@@ -171,12 +171,47 @@ It manages the full lifecycle of execution: initial setup, resource allocation, 
 Operations is the layer that makes high-scale, efficient participation possible while turning execution telemetry into actionable intelligence.
 
 ## Example End-to-End Flow
-(Previous example remains, now explicitly supported by the Operations layer for scaling and package distribution.)
+
+A miner launches an Enigma Machine run via the Streamlit wizard or autonomous CLI. The Operations Multi-Approach Planner analyzes the challenge, determines optimal N (for example 6), and generates distinct high-value approach profiles grounded in the latest KAS-acquired knowledge. N parallel EM instances are deployed, each assigned one profile.
+
+Inside each EM instance, atomic sub-swarm workers decompose the problem and execute subtasks. When gaps appear, KAS is called to acquire immediate tools, specialty models, or research snippets. Results are sandbox-verified and injected in real time, producing enriched fragments. The instance applies local Solve gating (provenance, 7D verifier, replay guard) and lightweight Strategy ranking.
+
+Gated fragments, KAS results, and rich telemetry (per-approach performance, communication events, stall patterns) are pushed to secure feed vaults. Global Strategy mines and ranks the aggregated dataset, adding graph centrality, motifs, and cross-domain resonance. The enriched intelligence flows to the Intelligence Subsystem.
+
+There, the Meta-RL Loop evaluates outcomes against the four (plus meta) objectives, the Neural-Net Scoring Head computes calibrated predictions, and the Hyperagent may trigger recursive KAS meta-hunts for improvements. High-value proposals are shadow-tested, approved within global tolerance, and pushed downward as meta-weights, updated approach templates, and distilled models.
+
+Meanwhile, the Economic Subsystem pulls relevant ranked intelligence and Defense hardening to upgrade raw BD/PD artifacts into sponsor-ready proposals or marketplace tools. Successful upgrades land with sponsors or sell in the Marketplace, generating revenue that expands prize pools and creates new high-value challenges.
+
+These new challenges flow back into Solve, closing the loop. The entire cycle — from individual run to global learning to economic value and back — compounds with every iteration. Operations ensures scaling and package distribution, while KAS keeps every layer supplied with fresh, calibrated knowledge. The system gets measurably smarter and more valuable with every swarm.
 
 ## The Three Core Flywheels – Deep Dive
-(Full mechanics remain integrated for flow.)
 
-## Why This Flywheel Is Different
+SAGE is powered by three tightly interconnected flywheels that reinforce each other and create compounding growth.
+
+**1. Intelligence Flywheel**  
+Individual EM runs produce gated fragments and telemetry → Strategy ranks and enriches them → Intelligence (Meta-RL Loop, NN Scoring Head, Hyperagent, recursive KAS) calibrates, improves scoring/strategy/distillation, and pushes better meta-weights and models downward.  
+Better local models and templates → higher EFS and more high-signal fragments in the next runs → richer global intelligence.  
+This flywheel accelerates “learning to learn” and is the engine of continuous self-improvement.
+
+**2. Economic Flywheel**  
+Raw BD/PD artifacts from EM runs → Economic upgrades them using global Strategy intelligence and Defense hardening → Marketplace listings and sponsor proposals generate real revenue.  
+Revenue expands prize pools and attracts more sponsors → more high-value challenges → richer Solve data → stronger Intelligence → better upgrades and more revenue.  
+This flywheel turns collective solving capability into tangible economic value and sustainable growth.
+
+**3. Democratization Flywheel**  
+Distillation Pipeline (powered by Intelligence) produces smaller, stronger Enigma models optimized for consumer hardware.  
+Better local models → more miners can participate with modest hardware and larger swarms on powerful machines → dramatically increased run volume and data diversity.  
+More participation → richer fragments and telemetry → faster Intelligence improvement → even better distilled models.  
+This flywheel makes SAGE truly “for the people, by the people” and drives exponential network effects.
+
+**How the Flywheels Reinforce Each Other**  
+- Intelligence improvements feed better Economic upgrades and more accessible models.  
+- Economic revenue funds larger prize pools, attracting more participants and data.  
+- Democratization increases participation volume, supplying richer data to Intelligence.  
+
+The Operations layer (Multi-Approach Planner, controlled communication, smart scaling) and KAS (targeted, calibrated knowledge acquisition) act as accelerators across all three flywheels. The result is a self-reinforcing system that grows stronger, more valuable, and more accessible over time — without central control or single points of failure.
+
+## Why This System Is Different
 This is a true self-reinforcing intelligence flywheel that does not exist anywhere else today. Local execution stays efficient. Global intelligence compounds centrally. Honest contribution is rewarded through transparent provenance and ContributionScore. And the entire system grows stronger together.
 
 This is the People’s Intelligence Layer — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
