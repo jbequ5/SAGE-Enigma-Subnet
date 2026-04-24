@@ -38,7 +38,7 @@ This tells the story of how SAGE actually works — from the smallest worker all
 
 ### Visual Hierarchy
 
-![SAGE System Hierarchy](hierarchy.png) 
+![SAGE System Hierarchy](IMG_1094.png) 
 
 **Flow Legend**  
 **↑ Upward** = Raw data, enriched fragments, telemetry, calibration signals  
