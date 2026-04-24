@@ -109,6 +109,19 @@ Enforces strict no-leakage rules: fragments can only enter through deterministic
 **Outputs**:
 Adversarial examples for Training and Economic upgrade steps, plus continuous hardening of the entire platform.
 
+### Knowledge Acquisition Subsystem (KAS)
+KAS is SAGE’s dedicated, self-improving intelligence acquisition engine. It continuously senses gaps across all layers and acquires high-signal knowledge (tools at the EM level; strategies, patterns, models, datasets, and meta-insights at higher layers).
+
+KAS operates as a **meta-tool** invoked with rich, layer-specific prompts and context. All outputs are standardized, provenance-tracked fragments that flow upward through Solve and Strategy while feeding calibration signals into the Intelligence Subsystem.
+
+**Key Capabilities**:
+- Cache-first lookup with hierarchical deduplication to prevent repetitive hunting.
+- Multi-dimensional scoring, success prediction, and continuous calibration.
+- Recursive meta-hunting (KAS improving its own acquisition methods).
+- Layer-specialized hunts (see dedicated KAS specification for deep dives and examples).
+
+KAS is the nervous system that keeps SAGE adaptive and future-resilient, actively sensing obsolescence and folding new research into every subsystem in a controlled, compounding way.
+
 ## Operations — The Operating System Layer
 Operations is not a traditional subsystem — it is the intelligent operating system layer that makes the entire SAGE platform practical, scalable, and accessible at every level of participation.
 
