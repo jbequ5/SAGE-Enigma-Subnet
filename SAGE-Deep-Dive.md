@@ -40,11 +40,6 @@ This tells the story of how SAGE actually works — from the smallest worker all
 
 ![SAGE System Hierarchy](IMG_1094.png) 
 
-**Flow Legend**  
-**↑ Upward** = Raw data, enriched fragments, telemetry, calibration signals  
-**↓ Downward** = Meta-weights, distilled models, templates, updated strategies  
-**Cross** = Controlled message bus between parallel instances (verifier-checked insights)
-
 ### How the Flows Work in Practice
 
 **Upward (Learning Path)**  
