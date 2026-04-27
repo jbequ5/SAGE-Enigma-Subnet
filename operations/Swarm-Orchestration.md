@@ -50,8 +50,22 @@ Instance recovers quickly and contributes a high-signal fragment. The swarm cont
 
 ---
 
-**Key Decision Formulas (Reference)**  
-- **Swarm Health Score** — Real-time composite of progress, resource usage, and EFS trajectory.  
-- **Recovery Priority Score** — Determines when to restart, reassign, or merge approaches.  
-Both are actively tuned by Meta-RL based on downstream swarm outcomes and Economic Subsystem feedback.
+### Reference: Key Decision Formulas
 
+**1. Swarm Health Score** (real-time monitoring)  
+`Swarm Health Score = 0.40 × Progress Velocity + 0.30 × EFS Trajectory + 0.20 × Resource Utilization Efficiency + 0.10 × Communication Quality`  
+- **Progress Velocity**: Normalized rate of verifier-passing fragments and benchmark improvement.  
+- **EFS Trajectory**: Short-term EFS trend across the swarm.  
+- **Resource Utilization Efficiency**: How close the swarm is to optimal compute usage without thrashing.  
+- **Communication Quality**: Verifier-checked insight usefulness and low redundancy.  
+**Optimizes**: Early detection of stalls or failures so the Orchestrator can intervene before wasted compute.  
+**Meta-RL Tuning**: Weights are adjusted based on correlation with final swarm EFS and Economic Subsystem contribution.
+
+**2. Recovery Priority Score** (dynamic recovery decisions)  
+`Recovery Priority Score = 0.35 × Stall Severity + 0.30 × Instance Health Delta + 0.20 × Profile Redundancy + 0.15 × Resource Cost of Recovery`  
+- **Stall Severity**: How far the instance has fallen behind the swarm median.  
+- **Instance Health Delta**: Change in individual EFS / progress over the last interval.  
+- **Profile Redundancy**: How similar this profile is to others (lower = higher priority for recovery).  
+- **Resource Cost of Recovery**: Estimated compute cost of restart vs. merge vs. reassignment.  
+**Optimizes**: Decides the best action (restart, reassign profile, merge with another approach, or reduce swarm size) to minimize downtime and maximize overall swarm value.  
+**Meta-RL Tuning**: Updated daily using real recovery success rate and downstream EFS lift data.
