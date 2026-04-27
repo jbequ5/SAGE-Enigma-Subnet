@@ -79,3 +79,7 @@ If |Local Score - Global Re-Score| > 0.08 → flag for AHE review or downgrade.
 `Final Score = 0.6 × Base EFS + 0.4 × Refined Value-Added`  
 **Optimizes**: Balances immediate quality with predicted future impact.  
 **Meta-RL Tuning**: Coefficients tuned based on actual downstream Economic contribution.
+
+**Notes on SOTA vs. Current Codebase**  
+- The above reflects **exact current codebase implementation** (DVRDryRunSimulator, `_safe_exec`, `_compute_verifier_quality`, global tolerance 0.08, snippet self-validation, composability checker).  
+- Optimal/SOTA enhancement opportunity (not yet implemented): Add predictive success forecasting (using PredictiveIntelligenceLayer) before dry-run to prioritize high-ROI subtasks earlier — this would further reduce compute waste and is a natural next step for the Operations Layer.
