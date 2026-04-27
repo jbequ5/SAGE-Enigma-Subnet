@@ -5,17 +5,6 @@
 **Version 0.9.13-FeedbackUpdate1**  
 **Last Updated:** April 24, 2026
 
-### Role in SAGE
-The Knowledge Acquisition Subsystem (KAS) is SAGE’s dedicated, self-improving intelligence acquisition engine. It continuously senses gaps across all layers, acquires high-signal knowledge (tools, models, research, datasets, patterns, meta-strategies), scores and predicts its value, calibrates its own performance, and recursively improves its acquisition methods.
-
-KAS operates as a **meta-tool**: the same engine is invoked at every layer with rich, context-injected prompts. Tool hunting is concentrated at the EM/atomic-worker level; higher layers focus on knowledge, patterns, and meta-insights. All outputs are standardized, provenance-tracked fragments that flow upward through Solve/Strategy and feed the global intelligence loop.
-
-KAS is the nervous system that keeps SAGE adaptive and future-resilient without manual intervention or repetitive low-value work.
-# Knowledge Acquisition Subsystem (KAS) — Full Technical Specification
-**SAGE — Shared Agentic Growth Engine**  
-**v0.9.13+**  
-**Last Updated:** April 27, 2026
-
 ### Investor Summary — Why This Matters
 The Knowledge Acquisition Subsystem (KAS) is SAGE’s dedicated, self-improving intelligence acquisition engine. It continuously senses gaps, hunts for high-signal knowledge (tools, models, research, datasets, patterns), scores and predicts its value, and folds it into the right layer of the system. In simulations, effective KAS usage increases overall EFS and polished toolkit quality by 35–60%, directly improving Economic Subsystem outputs. For investors, KAS is a core competitive advantage — the mechanism that keeps SAGE adaptive, future-resilient, and continuously absorbing external progress without manual intervention or repetitive noise.
 
@@ -24,14 +13,12 @@ KAS is a reusable, context-aware acquisition service invoked at every layer of S
 
 ## Six Core Documents (Navigation)
 
-- **[Targeted KAS Hunts & Contextual Search](./kas/Targeted-KAS-Hunts.md)** — Decision logic and hunt triggering
-- **[Scoring, Prediction & Calibration](./kas/Scoring-Prediction-Calibration.md)** — Multi-dimensional scoring and success prediction
-- **[Hierarchical & Layer-Specific Usage](./kas/Hierarchical-Usage.md)** — How KAS behaves differently at each layer
-- **[Recursive Mechanisms & Meta-Learning](./kas/Recursive-Meta-Learning.md)** — Self-improvement and recursion
-- **[Safety, Governance & Lean Operation](./kas/Safety-Governance-Lean.md)** — Guardrails, recursion controls, and efficiency
-- **[Main KAS Architecture](./kas/Main-KAS-Architecture.md)** — System flows and integration
-
----
+- **[Targeted KAS Hunts & Contextual Search](../Knowledge-Acquisition/Targeted-KAS-Hunts.md)** — Decision logic and hunt triggering
+- **[Scoring, Prediction & Calibration](../Knowledge-Acquisition/Scoring-Prediction-Calibration.md)** — Multi-dimensional scoring and success prediction
+- **[Hierarchical & Layer-Specific Usage](../Knowledge-Acquisition/Hierarchical-Usage.md)** — How KAS behaves differently at each layer
+- **[Recursive Mechanisms & Meta-Learning](../Knowledge-Acquisition/Recursive-Meta-Learning.md)** — Self-improvement and recursion
+- **[Safety, Governance & Lean Operation](../Knowledge-Acquisition/Safety-Governance-Lean.md)** — Guardrails, recursion controls, and efficiency
+- **[Main KAS Architecture](../Knowledge-Acquisition/Main-KAS-Architecture.md)** — System flows and integration
 
 ## High-Level Architecture
 
@@ -52,11 +39,6 @@ This design ensures leanness (cache-first), intelligence (context-aware + predic
 - **Recursive Self-Improvement**: KAS improves its own acquisition methods over time.
 - **Verifier-First & Provenance**: All outputs are scored, sandbox-tested where appropriate, and fully traceable.
 
-**Economic Impact at a Glance**  
-- Target: 35–60% improvement in EFS and polished toolkit quality  
-- Success Milestone (60 days): ≥ 80% of KAS calls resolved via cache or high-confidence hunts
-
-**All detailed mechanics are covered in the linked deep-dive documents above.**
 ### Core Engine
 A single, lightweight, reusable acquisition service (invoked via API or internal calls) that:
 - Accepts rich, layer-specific prompts + full context (challenge hash, approach profile, telemetry summary, tuning.md level, etc.).
