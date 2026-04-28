@@ -1,8 +1,3 @@
-# agents/embodiment.py - v0.9.7 MAXIMUM SOTA Embodiment Modules
-# NeurogenesisArbos + MicrobiomeLayer + VagusFeedbackLoop
-# Fully verifier-first, EFS/c/θ/heterogeneity-driven, contract-aware, graph-integrated,
-# predictive-aware, vault-routing, PD Arm triggering, and Grail-promoting.
-
 import time
 import threading
 import psutil
@@ -17,7 +12,7 @@ from agents.tools.resource_aware import ResourceMonitor
 logger = logging.getLogger(__name__)
 
 class NeurogenesisArbos:
-    """Episodic structural plasticity — spawns new conceptual branches and wiki primitives on strong oracle signals."""
+    """Episodic structural plasticity — spawns new conceptual branches on strong oracle signals."""
     def __init__(self):
         self.spawned_count = 0
         self.high_delta_threshold = 0.78
@@ -33,7 +28,6 @@ class NeurogenesisArbos:
             score = oracle_result.get("validation_score", 0.0) if oracle_result else 0.0
 
             if efs < self.high_delta_threshold or c < 0.78 or hetero < 0.68 or score < 0.82:
-                logger.debug("Neurogenesis skipped — insufficient oracle signal")
                 return None
 
             self.spawned_count += 1
@@ -58,7 +52,7 @@ class NeurogenesisArbos:
 
             logger.info(f"🧠 Neurogenesis spawned new branch (ID {self.spawned_count}, EFS={efs:.3f}, c={c:.3f})")
 
-            # SOTA: Route high-signal spawn to Vaults
+            # SOTA: Route high-signal spawn to Vaults + PD Arm
             if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'intelligence'):
                 run_data = {
                     "insight_score": efs,
@@ -70,7 +64,6 @@ class NeurogenesisArbos:
                 }
                 self.arbos.intelligence.route_to_vaults(run_data)
 
-            # Trigger PD Arm synthesis for new branch curriculum/tool
             if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'pd_arm'):
                 self.arbos.pd_arm.synthesize_product(
                     vault_data=[], 
@@ -79,8 +72,7 @@ class NeurogenesisArbos:
 
             return pattern
 
-        except Exception as e:
-            logger.debug(f"Neurogenesis spawn skipped (safe): {e}")
+        except Exception:
             return None
 
 
@@ -96,7 +88,6 @@ class MicrobiomeLayer:
         """Ferment novelty only when resources allow and oracle signal is healthy."""
         try:
             if self.monitor.elapsed_hours() > 3.0 or self.monitor.get_available_vram_gb() < 9.0:
-                logger.debug("Microbiome skipping — resources strained")
                 return None
 
             hetero = oracle_result.get("heterogeneity_score", 0.72) if oracle_result else 0.72
@@ -104,7 +95,6 @@ class MicrobiomeLayer:
             score = oracle_result.get("validation_score", 0.0) if oracle_result else 0.0
 
             if hetero < 0.68 or efs < 0.60 or score < 0.75:
-                logger.debug("Microbiome skipping — insufficient signal for safe novelty")
                 return None
 
             self.novelty_injections += 1
@@ -122,7 +112,6 @@ class MicrobiomeLayer:
 
             logger.info(f"🍄 Microbiome fermented novelty injection #{self.novelty_injections} (EFS={efs:.3f}, hetero={hetero:.3f})")
 
-            # Route to Vaults if strong injection
             if hasattr(self, 'arbos') and self.arbos and hasattr(self.arbos, 'intelligence') and hetero > 0.75:
                 run_data = {
                     "insight_score": efs,
@@ -136,13 +125,12 @@ class MicrobiomeLayer:
 
             return injection
 
-        except Exception as e:
-            logger.debug(f"Microbiome ferment skipped (safe): {e}")
+        except Exception:
             return None
 
 
 class VagusFeedbackLoop:
-    """Bidirectional hardware + confidence feedback loop — now tightly tied to real C3A, θ, EFS, and predictive power."""
+    """Bidirectional hardware + confidence feedback loop — tied to real C3A, θ, EFS, and predictive power."""
     def __init__(self):
         self.monitor = ResourceMonitor(max_hours=3.8)
         self.stress_level = 0.0
@@ -154,4 +142,31 @@ class VagusFeedbackLoop:
             elapsed = self.monitor.elapsed_hours()
             vram = self.monitor.get_available_vram_gb()
             cpu = psutil.cpu_percent(interval=0.5)
-            mem = psutil
+            mem = psutil.virtual_memory().percent
+
+            efs = oracle_result.get("efs", 0.65) if oracle_result else 0.65
+            predictive = getattr(self.monitor.predictive, 'predictive_power', 0.0) if hasattr(self.monitor, 'predictive') else 0.0
+
+            # Stress calculation
+            self.stress_level = (cpu * 0.3 + mem * 0.3 + (100 - vram * 2) * 0.2 + (4.0 - elapsed) * 0.2)
+            self.stress_level = max(0.0, min(1.0, self.stress_level))
+
+            if self.stress_level > 0.75:
+                logger.warning(f"🫀 Vagus stress high ({self.stress_level:.2f}) — EFS={efs:.3f}, Predictive={predictive:.3f}")
+
+            return {
+                "stress_level": round(self.stress_level, 3),
+                "cpu": round(cpu, 1),
+                "mem": round(mem, 1),
+                "vram_gb": round(vram, 2),
+                "elapsed_hours": round(elapsed, 3)
+            }
+
+        except Exception:
+            return {"stress_level": 0.0, "status": "monitoring_error"}
+
+
+# Global instances
+neurogenesis = NeurogenesisArbos()
+microbiome = MicrobiomeLayer()
+vagus = VagusFeedbackLoop()
