@@ -1,17 +1,12 @@
-# agents/business_dev.py
-# v0.9.11 MAXIMUM SOTA BusinessDev Wing
-# Uses fragmented graph (ByteRover MAU + NetworkX), predictive signals,
-# intelligent lead scoring, CRM tracking, and tight PD Arm synthesis.
-# Fully wired with ArbosManager for traces, memory, and flywheel closure.
-
 import logging
-from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
 class BusinessDev:
+    """SOTA BusinessDev Wing — graph-driven hunt cycle, predictive scoring, PD Arm synthesis, and vault routing."""
+
     def __init__(self, arbos_manager=None):
         self.arbos = arbos_manager
         self.tool_hunter = getattr(arbos_manager, "tool_hunter", None)
@@ -21,19 +16,16 @@ class BusinessDev:
         self.intelligence = getattr(arbos_manager, "intelligence", None)
         self.pd_arm = getattr(arbos_manager, "pd_arm", None)
 
-        # Simple CRM for lead tracking
-        self.crm = SimpleCRM() if 'SimpleCRM' in globals() else self._fallback_crm()
+        # Simple in-memory CRM for lead tracking
+        self.crm = self._fallback_crm()
 
         # Wire back to ToolHunter for bidirectional flow
         if self.tool_hunter:
             self.tool_hunter.business_dev = self
-            if self.predictive:
-                self.tool_hunter.predictive = self.predictive
 
-        logger.info("📈 BusinessDev Wing v0.9.11 SOTA — full graph intelligence + predictive flywheel enabled")
+        logger.info("📈 BusinessDev Wing v0.9.13+ SOTA — full graph intelligence + predictive flywheel enabled")
 
     def _fallback_crm(self):
-        """Simple in-memory CRM fallback if SimpleCRM is not available."""
         class FallbackCRM:
             def __init__(self):
                 self.leads = []
