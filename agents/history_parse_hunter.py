@@ -1,8 +1,4 @@
-# agents/history_parse_hunter.py - v0.9.7 MAXIMUM SOTA HistoryParseHunter + Replay Execution
-# Fully verifier-first, sandboxed deterministic replays, contract-aware retrospective scoring, 
-# deep integration with Grail + Meta-Tuning + Graph + Predictive + Vaults + PD Arm + Flywheel.
-
-import json
+# agentsimport json
 from pathlib import Path
 from datetime import datetime
 import logging
@@ -12,8 +8,7 @@ from typing import Dict, Any, List, Optional
 logger = logging.getLogger(__name__)
 
 class HistoryParseHunter:
-    """Advanced replay engine and retrospective analyzer — now deeply tied to the verifiability contract,
-    real oracle metrics, fragmented graph, predictive layer, VaultRouter, and Economic Flywheel."""
+    """SOTA HistoryParseHunter — replay engine and retrospective analyzer with full oracle, graph, predictive, vault, and Grail integration."""
 
     def __init__(self, validator, arbos_manager=None):
         self.validator = validator
@@ -26,8 +21,7 @@ class HistoryParseHunter:
         self.retrospective_dir.mkdir(parents=True, exist_ok=True)
         self.mp4_backlog = Path("memdir/mp4_backlog")
         self.mp4_backlog.mkdir(parents=True, exist_ok=True)
-        self.replay_history = []
-        logger.info("✅ HistoryParseHunter v0.9.7 MAX SOTA initialized — full oracle + graph + predictive + vault integration active")
+        logger.info("✅ HistoryParseHunter v0.9.13+ SOTA initialized — full oracle + graph + predictive + vault integration active")
 
     def trigger_retrospective(self, run_id: str = None, oracle_result: dict = None, verifiability_contract: dict = None):
         """Main entry point — triggered from _end_of_run or re_adapt on high-signal or stall events."""
@@ -46,15 +40,15 @@ class HistoryParseHunter:
         if verifiability_contract is None:
             verifiability_contract = getattr(self.validator.arbos, "_current_strategy", {}).get("verifiability_contract", {}) if hasattr(self.validator, "arbos") else {}
 
-        # Quality gate — only run retrospective on meaningful runs
+        # Quality gate
         if oracle_result.get("efs", 0.0) < 0.55 or oracle_result.get("validation_score", 0.0) < 0.65:
             logger.debug("Retrospective skipped — insufficient oracle signal")
             return {"status": "skipped", "reason": "low_signal"}
 
-        # 1. Run deterministic sandboxed replays on recent high-signal trajectories
+        # 1. Run deterministic sandboxed replays
         replay_results = self._run_sandboxed_replays(verifiability_contract)
 
-        # 2. Compute retrospective score using exact same EFS/C3A/θ formulas as the oracle
+        # 2. Compute retrospective score using exact same EFS/C3A/θ formulas
         retrospective_score = self._compute_retrospective_score(replay_results, oracle_result)
 
         # 3. Generate actionable insights
@@ -103,7 +97,6 @@ class HistoryParseHunter:
         """Run deterministic replays using the full ValidationOracle sandbox."""
         replays = []
         try:
-            # Pull recent high-signal trajectories (adapt to your actual memory/graph implementation)
             recent_trajectories = self._get_recent_high_signal_trajectories()[:8]
             for traj in recent_trajectories:
                 candidate = traj.get("solution", "") or str(traj)
@@ -202,7 +195,3 @@ class HistoryParseHunter:
         except Exception as e:
             logger.debug(f"MP4 audit skipped (safe): {e}")
         return audit
-
-
-# Global instance (validator + arbos_manager injected at runtime in ArbosManager)
-history_hunter = HistoryParseHunter(None)
