@@ -1,8 +1,3 @@
-# agents/predictive_intelligence_layer.py
-# v0.9.11 MAXIMUM SOTA ALGORITHMIC INTELLIGENCE LAYER
-# Full real-data driven ensemble, DEAP evolutionary tuning, ARIMA, NetworkX, SymPy,
-# deep graph/vault integration, 7D verifier signals, and closed-loop flywheel signals.
-
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -24,6 +19,8 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 class PredictiveIntelligenceLayer:
+    """SOTA Predictive Intelligence Layer — real-data ensemble, DEAP evolutionary tuning, ARIMA/SymPy/NetworkX, 7D signals, and full flywheel routing."""
+
     def __init__(self, arbos_manager=None):
         self.arbos = arbos_manager
         self.rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
@@ -40,7 +37,7 @@ class PredictiveIntelligenceLayer:
         self.prize_pool_forecast = 0.0
         self.conversion_forecast = 0.0
         self.demand_graph = nx.DiGraph()
-        logger.info("🚀 PredictiveIntelligenceLayer v0.9.11 MAX SOTA — fully expanded with real system data, graph, and 7D signals.")
+        logger.info("🚀 PredictiveIntelligenceLayer v0.9.13+ SOTA — fully expanded with real system data, graph, and 7D signals.")
 
     def update_from_run(self, run_data: Dict) -> float:
         """Maximum real data ingestion from validator, memory, fragment tracker, and graph."""
@@ -61,11 +58,10 @@ class PredictiveIntelligenceLayer:
             "theta_dynamic": run_data.get("theta_dynamic", 0.0),
             "alpha_demand_impact": run_data.get("alpha_demand_impact", 0.0),
             "run_duration": run_data.get("duration_seconds", 0.0),
-            "verifier_quality": run_data.get("verifier_quality", 0.0)  # 7D signal
+            "verifier_quality": run_data.get("verifier_quality", 0.0)
         }
 
         self.historical_data = pd.concat([self.historical_data, pd.DataFrame([new_row])], ignore_index=True)
-        # Keep only last 500 runs for performance
         if len(self.historical_data) > 500:
             self.historical_data = self.historical_data.iloc[-500:]
 
@@ -78,13 +74,11 @@ class PredictiveIntelligenceLayer:
         return self.predictive_power
 
     def _get_real_heterogeneity(self) -> float:
-        """Pull real heterogeneity from fragment tracker / memory graph."""
         if hasattr(self.arbos, 'fragment_tracker') and hasattr(self.arbos.fragment_tracker, 'get_average_heterogeneity'):
             return self.arbos.fragment_tracker.get_average_heterogeneity()
-        return 0.72  # sensible default
+        return 0.72
 
     def _train_models(self):
-        """Train ensemble on real historical data."""
         feature_cols = ["efs", "validation_score", "fidelity", "heterogeneity",
                        "fragments_count", "mau_score", "freshness_avg", "c3a_confidence", "verifier_quality"]
         X = self.historical_data[feature_cols]
@@ -93,11 +87,11 @@ class PredictiveIntelligenceLayer:
         self.gb_model.fit(X, y)
 
     def _evolutionary_tune_hyperparameters(self):
-        """Full DEAP evolutionary hyperparameter tuning using real data."""
+        """DEAP evolutionary hyperparameter tuning using real data."""
         if not DEAP_AVAILABLE or len(self.historical_data) < 20:
             return
         try:
-            # Clean creator to avoid repeated run errors
+            # Clean creator
             for name in ["FitnessMax", "Individual"]:
                 if name in creator.__dict__:
                     del creator.__dict__[name]
@@ -163,7 +157,7 @@ class PredictiveIntelligenceLayer:
             logger.warning(f"DEAP tuning failed (safe): {e}")
 
     def _forecast_all(self):
-        """Full ensemble forecasting with all algorithms."""
+        """Full ensemble forecasting with ARIMA, SymPy, NetworkX."""
         if len(self.historical_data) < 8:
             return
 
@@ -174,7 +168,7 @@ class PredictiveIntelligenceLayer:
         gb_pred = float(self.gb_model.predict(X_latest)[0])
         ensemble_pred = (rf_pred + gb_pred) / 2.0
 
-        # ARIMA forecast
+        # ARIMA
         try:
             model = sm.tsa.ARIMA(self.historical_data["efs"].astype(float), order=(2,1,1))
             model_fit = model.fit(disp=False)
@@ -190,7 +184,7 @@ class PredictiveIntelligenceLayer:
         except:
             self.conversion_forecast = ensemble_pred
 
-        # NetworkX demand graph propagation
+        # NetworkX demand graph
         self.demand_graph.add_node("current", demand=ensemble_pred, weight=1.0)
         if len(self.demand_graph) > 3:
             pr = nx.pagerank(self.demand_graph, alpha=0.85, weight='weight')
@@ -230,8 +224,7 @@ class PredictiveIntelligenceLayer:
         if hasattr(self.arbos, 'intelligence') and self.arbos.intelligence:
             self.arbos.intelligence.route_to_vaults({
                 "insight_score": self.predictive_power,
-                "key_takeaway": f"SOTA predictive ensemble | EFS={self.historical_data['efs'].iloc[-1]:.3f if len(self.historical_data)>0 else 0} | "
-                               f"Demand={self.market_demand_signal:.4f}",
+                "key_takeaway": f"SOTA predictive ensemble | EFS={self.historical_data['efs'].iloc[-1]:.3f if len(self.historical_data)>0 else 0} | Demand={self.market_demand_signal:.4f}",
                 "predictive_power": self.predictive_power,
                 "flywheel_step": "predictive_to_pd_vaults"
             })
@@ -241,6 +234,3 @@ class PredictiveIntelligenceLayer:
                 "predictive_power": self.predictive_power,
                 "forecast": self.forecast_value_return()
             })
-
-# Global instance
-predictive_layer = PredictiveIntelligenceLayer()
