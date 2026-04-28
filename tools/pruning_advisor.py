@@ -1,8 +1,3 @@
-# tools/pruning_advisor.py
-# v0.9.11 MAXIMUM SOTA Pruning Advisor
-# Data-driven, per-fragment impact scoring, ROI/EFS deltas, replay rates, wiki health,
-# dynamic toggle recommendations, and VaultRouter integration.
-
 import json
 from pathlib import Path
 from datetime import datetime
@@ -12,8 +7,10 @@ from typing import Dict, Any
 logger = logging.getLogger(__name__)
 
 class PruningAdvisor:
+    """SOTA Pruning Advisor — data-driven per-fragment impact scoring, ROI/EFS deltas, toggle recommendations, and vault routing."""
+
     def __init__(self, arbos=None):
-        self.arbos = arbos  # Access to fragment_tracker, validator, predictive, memory_layers, etc.
+        self.arbos = arbos
         self.pruning_log_path = Path("goals/knowledge/pruning_log.json")
         self._load_log()
 
@@ -22,7 +19,7 @@ class PruningAdvisor:
             try:
                 self.log = json.loads(self.pruning_log_path.read_text(encoding="utf-8"))
             except Exception as e:
-                logger.warning(f"Failed to load pruning log: {e}")
+                logger.warning(f"Failed to load pruning log (safe): {e}")
                 self.log = {"fragments": {}, "modules": {}, "toggles": {}, "last_updated": ""}
         else:
             self.log = {"fragments": {}, "modules": {}, "toggles": {}, "last_updated": ""}
@@ -33,7 +30,7 @@ class PruningAdvisor:
         self.pruning_log_path.write_text(json.dumps(self.log, indent=2), encoding="utf-8")
 
     def analyze_run(self, oracle_result: dict, run_data: dict) -> dict:
-        """v0.9.11 Full analysis using real per-fragment impact scores, ROI/EFS deltas, replay rates, and wiki health."""
+        """Full analysis using real per-fragment impact scores, ROI/EFS deltas, replay rates, and wiki health."""
         efs = oracle_result.get("efs", 0.0)
         score = oracle_result.get("validation_score", 0.0)
         predictive_power = getattr(self.arbos, 'predictive_power', 0.0) if self.arbos else 0.0
@@ -144,7 +141,6 @@ class PruningAdvisor:
 
     def _assess_wiki_health(self) -> dict:
         """Wiki health assessment (size, bloat, fragment utilization)."""
-        # Placeholder — can be expanded with real directory stats + fragment_tracker data
         return {
             "status": "healthy",
             "fragment_utilization": "good",
