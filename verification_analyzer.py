@@ -1,8 +1,3 @@
-# agents/verification_analyzer.py
-# v0.9.11 MAXIMUM SOTA VerificationAnalyzer
-# Single source of truth for challenge analysis, strategy generation, 
-# verifier-first contract creation, 7D signals, graph integration, and predictive-aware hints.
-
 import re
 import json
 import logging
@@ -13,15 +8,17 @@ from typing import Dict, Any, List
 logger = logging.getLogger(__name__)
 
 class VerificationAnalyzer:
+    """SOTA VerificationAnalyzer — single source of truth for challenge analysis, verifier-first contract creation, 7D signals, and deterministic-first hints."""
+
     def __init__(self, goal_file: str = "goals/killer_base.md"):
         self.goal_content = self._load_goal(goal_file)
-        logger.info(f"✅ VerificationAnalyzer v0.9.11 MAX SOTA initialized — goal file: {goal_file}")
+        logger.info(f"✅ VerificationAnalyzer v0.9.13+ SOTA initialized — goal file: {goal_file}")
 
     def _load_goal(self, path: str) -> str:
         try:
             return Path(path).read_text(encoding="utf-8")
         except Exception as e:
-            logger.warning(f"Could not load goal file {path}: {e}")
+            logger.warning(f"Could not load goal file {path} (safe fallback): {e}")
             return ""
 
     def analyze(self, verification_instructions: str = "", challenge: str = "") -> Dict[str, Any]:
@@ -45,10 +42,9 @@ class VerificationAnalyzer:
             "verifier_code_snippets": [],
             "difficulty_level": "medium",
             "requires_deterministic_first": True,
-            # v0.9.11 additions
             "hybrid_ingestion_hints": [],
             "pattern_surfacing_hints": [],
-            "verifier_quality_signals": {}  # 7D signals
+            "verifier_quality_signals": {}
         }
 
         # 1. Extract verifier code blocks (highest priority)
@@ -72,9 +68,9 @@ class VerificationAnalyzer:
         for pattern in tool_patterns:
             tools = re.findall(pattern, text_lower)
             strategy["recommended_tools"].extend(tools)
-        strategy["recommended_tools"] = list(dict.fromkeys(strategy["recommended_tools"]))  # dedup
+        strategy["recommended_tools"] = list(dict.fromkeys(strategy["recommended_tools"]))
 
-        # 4. Auto-detect difficulty level with more signals
+        # 4. Auto-detect difficulty level
         difficulty_keywords = {
             "high": ["break", "crack", "decrypt", "bitcoin", "btc", "rsa", "private key", "collision", "preimage", "invert", "solve for", "quantum", "shor", "grover", "post-quantum", "np-hard", "undecidable"],
             "medium": ["optimize", "quantum", "circuit", "simulation", "large scale", "complex", "cryptographic", "hash", "stabilizer", "invariant"],
@@ -97,19 +93,17 @@ class VerificationAnalyzer:
         # 5. Flag if deterministic tooling should be prioritized
         if strategy["verifier_code_snippets"] or any(t in text_lower for t in ["sympy", "deterministic", "verifier", "assert", "z3", "pulp"]):
             strategy["requires_deterministic_first"] = True
-        else:
-            strategy["requires_deterministic_first"] = False
 
-        # 6. v0.9.11 hybrid ingestion & pattern surfacing hints
+        # 6. Hybrid ingestion & pattern surfacing hints
         if any(k in text_lower for k in ["evoagent", "sakana", "genome", "paper", "archive", "huggingface"]):
             strategy["hybrid_ingestion_hints"].append("external_genome_detected")
         if any(k in text_lower for k in ["resonance", "photoelectric", "microtubule", "kruse", "pattern", "invariant cluster", "fractal"]):
             strategy["pattern_surfacing_hints"].append("multi_scale_pattern_opportunity")
 
-        # 7. Generate full verifiability spec (single source of truth)
+        # 7. Generate full verifiability spec
         strategy["verifiability_spec"] = self._generate_verifiability_spec(challenge, verification_instructions)
 
-        # 8. Populate 7D verifier quality signals (for downstream scoring)
+        # 8. Populate 7D verifier quality signals
         strategy["verifier_quality_signals"] = {
             "edge_coverage_target": 0.75,
             "invariant_tightness_target": 0.70,
@@ -119,19 +113,16 @@ class VerificationAnalyzer:
             "efs_target": 0.65
         }
 
-        logger.info(f"VerificationAnalyzer completed — difficulty: {strategy['difficulty_level']}, "
-                   f"verifier snippets: {len(strategy['verifier_code_snippets'])}, "
-                   f"deterministic first: {strategy['requires_deterministic_first']}")
+        logger.info(f"VerificationAnalyzer completed — difficulty: {strategy['difficulty_level']}, verifier snippets: {len(strategy['verifier_code_snippets'])}, deterministic first: {strategy['requires_deterministic_first']}")
 
         return strategy
 
     def _generate_verifiability_spec(self, challenge: str, instructions: str) -> Dict[str, Any]:
-        """PhD-rigorous, machine-readable contract generated from every challenge.
-        This is the single source of truth for artifacts, composability, dry-run criteria, and stigmergic learning."""
+        """PhD-rigorous, machine-readable contract generated from every challenge."""
         return {
             "version": "1.1",
             "challenge_summary": challenge[:600],
-            "artifacts_required": [],  # populated dynamically by orchestrator self-dialogue / decomposition
+            "artifacts_required": [],
             "composability_rules": [
                 "No internal state contradictions between artifacts",
                 "Clear merge interfaces defined in each artifact schema",
