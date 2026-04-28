@@ -1,8 +1,3 @@
-# agents/meta_tuning_arbos.py
-# v0.9.11 MAXIMUM SOTA Meta-Tuning Arbos
-# Fully verifier-first, graph-aware, predictive-integrated, vault-routing,
-# evolutionary tournament with DEAP linkage, Grail-promoting, and flywheel-aware.
-
 import json
 import random
 from pathlib import Path
@@ -13,15 +8,17 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 class MetaTuningArbos:
+    """SOTA Meta-Tuning Arbos — evolutionary tournament, genome persistence, graph/predictive integration, and full flywheel routing."""
+
     GENOME_PATH = Path("goals/brain/tuning_genome.json")
-   
+
     def __init__(self, validator, arbos_manager=None):
         self.validator = validator
         self.arbos = arbos_manager
         self.predictive = getattr(arbos_manager, 'predictive', None)
         self.intelligence = getattr(arbos_manager, 'intelligence', None)
         self.genome = self._load_genome()
-        logger.info(f"MetaTuningArbos v0.9.11 MAX SOTA initialized — EFS weights: {self.genome.get('efs_weights', {})}")
+        logger.info(f"MetaTuningArbos v0.9.13+ SOTA initialized — EFS weights: {self.genome.get('efs_weights', {})}")
 
     def _load_genome(self):
         if self.GENOME_PATH.exists():
@@ -31,7 +28,7 @@ class MetaTuningArbos:
                 pass
         # Strong default genome aligned with ValidationOracle + graph/predictive signals
         default = {
-            "version": "v0.9.11-graph-predictive-flywheel",
+            "version": "v0.9.13-graph-predictive-flywheel",
             "efs_weights": {"V": 0.300, "S": 0.175, "H": 0.175, "C": 0.175, "E": 0.175},
             "last_tuning": str(datetime.now().isoformat()),
             "mutation_rate": 0.16,
@@ -49,7 +46,7 @@ class MetaTuningArbos:
         logger.info(f"Meta genome saved (version {genome.get('version')})")
 
     def compute_efs(self, metrics: dict = None) -> float:
-        """Exact same EFS formula as ValidationOracle, but pulls real graph + predictive data."""
+        """Exact EFS formula aligned with ValidationOracle, pulling real graph + predictive data."""
         if metrics is None:
             metrics = {
                 "V": getattr(self.validator, "last_fidelity", 0.0) or getattr(self.validator, "last_score", 0.0),
@@ -58,7 +55,6 @@ class MetaTuningArbos:
                 "C": 0.78,
                 "E": getattr(self.arbos, 'mau_per_token', 0.85)
             }
-        # Use validator's exact EFS method if available
         if hasattr(self.validator, '_compute_efs'):
             return self.validator._compute_efs(
                 fidelity=metrics.get("V", 0.0),
@@ -67,13 +63,11 @@ class MetaTuningArbos:
                 mean_delta_retro=metrics.get("C", 0.0),
                 mau_per_token=metrics.get("E", 0.0)
             )
-        # Fallback with full signals
         return (0.3 * metrics.get("V", 0.0) +
                 0.175 * (metrics.get("S", 0.0) + metrics.get("H", 0.0) +
                         metrics.get("C", 0.0) + metrics.get("E", 0.0)))
 
     def _get_real_heterogeneity(self) -> float:
-        """Pull real heterogeneity from the fragmented graph."""
         if hasattr(self.arbos, 'fragment_tracker') and hasattr(self.arbos.fragment_tracker, 'get_average_heterogeneity'):
             return self.arbos.fragment_tracker.get_average_heterogeneity()
         return 0.72
@@ -126,7 +120,7 @@ class MetaTuningArbos:
                 }
                 self.intelligence.route_to_vaults(run_data)
 
-            # Trigger Product Development Arm (new tuning curriculum/tool)
+            # Trigger Product Development Arm
             if self.arbos and hasattr(self.arbos, 'pd_arm'):
                 self.arbos.pd_arm.synthesize_product(
                     vault_data=[],
