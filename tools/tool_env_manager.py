@@ -1,8 +1,3 @@
-# tools/tool_env_manager.py
-# v0.9.11 MAXIMUM SOTA ToolEnvManager
-# Safe ephemeral/persistent venvs + dynamic registration (one-click add from Streamlit)
-# Full integration with ComputeRouter, ToolHunter, ResourceMonitor, and ArbosManager.
-
 import subprocess
 import venv
 import json
@@ -19,6 +14,8 @@ from agents.tools.resource_aware import resource_monitor
 logger = logging.getLogger(__name__)
 
 class ToolEnvManager:
+    """SOTA ToolEnvManager — safe ephemeral/persistent venvs with dynamic registration and full integration with ComputeRouter / ResourceMonitor."""
+
     def __init__(self):
         self.base_path = Path("~/.enigma_tools").expanduser()
         self.base_path.mkdir(parents=True, exist_ok=True)
@@ -29,14 +26,14 @@ class ToolEnvManager:
         self.registry_path = Path("tools/env_registry.json")
         self.registry = self._load_registry()
        
-        logger.info("✅ ToolEnvManager v0.9.11 MAX SOTA initialized — persistent/ephemeral venvs with dynamic registration")
+        logger.info("✅ ToolEnvManager v0.9.13+ SOTA initialized — persistent/ephemeral venvs with dynamic registration")
 
     def _load_registry(self) -> Dict:
         if self.registry_path.exists():
             try:
                 return json.loads(self.registry_path.read_text(encoding="utf-8"))
             except Exception as e:
-                logger.warning(f"Failed to load env registry: {e}")
+                logger.warning(f"Failed to load env registry (safe): {e}")
         return {}
 
     def _save_registry(self):
@@ -45,15 +42,14 @@ class ToolEnvManager:
 
     def create_or_get_env(self, tool_name: str, persistent: bool = True,
                          requirements: List[str] = None, install_cmd: str = None) -> Dict[str, Any]:
-        """Create or reuse a virtual environment for a tool.
-        Returns dict with status and python executable path."""
+        """Create or reuse a virtual environment for a tool."""
         key = f"{tool_name}_{'persistent' if persistent else 'ephemeral'}"
        
         # Reuse if exists and still valid
         if key in self.registry:
             python_exe = Path(self.registry[key])
             if python_exe.exists():
-                logger.info(f"Reusing existing environment for {tool_name}")
+                logger.debug(f"Reusing existing environment for {tool_name}")
                 return {
                     "status": "success", 
                     "python_exe": str(python_exe), 
@@ -66,7 +62,6 @@ class ToolEnvManager:
         logger.info(f"Creating new {'persistent' if persistent else 'ephemeral'} environment for {tool_name}")
         
         try:
-            # Create venv
             venv.create(env_path, with_pip=True, clear=True)
             python_exe = env_path / ("bin/python" if os.name != "nt" else "Scripts/python.exe")
 
