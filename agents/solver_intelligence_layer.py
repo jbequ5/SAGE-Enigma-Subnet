@@ -1,8 +1,3 @@
-# agents/solver_intelligence_layer.py
-# v0.9.11 MAXIMUM SOTA Graph-Integrated VaultRouter
-# Full real-data driven vault routing with explicit fragment scoring, graph integration,
-# 7D verifier signals, crown jewel detection, and flywheel-aware provenance.
-
 import json
 import logging
 from pathlib import Path
@@ -12,9 +7,11 @@ from typing import Dict, Any, List
 logger = logging.getLogger(__name__)
 
 class SolverIntelligenceLayer:
+    """SOTA SolverIntelligenceLayer — Graph-integrated VaultRouter with explicit fragment scoring, 7D signals, and full flywheel routing."""
+
     def __init__(self, memory_layers=None, fragment_tracker=None):
         self.memory = memory_layers
-        self.fragment_tracker = fragment_tracker  # Full fragmented graph intelligence
+        self.fragment_tracker = fragment_tracker
         self.vault_root = Path("vaults")
         self.vault_root.mkdir(parents=True, exist_ok=True)
        
@@ -25,7 +22,7 @@ class SolverIntelligenceLayer:
             self.vaults[vault] = vault_dir
        
         self.stats = {"publications": 0, "assets": 0, "services": 0, "academy": 0}
-        logger.info("🚀 SolverIntelligenceLayer v0.9.11 MAX SOTA — full graph-integrated VaultRouter with explicit fragment scoring active")
+        logger.info("🚀 SolverIntelligenceLayer v0.9.13+ SOTA — full graph-integrated VaultRouter active")
 
     def _calculate_vault_scores(self, run_data: Dict) -> Dict:
         """Maximum intelligence scoring using predictive, EFS, freshness, heterogeneity, MAU, and 7D signals."""
@@ -35,13 +32,13 @@ class SolverIntelligenceLayer:
         freshness = run_data.get("freshness_avg", 0.7)
         heterogeneity = run_data.get("heterogeneity", 0.0)
         mau = run_data.get("mau_score", 0.0)
-        verifier_quality = run_data.get("verifier_quality", 0.0)  # 7D signal
+        verifier_quality = run_data.get("verifier_quality", 0.0)
 
         return {
             "publications": min(1.0, insight * 0.45 + predictive * 0.35 + freshness * 0.2 + verifier_quality * 0.1),
             "assets": min(1.0, efs * 0.5 + predictive * 0.3 + heterogeneity * 0.2 + verifier_quality * 0.1),
             "services": min(1.0, predictive * 0.55 + insight * 0.3 + freshness * 0.15 + verifier_quality * 0.1),
-            "academy": min(1.0, insight * 0.5 + efs * 0.3 + freshness * 0.2 + verifier_quality * 0.15)  # Crown jewel bias
+            "academy": min(1.0, insight * 0.5 + efs * 0.3 + freshness * 0.2 + verifier_quality * 0.15)
         }
 
     def route_to_vaults(self, run_data: Dict):
@@ -97,7 +94,7 @@ class SolverIntelligenceLayer:
                     "metadata": {**fragment_metadata, "vault": "academy", "crown_jewel": True}
                 })
 
-        logger.info(f"VaultRouter routed + graph-integrated — {routed} | Scores: {{ { {k: round(v, 3) for k, v in scores.items()} } }}")
+        logger.info(f"VaultRouter routed + graph-integrated — {routed} | Scores: { {k: round(v, 3) for k, v in scores.items()} }")
 
     def _append_to_vault(self, vault_name: str, insight: str, run_data: Dict, timestamp: str, crown_jewel: bool = False):
         """Pure append-only with rich provenance and explicit scoring."""
@@ -126,7 +123,6 @@ class SolverIntelligenceLayer:
 
         path.write_text(content, encoding="utf-8")
         self.stats[vault_name] += 1
-        logger.debug(f"Appended to {vault_name} vault: {filename} | Crown Jewel: {crown_jewel}")
 
     def distill_run_insight(self, run_data: Dict) -> str:
         """SOTA insight distillation with key metrics and takeaways."""
