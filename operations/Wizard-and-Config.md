@@ -48,6 +48,3 @@ Miner opens dashboard → selects “Breaking Treasury Wallet (Live)” → Smar
 
 **All supporting architecture is covered in [PerformanceTracker](../operations/Performance-Tracker.md) and [Main Solve Layer Overview](../solve/Main-Solve-Overview.md).**
 
-This is the updated **Wizard-and-Config** document, fully incorporating the new challenge-first flow and PerformanceTracker integration.
-
-Would you like the **next one** (e.g., Smart-LLM-Router.md) now?
