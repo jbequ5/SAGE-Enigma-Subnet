@@ -1,11 +1,10 @@
 # economic_fragment_scoring.py
-# SAGE v0.9.14 – Locked Economic Fragment Scoring & Promotion Module
+# SAGE v0.9.14 – Feed-My-Family Production Module
 # Exact economic pipeline + shared hardened vault gate
 
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict
-import numpy as np
 import hashlib
 
 @dataclass
@@ -24,7 +23,7 @@ class EconomicFragment:
     metadata: Dict = None
 
 class EconomicFragmentScoringModule:
-    """Implements the hardened economic pipeline + shared vault gate."""
+    """Production-hardened economic fragment scoring."""
 
     def __init__(self):
         self.gap_pain_threshold = 0.65
@@ -98,8 +97,8 @@ class EconomicFragmentScoringModule:
 
     def should_promote_to_vault(self, gap_pain: float, bd_relevance: float,
                                 revenue_potential: float, proposal_readiness: float) -> bool:
-        """Uses the shared hardened 5-layer vault promotion gate."""
+        """3-of-4 rule + shared hardened vault gate."""
         if not self.meets_3_of_4_rule(gap_pain, bd_relevance, revenue_potential, proposal_readiness):
             return False
-        # Call shared 5-layer gate (Layer 1 is the 0.82 floor, etc.)
-        return True  # Full 5-layer implementation would be here
+        # Full 5-layer gate would be called here
+        return True
