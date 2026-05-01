@@ -32,15 +32,7 @@ Every fragment carries full provenance. Data flows are narrow and controlled. Hi
 **Core Intelligence Pipeline**: Solve (local gating) → Strategy (global ranking & enrichment) → Defense (global hardening) → Intelligence (Meta-RL + NN + distillation) → Synapse.  
 **Economic Value Pipeline**: Raw BD/PD (local) → central upgrade in Intelligence → Marketplace → Revenue → larger prize pools → new challenges → Solve.
 
-# SAGE System Hierarchy & Intelligent Flows
-
-This tells the story of how SAGE actually works — from the smallest worker all the way up to economic value creation and back down again. It is written to be read end-to-end so you can feel the living system, not just see a list of parts. Every layer has a clear job, clean interfaces, and explicit data/intelligence/knowledge flows.
-
-### Visual Hierarchy
-
-![SAGE System Hierarchy](IMG_1094.png) 
-
-### How the Flows Work in Practice
+## SAGE System Hierarchy & Intelligent Flows
 
 **Upward (Learning Path)**  
 Atomic workers produce fragments → EM instance enriches them → Solve gates → Strategy ranks & mines → Feed Vaults → Intelligence calibrates and improves. This path turns raw execution into global intelligence.
@@ -51,15 +43,9 @@ Intelligence pushes proven improvements (meta-weights, new templates, distilled 
 **Cross-Layer**  
 Operations manages a lightweight, rate-limited message bus so strong approaches can share verifier-checked insights without collapsing into one chatty run. Targeted acquisitions happen at the right layer to avoid repetition.
 
-### Why This Hierarchy Is Powerful
+## The Operations layer 
 
-- **Bottom** stays lightweight → massive parallelism and high Solve data production.  
-- **Middle** provides smart coordination → systematic diversity and collaboration.  
-- **Top** drives deep self-improvement → recursive adaptation and future-proofing.  
-
-Clean interfaces (feed vaults, meta-weights, structured bus) keep everything safe, observable, and compounding. New research or breakthroughs are actively acquired, validated through calibration + shadow testing, and folded in at the right layer without breaking the system.
-
-This hierarchy turns external progress into internal compounding advantage while keeping everything verifier-first and governed
+(Multi-Approach Planner, controlled communication, smart scaling) and KAS (targeted, calibrated knowledge acquisition) act as accelerators across all three flywheels. The result is a self-reinforcing system that grows stronger, more valuable, and more accessible over time — without central control or single points of failure.
 
 ## The Five Subsystems
 
@@ -147,7 +133,7 @@ KAS operates as a **meta-tool** invoked with rich, layer-specific prompts and co
 - Cache-first lookup with hierarchical deduplication to prevent repetitive hunting.
 - Multi-dimensional scoring, success prediction, and continuous calibration.
 - Recursive meta-hunting (KAS improving its own acquisition methods).
-- Layer-specialized hunts (see dedicated KAS specification for deep dives and examples).
+- Layer-specialized hunts.
 
 KAS is the nervous system that keeps SAGE adaptive and future-resilient, actively sensing obsolescence and folding new research into every subsystem in a controlled, compounding way.
 
@@ -167,17 +153,17 @@ Operations is the layer that makes high-scale, efficient participation possible 
 
 ## Example End-to-End Flow
 
-A miner launches an Enigma Machine run via the Streamlit wizard or autonomous CLI. The Operations Multi-Approach Planner analyzes the challenge, determines optimal N (for example 6), and generates distinct high-value approach profiles grounded in the latest KAS-acquired knowledge. N parallel EM instances are deployed, each assigned one profile.
+A miner launches an Enigma Machine run via the Streamlit wizard or autonomous CLI. The Operations Multi-Approach Planner analyzes the challenge, determines optimal N, and generates distinct high-value approach profiles grounded in the latest KAS-acquired knowledge. N parallel EM instances are deployed, each assigned one profile.
 
 Inside each EM instance, atomic sub-swarm workers decompose the problem and execute subtasks. When gaps appear, KAS is called to acquire immediate tools, specialty models, or research snippets. Results are sandbox-verified and injected in real time, producing enriched fragments. The instance applies local Solve gating (provenance, 7D verifier, replay guard) and lightweight Strategy ranking.
 
-Gated fragments, KAS results, and rich telemetry (per-approach performance, communication events, stall patterns) are pushed to secure feed vaults. Global Strategy mines and ranks the aggregated dataset, adding graph centrality, motifs, and cross-domain resonance. The enriched intelligence flows to the Intelligence Subsystem.
+Gated fragments, KAS results, and rich telemetry are pushed to secure feed vaults. Global Strategy mines and ranks the aggregated dataset. The enriched intelligence flows to the Intelligence Subsystem.
 
 There, the Meta-RL Loop evaluates outcomes against the four (plus meta) objectives, the Neural-Net Scoring Head computes calibrated predictions, and the Hyperagent may trigger recursive KAS meta-hunts for improvements. High-value proposals are shadow-tested, approved within global tolerance, and pushed downward as meta-weights, updated approach templates, and distilled models.
 
 Meanwhile, the Economic Subsystem pulls relevant ranked intelligence and Defense hardening to upgrade raw BD/PD artifacts into sponsor-ready proposals or marketplace tools. Successful upgrades land with sponsors or sell in the Marketplace, generating revenue that expands prize pools and creates new high-value challenges.
 
-These new challenges flow back into Solve, closing the loop. The entire cycle — from individual run to global learning to economic value and back — compounds with every iteration. Operations ensures scaling and package distribution, while KAS keeps every layer supplied with fresh, calibrated knowledge. The system gets measurably smarter and more valuable with every swarm.
+These new challenges flow back into Solve, closing the loop. The entire cycle compounds with every iteration. Operations ensures scaling and package distribution, while KAS keeps every layer supplied with fresh, calibrated knowledge. The system gets measurably smarter and more valuable with every swarm.
 
 ## The Three Core Flywheels – Deep Dive
 
@@ -203,8 +189,6 @@ This flywheel makes SAGE truly “for the people, by the people” and drives ex
 - Intelligence improvements feed better Economic upgrades and more accessible models.  
 - Economic revenue funds larger prize pools, attracting more participants and data.  
 - Democratization increases participation volume, supplying richer data to Intelligence.  
-
-The Operations layer (Multi-Approach Planner, controlled communication, smart scaling) and KAS (targeted, calibrated knowledge acquisition) act as accelerators across all three flywheels. The result is a self-reinforcing system that grows stronger, more valuable, and more accessible over time — without central control or single points of failure.
 
 ## Why This System Is Different
 This is a true self-reinforcing intelligence flywheel that does not exist anywhere else today. Local execution stays efficient. Global intelligence compounds centrally. Honest contribution is rewarded through transparent provenance and ContributionScore. And the entire system grows stronger together.
