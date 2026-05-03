@@ -10,9 +10,15 @@ SAGE — Shared Agentic Growth Engine — is being built to fix this at the arch
 
 It started as a single Enigma Machine miner: an agentic solver designed to crack hard, verifiable challenges on Subnet 63. The Enigma Machine is the core tool of SAGE’s intelligent operating system — the layer that orchestrates swarms, manages resources, collects rich telemetry, and uses KAS (Knowledge Acquisition System) hunts to build diverse solving profiles so the system can learn what works best in different contexts. This operating system makes massive parallel participation possible on modest hardware while generating the high-quality data the rest of SAGE depends on.
 
-Early development made something obvious. Individual solutions matter, but the real value is in the process data generated along the way — decision paths, failure modes, verifier feedback, dead ends that turn out to be instructive. In a typical agentic system, all of this gets produced automatically and thrown away after every run.
+### How We Got Here
 
-So the miner is becoming a data engine. And the data engine is becoming SAGE.
+When we started SAGE, the goal was deceptively simple: build a high-performance Enigma Machine miner capable of cracking hard, verifiable challenges on Subnet 63. Early development quickly revealed a deeper problem. The system was generating thousands of valuable decision paths, failure modes, verifier feedback, and cross-domain insights on every run, only to discard almost all of it afterward. Simpler distillation approaches — classic teacher-student KL divergence, trace imitation on reasoning steps, or generic token-level Mixture of Experts — looked promising in isolation but repeatedly fell short under the full set of constraints we had committed to from the beginning: verifiable agentic solving on modest hardware, decentralized participation, long-term compounding without memory explosion, real-time mid-run improvement through Synapse, and economic alignment through gap signals that feed the marketplace and prize pools.
+
+Over many months of hardening and zooming out, we tested, measured, and discarded a series of conventional techniques. A single generalist model lost sharp per-step performance. Adding a full teacher model made the nightly loop heavier than we could sustain at scale. Without explicit process-step bucketing the system homogenized. Without a decay mechanism the vaults would bloat over time. Without real-time process-gap signals from operating system telemetry and Synapse interventions, self-optimization stayed too blunt and reactive.
+
+The current design — a Mixture of Process Experts trained via direct 5-objective Meta-RL vector supervision, enriched by graph-mined relational context, bounded by a decay algorithm, and dynamically prioritized by process-gap detection — is not a collection of flashy inventions. It is the minimal set of pieces required to close the flywheel under the full scope we set. Each component was added only when the constraints made it necessary. This iterative process is why the architecture feels unusually complete: it was shaped by the actual structure and demands of the problem rather than by the desire for novelty.
+
+This naturally leads us to the atomic unit that makes the entire system possible.
 
 ### Fragments: The Atomic Unit
 
