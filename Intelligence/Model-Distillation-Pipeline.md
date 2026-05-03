@@ -15,13 +15,15 @@ It uses **direct vector supervision** from the calibrated 5-objective Meta-RL ve
 
 ### Detailed Architecture
 
-**Step 1: Curated Dataset Assembly**  
+**Step 1: Curated Dataset Assembly (Optimized Data Preparation)**  
 - Pulls high-Training-Utility fragments flagged by the Neural-Net Scoring Head from the central vaults.  
 - Applies the decay algorithm to prioritize active, high-vitality fragments and retire low-reuse ones.  
 - Buckets fragments by **process step** using tags generated during mining.  
-- Enriches each bucket with graph-mined relational context (upstream/downstream motifs, cross-domain connections, high-centrality neighbors).  
+- Enriches each bucket with graph-mined relational context (upstream/downstream motifs, cross-domain connections, high-centrality neighbors) for relational awareness.  
 - Incorporates process-gap signals from operating system telemetry and Synapse copilot interventions to dynamically weight or prioritize specific step buckets.  
-- Distinguishes intelligence gaps (broad capability shortfalls) from process gaps (step-specific weaknesses) for targeted training allocation.
+- Distinguishes intelligence gaps (broad capability shortfalls) from process gaps (step-specific weaknesses) for targeted training allocation.  
+- Performs stratified balancing, adversarial example injection (from Defense), and verifier self-check gating.  
+- Outputs ready-to-train, versioned, step-specific datasets (incremental/delta processing for scale).
 
 **Step 2: Targeted Vector Distillation (Mixture of Process Experts)**  
 - Each specialist is distilled independently and in parallel on its step-bucketed fragments.  
@@ -31,7 +33,7 @@ It uses **direct vector supervision** from the calibrated 5-objective Meta-RL ve
 - This produces a true Mixture of Process Experts that remains small, focused, and highly performant per step.
 
 **Step 3: Dynamic Specialist Fine-Tuning & Gap-Driven Re-training**  
-- Meta-RL uses telemetry + Synapse data to detect process gaps (“synthesis specialist underperforms on novel cross-domain tasks”) versus intelligence gaps (“broad predictive power shortfall”).  
+- Meta-RL uses telemetry + Synapse data to detect process gaps versus intelligence gaps.  
 - Prioritizes and re-trains the relevant specialist(s) with updated weighting or additional fragments from the current nightly cycle.  
 - The generalist is updated only when broad intelligence gaps are flagged, keeping daily compute minimal.
 
