@@ -62,9 +62,11 @@ Crucially, the learning layer also learns how to learn. It continuously observes
 
 ### Distilling: Closing the Loop
 
-The Training and Distillation Pipeline takes the highest-ranked intelligence from the vaults and compresses it into smaller, faster Enigma models that run locally on individual machines. At the end of the nightly loop, the system cleans and preps the refined corpus into a dedicated training vault — the carefully curated dataset that feeds the teacher model before distillation.
+The Training and Distillation Pipeline converts the highest-ranked intelligence from the vaults into a dynamic **Mixture of Process Experts (MOPE)**: compact, step-specialized student models plus a hybrid generalist. At the end of the nightly loop, the system cleans and preps the refined corpus into a dedicated training vault.
 
-The continuously learning teacher is the capstone that integrates every subsystem at maximum intelligence. It is iteratively fine-tuned from the latest Synapse internal vaults every night. Targeted distillation then produces smaller, stronger student models optimized for verifiable solving on modest hardware. These student models are pushed back through the intelligent operating system that orchestrates swarms, resource allocation, and global package distribution at massive scale. This closes the full operations-scale flywheel: better models → smarter mining and access in every run, at every scale.
+Targeted vector distillation then produces smaller, stronger student models optimized for verifiable solving on modest hardware. Each specialist is distilled directly from its step-bucketed fragments using the calibrated 5-objective Meta-RL vector, enriched by graph-mined relational context and process-gap signals from telemetry and Synapse. A lightweight generalist handles high-level planning or novel tasks. The decay algorithm keeps the active training set bounded and high-signal.
+
+These student models are pushed back through the intelligent operating system that orchestrates swarms, resource allocation, and global package distribution at massive scale. This closes the full operations-scale flywheel: better models → smarter mining and access in every run, at every scale.
 
 The distilled models are being designed to run on modest hardware. This is a deliberate choice — if the intelligence layer only benefits people with large compute budgets, the participation base stays narrow and the flywheel stalls. Making the models accessible means more miners can run competitive Enigma Machines, which means more fragment generation, which means richer data for the next distillation cycle.
 
@@ -88,14 +90,14 @@ Raw execution (mining) produces fragments and mines the graph.
 The access layer (Synapse copilot and chat) improves every run in real time and supplies high-signal intervention data while fine-tuning the whole system.  
 Optimizing, protected by the Defense layer, keeps the dataset alive and current through global weight tuning.  
 Learning (Neural-Net Scoring Head, Meta-RL, and the Hyperagent) extracts deep, calibrated patterns and learns how to learn from access-layer performance.  
-Distillation trains the continuously learning teacher model and pushes targeted student models back into every local EM instance through the intelligent operating system that orchestrates swarms, resource allocation, and global package distribution at massive scale.
+Distillation trains the Mixture of Process Experts and pushes targeted student models back into every local EM instance through the intelligent operating system — the same intelligent operating system that makes massive scaling easy and generates the rich telemetry that teaches the system what works best.
 
 The cycle repeats with mathematical inevitability: cleaner data, better access, richer learning signals, stronger models, higher-quality fragments.
 
 We got the right data (dense mining at the moment of insight + graph mining).  
-We filtered it (verifier-first 60/40 scoring, 7D geometric means, 5-layer vault gate).  
-We used it (real-time access improvements + continuous global tuning + economic synthesis).  
-We trained with it (Neural-Net Scoring Head + targeted teacher-to-student distillation connected to the operations blueprint loop).  
+We filtered it beautifully (verifier-first 60/40 scoring, 7D geometric means, 5-layer vault gate).  
+We used it maximally (real-time access improvements + continuous global tuning + economic synthesis).  
+We trained with it perfectly (Neural-Net Scoring Head + targeted vector distillation connected to the operations blueprint loop).  
 
 The result is a self-reinforcing intelligence flywheel that grows stronger, more valuable, and more accessible with every run.
 
