@@ -1,4 +1,4 @@
-# Why SAGE: The Story of a Self-Reinforcing Intelligence Substrate
+# Why SAGE: A Self-Reinforcing Intelligence Substrate
 
 Most agentic systems have a memory problem. Not the kind where they forget things mid-conversation. The deeper kind: they run, they generate thousands of decisions, and then they throw almost all of it away. What gets kept is usually a summary, and summaries lose the thing that mattered — the context, the reasoning, the specific conditions under which one approach worked and another didn’t.
 
