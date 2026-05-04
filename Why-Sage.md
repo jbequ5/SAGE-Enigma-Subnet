@@ -28,7 +28,7 @@ From the very first run, even the earliest gap signals are treated as valuable e
 
 Every Enigma Machine run is a high-volume mining operation. Fragments are generated at every meaningful decision boundary: high-level planning, subtask breakdown, synthesis, stall recovery, experimental branches, knowledge lookups.
 
-The Solve Subsystem handles the first gate. Defense runs immediately on the local machine to block leakage, gaming, and garbage before anything propagates. Fragments that survive local gating get pushed to secure feed vaults. From there, the Strategy Subsystem pulls them into global graph mining, looking for structure across the full history of runs: community clusters, recurring motifs, high-centrality nodes, patterns that show up across different challenges and different miners.
+The Solve Subsystem handles the first scoring gate or threshold. Defense then runs immediately on the local machine to block leakage, gaming, and garbage before anything propagates. Fragments that survive local gating get pushed to secure feed vaults. From there, the Strategy Subsystem pulls them into global graph mining, looking for structure across the full history of runs: community clusters, recurring motifs, high-centrality nodes, patterns that show up across different challenges and different miners.
 
 Why bother mining the graph? Because an isolated insight is useful exactly once. The graph turns individual data points into a connected map. It can surface transferable patterns and cross-domain connections that no single run could find alone.
 
