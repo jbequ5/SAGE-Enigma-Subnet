@@ -95,9 +95,9 @@ Distillation trains the Mixture of Process Experts and pushes targeted student m
 The cycle repeats with mathematical inevitability: cleaner data, better access, richer learning signals, stronger models, higher-quality fragments.
 
 We got the right data (dense mining at the moment of insight + graph mining).  
-We filtered it beautifully (verifier-first 60/40 scoring, 7D geometric means, 5-layer vault gate).  
-We used it maximally (real-time access improvements + continuous global tuning + economic synthesis).  
-We trained with it perfectly (Neural-Net Scoring Head + targeted vector distillation connected to the operations blueprint loop).  
+We filtered it (verifier-first 60/40 scoring, 7D geometric means, 5-layer vault gate).  
+We used it (real-time access improvements + continuous global tuning + economic synthesis).  
+We trained with it (Neural-Net Scoring Head + targeted vector distillation connected to the operations blueprint loop).  
 
 The result is a self-reinforcing intelligence flywheel that grows stronger, more valuable, and more accessible with every run.
 
