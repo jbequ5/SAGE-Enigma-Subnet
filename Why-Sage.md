@@ -8,7 +8,9 @@ A lot of compute. A lot of tokens. Surprisingly little accumulation.
 
 SAGE — Shared Agentic Growth Engine — is being built to fix this at the architecture level.
 
-It started as a single Enigma Machine miner: an agentic solver designed to crack hard, verifiable challenges on Subnet 63. The Enigma Machine is the core tool of SAGE’s intelligent operating system — the layer that orchestrates swarms, manages resources, collects rich telemetry, and uses KAS (Knowledge Acquisition System) hunts to build diverse solving profiles so the system can learn what works best in different contexts. This operating system makes massive parallel participation possible on modest hardware while generating the high-quality data the rest of SAGE depends on. we
+It started as a single Enigma Machine miner: an agentic solver designed to crack hard, verifiable challenges on Subnet 63. The Enigma Machine is the core tool of SAGE’s **Intelligent Operating System** — the layer that orchestrates swarms, manages resources, collects rich telemetry, and uses KAS hunts to build diverse solving profiles so the system can learn what works best in different contexts.
+
+This operating system is now a full **Intelligent Fragment Factory**. It runs a challenge-specific calibration flight test that empirically measures hardware limits, dynamically assembles KAS-informed profiles, and produces intelligent load-out recommendations. It enforces a strict birth gate on every fragment, tracks profile-aware Fragment Yield, supports save/resume of partial high-value fragments across sessions, and applies smart stopping based on real-time yield trajectory. The result is massive parallel participation on modest hardware while generating the high-quality, provenance-rich data the rest of SAGE depends on.
 
 The current design — a Mixture of Process Experts trained via direct 5-objective Meta-RL vector supervision, enriched by graph-mined relational context, bounded by a decay algorithm, and dynamically prioritized by process-gap detection — is not a collection of flashy inventions. It is the minimal set of pieces required to close the flywheel under the full scope we set. Each component was added only when the constraints made it necessary. This iterative process is why the architecture feels unusually complete: it was shaped by the actual structure and demands of the problem rather than by the desire for novelty.
 
@@ -20,7 +22,7 @@ Everything in SAGE is built around a single concept: the fragment.
 
 A fragment is an atomic, provenance-rich unit of intelligence produced by every Enigma Machine run. It is a self-contained packet that captures a single meaningful decision or insight — complete with the exact context in which it was born (the challenge, the subtask, the contract slice, upstream decisions), the verifier outputs that judged it, and an immutable cryptographic hash tying it forever to its creator.
 
-Fragments are the primary fuel for SAGE’s intelligence and economic flywheels. Everything we do is designed around them: we generate them at the moment of insight, filter them ruthlessly, improve access to them in every run, tune and learn from them globally, and distill the resulting knowledge back into better models that make the next run stronger.
+Fragments are the primary fuel for SAGE’s intelligence and economic flywheels. The Intelligent Fragment Factory generates them at the moment of insight, filters them ruthlessly through the strict birth gate, tracks them with the bulletproof Fragment Yield metric, and improves access to them in every run. Meta-RL continuously tunes the factory from this data, while MOPE distillation converts the highest-yield fragments into specialized process experts that make the next run stronger.
 
 From the very first run, even the earliest gap signals are treated as valuable economic seeds. A gap signal is the moment the system detects an unmet need or performance shortfall during a run. These signals point directly to high-potential commercial opportunities and participation incentives. They become the seeds of community-owned value that reward honest contributors and drive the incentive flywheel right from day one.
 
@@ -28,15 +30,11 @@ From the very first run, even the earliest gap signals are treated as valuable e
 
 Every Enigma Machine run is a high-volume mining operation. Fragments are generated at every meaningful decision boundary: high-level planning, subtask breakdown, synthesis, stall recovery, experimental branches, knowledge lookups.
 
-The Solve Subsystem handles the first scoring gate or threshold. Defense then runs immediately on the local machine to block leakage, gaming, and garbage before anything propagates. Fragments that survive local gating get pushed to secure feed vaults. From there, the Strategy Subsystem pulls them into global graph mining, looking for structure across the full history of runs: community clusters, recurring motifs, high-centrality nodes, patterns that show up across different challenges and different miners.
-
-Why bother mining the graph? Because an isolated insight is useful exactly once. The graph turns individual data points into a connected map. It can surface transferable patterns and cross-domain connections that no single run could find alone.
+The Solve Subsystem handles the first scoring gate or threshold. The strict birth gate then runs immediately to block low-value or unproven fragments before anything propagates. Fragments that survive are pushed to secure feed vaults. From there, the Strategy Subsystem pulls them into global graph mining, looking for structure across the full history of runs: community clusters, recurring motifs, high-centrality nodes, patterns that show up across different challenges and different miners.
 
 ### Access: Mid-Run Intelligence
 
-The biggest bottleneck in agentic systems isn’t generation. It’s getting the right knowledge in front of the agent at the moment it actually needs it. The agent stalls, or repeats a mistake a previous run already solved, because the answer exists somewhere in the system but can’t be reached in time.
-
-Synapse is being built to fix this. It’s the Meta-Agent — the interface layer that will sit between the intelligence system and both miners and sponsors. For miners mid-run, it will work as a copilot: surfacing relevant fragments, mined strategies, and ranked results in real time. When the agent hits a decision point or stalls, existing intelligence shows up without waiting for batch processing or a global model update.
+The biggest bottleneck in agentic systems isn’t generation. It’s getting the right knowledge in front of the agent at the moment it actually needs it. Synapse is being built to fix this. It’s the Meta-Agent — the interface layer that will sit between the intelligence system and both miners and sponsors. For miners mid-run, it will work as a copilot: surfacing relevant fragments, mined strategies, and ranked results in real time. When the agent hits a decision point or stalls, existing intelligence shows up without waiting for batch processing or a global model update.
 
 This layer is also designed to work as a continuous fine-tuning mechanism. Every time Synapse surfaces knowledge, the system will track what the agent actually used and what it ignored. That signal feeds back into how knowledge gets ranked next time. The access layer optimises itself with each run.
 
@@ -46,7 +44,7 @@ In practice, this means runs should get measurably better even during bootstrap,
 
 Fragments that survive local gates and graph mining enter the central vaults. This is where the Intelligence Subsystem takes over.
 
-The Meta-RL Loop is designed to run continuously, re-scoring fragments against a five-objective vector. It doesn’t just ask “was this fragment useful?” — it asks whether the fragment’s usefulness has changed given what the system has learned since, and whether it has been re-used by any other part of the system. 
+The Meta-RL Loop runs continuously, re-scoring fragments against a five-objective vector. It doesn’t just ask “was this fragment useful?” — it asks whether the fragment’s usefulness has changed given what the system has learned since, and whether it has been re-used by any other part of the system. Profile-aware yield tracking and smart stopping based on real-time Fragment Yield trajectory keep the factory efficient and responsive.
 
 The core of optimizing is global weight tuning: Meta-RL continuously adjusts the weights, calibration multipliers, and noise penalties across the entire scoring mechanism so the system gets better at evaluating fragments over time. The Neural-Net Scoring Head calibrates alongside it, learning to predict fragment quality faster and more accurately as the dataset grows. This makes the optimization process itself continuously improve.
 
@@ -88,7 +86,7 @@ Shared ownership incentives drive this entire loop. Transparent provenance and C
 
 Raw execution (mining) produces fragments and mines the graph.  
 The access layer (Synapse copilot and chat) improves every run in real time and supplies high-signal intervention data while fine-tuning the whole system.  
-Optimizing, protected by the Defense layer, keeps the dataset alive and current through global weight tuning.  
+Optimizing, protected by the Defense layer, keeps the dataset alive and current through global weight tuning and smart stopping.  
 Learning (Neural-Net Scoring Head, Meta-RL, and the Hyperagent) extracts deep, calibrated patterns and learns how to learn from access-layer performance.  
 Distillation trains the Mixture of Process Experts and pushes targeted student models back into every local EM instance through the intelligent operating system — the same intelligent operating system that makes massive scaling easy and generates the rich telemetry that teaches the system what works best.
 
