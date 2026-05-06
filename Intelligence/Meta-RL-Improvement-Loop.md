@@ -3,85 +3,92 @@
 **SAGE — Shared Agentic Growth Engine**  
 **v0.9.13+ Meta-Learning Upgrade**
 
-### Investor Summary — Why This Matters
-The Meta-RL Improvement Loop is the core self-improvement engine of the Intelligence Subsystem. It continuously tunes scoring, gating, strategy recommendations, and global approximations by learning directly from real downstream outcomes (EFS lift, reuse success, calibration error, replan count, etc.) rather than static prompts or simple reflection.
+**Investor Summary — Why This Matters**  
+The Meta-RL Improvement Loop is the central self-improving brain of SAGE. It is the final pass for all data flowing through every layer of the system. It continuously analyzes real outcomes from Enigma Machine runs, Intelligent Operating System telemetry, KAS hunt results, Defense AHE reports, Economic artifacts, and MOPE training results. Using a 5-objective vector (with an optional 6th novelty objective for MOPE models), it proposes safe, versioned, measurable improvements that raise solution quality, fragment value, model performance, and overall flywheel velocity.
 
-Measured via A/B testing on 150+ internal runs and held-out validation sets, this loop reduces calibration error by **47%**, improves average EFS by **1.8–2.6×** over 10–20 missions, and accelerates the time to high-performance regimes by **65%**. For investors, this is the flywheel multiplier that turns a powerful solver into a continuously evolving intelligence asset — the mechanism that compounds collective capability and drives the path to democratized local Enigma models.
+This loop turns raw fragments into continuously compounding intelligence. It is what makes SAGE more than a collection of tools — it makes SAGE a living, self-optimizing intelligence substrate.
 
-### Core Purpose
-The Meta-RL Improvement Loop operates on four measurable objectives using calibration error from actual Enigma Machine runs as the primary learning signal. It runs automatically (daily or on high-signal triggers) and proposes safe, versioned tweaks that improve scoring, ranking, gating, and strategy recommendations across the entire SAGE platform. All changes remain within strict safety bounds (global re-scoring tolerance ≤ 0.08) and are fully reversible.
+**The Five Optimization Objectives**  
+The loop optimizes the following measurable objectives using real downstream performance as the primary signal:
 
-### Detailed Architecture
+1. Recognition of Value — Accuracy in identifying high-signal fragments versus noise (measured by correlation with actual EFS lift and downstream reuse success).  
+2. Implementation of Strategy (Advice Success Score) — How effectively Synapse recommendations improve real EM runs (measured by post-recommendation EFS delta, replan reduction, and reuse rate).  
+3. Prediction of Impact — Accuracy of forecasts about future EFS lift, performance gain, or model improvement.  
+4. Training Utility — How useful a fragment will be for future MOPE distillation and model training (measured by downstream model performance gain).  
+5. Defense & Robustness — How well the system resists gaming, poisoning, and attack vectors (measured by red-team success rate and Defense Health Score).  
 
-**The Four Optimization Objectives**  
-The loop optimizes four parallel objectives, each measured against real downstream performance:
-
-1. **Recognition of Value** — Accuracy in identifying high-signal fragments vs. noise (measured by correlation with actual EFS lift).  
-2. **Implementation of Strategy (Advice Success Score)** — How well Synapse recommendations improve real EM runs (measured by post-recommendation EFS delta, reuse rate, and replan reduction).  
-3. **Prediction of Impact** — Accuracy of forecasts about future EFS lift or performance gain.  
-4. **Training Utility** — How useful a fragment will be for future model distillation (measured by downstream model performance gain).
+**Optional 6th Objective (Novelty Preservation for MOPE)**  
+Maintain a healthy novelty vector across MOPE specialists so the system does not collapse into local optima. Measured by diversity metrics in the distilled model set and cross-domain generalization.
 
 **The 7-Phase Loop Process**  
-The loop follows a repeatable, fully auditable 7-phase process:
+The Meta-RL loop runs nightly (or on high-signal triggers) and follows this repeatable, auditable process:
 
-**Phase 1 – Collect & Score Past Advice**  
-Retrieve every previous recommendation, strategy injection, meta-tuning proposal, and their downstream outcomes from secure feed vaults.
+**Phase 1 – Collect All Data**  
+Pulls high-signal fragments (from Solve), Intelligent Operating System telemetry and profile performance, KAS hunt results, Defense AHE reports, Economic artifacts, and recent MOPE training outcomes from the secure shared vaults.
 
-**Phase 2 – Compute Multi-Objective Scores**  
-The Neural-Net Scoring Head runs on rich fragment features and produces predictions + uncertainty estimates for all four objectives. Real outcomes are compared to predictions to compute calibration error.
+**Phase 2 – Compute the 5-Objective Vector**  
+The Neural-Net Scoring Head evaluates every fragment and run against the five (plus optional sixth) objectives. Real outcomes are compared to predictions to compute calibration error. The primary input signal is the 60/40 EFS scoring pipeline (60% Base EFS via 7D geometric mean + 40% refined value-added with noise penalty).
 
-**Phase 3 – Self-Critique**  
-Analyze patterns in low-scoring or poorly calibrated areas. Identify systematic weaknesses (e.g., over-optimism on certain task types, under-weighting of verifier tightness).
+**Phase 3 – Self-Critique & Pattern Detection**  
+Analyzes patterns in low-scoring or poorly calibrated areas. Identifies systematic weaknesses across layers (e.g., under-weighting verifier tightness, weak novelty in MOPE specialists, IOS profile drift, KAS hunt inefficiency).
 
 **Phase 4 – Propose Self-Tweaks**  
-Generate concrete, safe proposals: weight adjustments in scoring formulas, gating threshold changes, NN hyperparameter updates, or new features for the training pipeline.
+Generates concrete, safe proposals: weight adjustments in scoring formulas, gating threshold changes, KAS hunt refinements, IOS profile biases, MOPE training data curation rules, or NN hyperparameter updates.
 
-**Phase 5 – Safe Application**  
-- Low-risk tweaks are auto-applied if they meet strict safety thresholds.  
-- Higher-risk changes are staged for human/governance review.  
-- All changes are versioned and fully reversible with rollback capability.
+**Phase 5 – Safe Application & Versioning**  
+Low-risk tweaks are auto-applied if they meet strict safety thresholds (global re-scoring tolerance ≤ 0.08). Higher-risk changes are staged for governance review. All changes are versioned and fully reversible.
 
 **Phase 6 – Log & Transparency**  
 Full audit trail (before/after metrics, calibration curves, proposed vs. applied tweaks) is written to the Defense Subsystem and made available to contributors.
 
 **Phase 7 – Meta-Stall Reflection & Idea-Bank Recommendation**  
-When multi-signal stall detection triggers (calibration error plateau > 3 cycles, Advice Success Score stagnation, Training Utility flattening, etc.), the system performs structured reflection and queries the living `learning_ideas.md` backlog. It re-scores top ideas using sandbox replay, NN inference, and AHE checks, then generates 1–3 concrete, testable proposals that are sandbox-tested by Defense, scored by the Neural-Net Scoring Head, and gated by current `tuning.md` freedom levels.
+When multi-signal stall detection triggers (calibration error plateau, Advice Success Score stagnation, Training Utility flattening, Flywheel Velocity drop, etc.), the system performs structured reflection, queries the living learning_ideas.md backlog, re-scores top ideas using sandbox replay and NN inference, and generates 1–3 concrete, testable proposals. These are then sandbox-tested by DefenseRedTeam and gated by current tuning.md freedom levels.
 
-**Rebuild Steps**  
-1. Implement the 7-phase loop as `run_meta_tuning_cycle()` in the `sage-intelligence` repository.  
-2. Wire data collection from secure feed vaults (Solve, Strategy, Economic, Operations, Defense).  
-3. Connect the Neural-Net Scoring Head for Phase 2 predictions and calibration error computation.  
-4. Implement Phase 5 safe application logic with global re-scoring tolerance enforcement.  
-5. Add Phase 7 meta-stall detection, `learning_ideas.md` integration, and sandbox gating.  
-6. Ensure all changes are versioned and logged via `_append_trace`.
+**Inputs to the Neural-Net Scoring Head by Subsystem**  
+The NN Scoring Head receives the following specific inputs from each major subsystem:
 
-### Concrete Example — Quantum Stabilizer Mission
-A fragment from a stabilizer code subtask is evaluated. The Neural-Net Scoring Head predicts high Implementation of Strategy (expected +0.14 EFS lift) but medium Prediction of Impact (forecasted calibration error 0.07).  
+- **Solve / Fragment Pipeline**  
+  7D verifier scores, Base EFS (60%), refined value-added (40% with noise penalty), provenance hash, creator_id, em_instance_id, timestamp, local_score.
 
-Phase 2 computes calibration error. Phase 3 identifies systematic under-weighting of verifier tightness. Phase 4 proposes a small weight adjustment to the `verifier_7D_average` term. Phase 5 applies it safely (within 0.08 tolerance).  
+- **Intelligent Operating System (IOS)**  
+  Profile performance metrics (fragment yield per profile), calibration flight test results, swarm size used, concurrent LLM load, smart-stop triggers, save/resume session data.
 
-Future EM runs now start with stronger verifier weighting, raising average EFS by ~3–5% in the next cycle. If a stall is later detected, Phase 7 pulls from the idea bank to propose higher-order architectural changes.
+- **KAS (Knowledge Acquisition System)**  
+  Hunt results (relevance, freshness, novelty), domain overlap scores, new tool/model/paper proposals, cache miss rate, success rate of prior hunts.
 
-### Why the Meta-RL Improvement Loop Matters
-The Meta-RL Improvement Loop is what allows SAGE to move beyond static prompts or simple reflection into genuine hierarchical learning. It turns every real Enigma Machine run into training data for the entire platform, continuously raising solution quality, fragment value, and model performance across all subsystems.
+- **Defense Subsystem**  
+  Red-team success rate, Defense Health Score, attack vectors detected, mitigation effectiveness, AHE cycle results.
 
-**All supporting architecture is covered in [Intelligence Subsystem Master Overview](../intelligence/Intelligence-Subsystem-Overview.md).**
+- **Economic Subsystem**  
+  Gap pain scores, BD relevance scores, product/proposal draft readiness, marketplace performance metrics (if any), sponsor interest signals.
 
-**Economic Impact at a Glance**  
-- Target: 47% reduction in calibration error; contributes to overall 1.8–2.6× EFS improvement and 65% faster time to high-performance regime  
-- Success Milestone (60 days): Meta-RL cycles produce measurable EFS gains in ≥ 80% of tuning runs (measured against current baseline of ~52%)
+- **Graph Mining / Strategy**  
+  Centrality scores, community detection results, cross-domain connections, reuse/replay rates, novelty vector metrics.
 
----
+**Distillation Prep Vault Section**  
+After Phase 2 scoring, the loop writes a dedicated training batch to the Distillation Prep Vault (data/training_batches/).  
 
-### Reference: Key Decision Formulas
+For each high-utility fragment the following is prepared:  
+- Full fragment content + metadata  
+- 5-objective NN vector  
+- 60/40 EFS breakdown  
+- Refined value-added components  
+- Provenance hash  
+- Decay factor (to prioritize fresh data)  
+- Novelty score (for the 6th objective)  
 
-**Multi-Objective Calibration Loss**  
-`L = w₁·MSE_value + w₂·MSE_strategy + w₃·MSE_impact + w₄·MSE_utility + λ·calibration_penalty`  
-(where w₁–w₄ and λ are themselves tuned by the loop)
+The vault is used directly by the MOPE distillation pipeline to create the next set of process-specialist models. This ensures the training data is clean, weighted, and directly tied to real performance outcomes.
 
-**Global Re-scoring Tolerance Check**  
-If |Local Score - Global Re-Score| > 0.08 → flag for AHE review or downgrade.
+**Why the Meta-RL Improvement Loop Matters**  
+This loop is the mechanism that turns every real Enigma Machine run into training data for the entire platform. It is the final pass that upgrades scoring, gating, strategy recommendations, KAS hunts, IOS profiles, MOPE data preparation, and model distillation. It ensures the system gets measurably smarter every day while remaining safe, auditable, and fully reversible.
 
-**AHA / Stall Detection**  
-`AHA = (current_score - previous_score > 0.12) OR (heterogeneity_spike > 0.78) OR (calibration_error_plateau > 3 cycles)`
+**Reference: Key Decision Formulas**  
 
+Multi-Objective Calibration Loss  
+$$ L = w_1 \cdot \text{MSE_value} + w_2 \cdot \text{MSE_strategy} + w_3 \cdot \text{MSE_impact} + w_4 \cdot \text{MSE_utility} + w_5 \cdot \text{MSE_defense} + \lambda \cdot \text{calibration_penalty} $$
+
+Global Re-scoring Tolerance Check  
+If $$ | \text{Local Score} - \text{Global Re-Score} | > 0.08 $$ → flag for AHE review or downgrade.
+
+AHA / Stall Detection  
+$$ \text{AHA} = (\text{current_score} - \text{previous_score} > 0.12) \lor (\text{heterogeneity_spike} > 0.78) \lor (\text{calibration_error_plateau} > 3 \text{ cycles}) $$
