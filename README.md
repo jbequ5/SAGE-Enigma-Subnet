@@ -2,84 +2,64 @@
 
 **The Community-Owned Intelligence Layer for Bittensor Subnet 63**
 
-## What is SAGE?
+### What is SAGE?
 
-SAGE transforms every Enigma Machine run on Subnet 63 into a permanent, compounding piece of shared intelligence.
+SAGE is a living, self-improving intelligence platform that turns every hard, verifiable physics challenge solved on Subnet 63 into permanent, compounding shared intelligence.
 
-It captures high-signal solving data, ranks and enriches it, continuously self-improves through its Intelligence Subsystem, hardens itself against weaknesses, and converts the strongest outputs into real economic value through proposals, toolkits, and services.
+It captures rich solving traces from real Enigma Machine runs, distills them into high-fidelity fragments, and continuously evolves a production-grade surrogate engine — the PINO bank — that replaces extremely expensive physics simulations with fast, accurate, physics-consistent models.
 
-The result is a self-reinforcing flywheel where honest participation creates measurable value that flows back to contributors, alpha holders, sponsors, and the broader community.
+A surrogate is a learned neural operator that predicts the full outcome of heavy simulations (CFD, FEA, quantum circuits, molecular dynamics, chip design, drug discovery, and more) in milliseconds instead of hours or days, while strictly obeying the underlying physical laws.
 
-## How We Got Here — The Evolutionary Journey
+The PINO bank is not static. It is a dynamic collection of neural operators that learn entire families of physics equations directly. It already incorporates five cutting-edge advances: foundation-style cross-domain pre-training, hybrid neural-operator + tensor-network engines, multi-fidelity discrepancy experts, transformer-based PINTO operators for long-range dependencies, and uncertainty-aware Bayesian + conformal prediction wrappers.
 
-SAGE did not begin as the full platform you see today.
+Every solved challenge makes the entire system measurably smarter. This is not incremental improvement — it is a true recursive flywheel that compounds intelligence at the system level.
 
-It started as a single, ambitious Enigma Machine miner — an English-first, verifier-first agentic solver built around the Arbos-inspired Ralph loop. The original goal was straightforward: reliably solve hard, verifiable challenges on Subnet 63.
+### The Core Mechanism: A Living Fitness Landscape
 
-Early runs quickly revealed something profound: the **real gold** was not any individual solution, but the rich process data generated along the way — decision paths, failure modes, verifier insights, and meta-lessons. These byproducts were being created automatically, yet were being lost after each mission.
+At the center of SAGE is a **live fitness landscape** — a dynamic 7-dimensional geometry-aware map of the system’s own capabilities.
 
-This observation triggered the first major pivot: turn the solver into a high-quality **data engine**.
+Every fragment is instantly projected onto this map, defined by seven core objectives: Physics Fidelity, Empirical Prediction Accuracy, Computational Efficiency, Generalization & Transfer, Defense & Robustness, Problem-Solving Impact, and Training Utility + Learning-to-Learn.
 
-From there, the system evolved naturally through necessity and real-world pressure:
-- Strict verifier-first gating and the DVR Pipeline to guarantee data quality at the source.
-- Intelligent fragment scoring and private-gatekeeper handoff.
-- Graph mining, ByteRover MAU reinforcement, and nightly red-teaming.
-- Meta-RL self-improvement with a 5-objective vector design.
-- A focused distillation pipeline that turns the best data into smaller, faster Enigma models.
+The Synapse Meta-RL polishing loop treats every distillation target and routing decision as an explicit move on this map. It scans Pareto fronts, identifies promising funnels, detects gaps, and steers distillation toward higher-value regions — automatically inventing new specialists, evolving new PINO bank entries (including combinations of the five advances), and refining TeamComposer’s team-assembly logic.
 
-We never set out to replicate NVIDIA’s Data Flywheel. We simply followed the logic of turning real solving data into continuously improving, community-owned intelligence. The flywheel emerged organically — exactly as it did for NVIDIA in their own domain.
+This is SAGE operating as a genuine **Complex Adaptive System**. Fragments act as local agents. Specialists adapt and specialize. TeamComposer self-organizes precise, task-specific teams on the fly. The result is emergence: the collective intelligence grows faster than any single component could achieve alone. The system literally learns *how to learn* better with every mission, turning expensive verification into a permanent, compounding asset.
 
-## The Three Core Flywheels
+### How the Intelligence Flywheel Works
 
-### 1. The Intelligence Flywheel
-Raw solving data → high-quality fragments → ranked intelligence → continuous self-improvement → better strategies and models → even richer data.
+1. **Data Engine** — Every Enigma Machine run generates rich, verifiable fragments containing team recipes, physics residuals, uncertainty maps, verifier checklist results, and EFS lift.
 
-Every run makes the entire system smarter. Synapse (the Meta-Agent) learns from real outcomes, improves its scoring and recommendations, and pushes better global approximations back to every Enigma Machine.
+2. **Fitness Landscape Projection** — Fragments are embedded into the live 7D map. The NeurELA-style embedder reveals global geometry: funnel structure, searchability, temporal drift, and Pareto-front velocity.
 
-### 2. The Economic Flywheel
-Intelligence → upgraded proposals and toolkits → marketplace revenue and landed sponsors → larger prize pools and new challenges → more participation and richer data.
+3. **Guided Distillation** — The Meta-RL polishing loop uses the landscape to select optimal targets, perform PLON-guided merges, and execute curriculum-style refinement — creating smaller, faster MoPE and MoDE specialists and new PINO bank entries.
 
-Successful outputs generate real revenue and new high-value challenges. That revenue funds bigger prize pools, attracting more miners and sponsors, which produces even more data for the Intelligence Flywheel.
+4. **Team-Level Compounding** — TeamComposer assembles fresh expert teams for every subtask, dynamically choosing the right mix of foundation engines, hybrid tensor networks, discrepancy experts, PINTO operators, uncertainty wrappers, or any combination.
 
-### 3. The Democratization Flywheel
-High-utility fragments → curated training data → distilled smaller Enigma models → accessible local solving capability for more people → more participation → richer data and faster improvement.
+5. **Closed Loop** — Better surrogates produce richer fragments on harder problems, which further advance the fitness landscape. The cycle accelerates.
 
-As the system learns, it produces smaller, specialized Enigma models that run well on modest hardware. More people can participate easily, accelerating all three flywheels and spreading solving intelligence to the many instead of keeping it with the few.
+This flywheel is what makes SAGE uniquely effective at solving hard verifiable problems and building production surrogates: it does not just solve today’s challenge — it permanently raises the system’s baseline capability for tomorrow’s challenges.
 
-## Why SAGE Matters
+### The Three Reinforcing Flywheels
 
-This is not another shared database or static knowledge repository.
+**Intelligence Flywheel**  
+Solving data → fragments → fitness landscape → guided distillation → smarter specialists and surrogates → richer future data.
 
-This is a **true self-reinforcing intelligence flywheel** that does not exist anywhere else today.
+**Economic Flywheel**  
+Superior surrogates and toolkits → marketplace value and sponsor revenue → larger prize pools → more high-signal runs → faster intelligence growth.
 
-- **For miners**: Your fragments are credited with provenance. You gain access to better strategies through Synapse and earn rewards proportional to your contribution.
-- **For sponsors**: You get faster, higher-quality solutions and intelligent challenge-design tooling that advances your roadmap.
-- **For alpha holders**: Increased subnet value through higher solver success rates, marketplace revenue, and expanded participation.
-- **For the community**: Solving intelligence becomes democratized — built by the many, owned by the many, and accessible to everyone who contributes.
+**Democratization Flywheel**  
+Distilled smaller models and accessible surrogates → broader participation on modest hardware → more diverse data → accelerated improvement for everyone.
 
-Every honest contribution is rewarded. The system gets measurably smarter with every mission. Local innovation is enhanced by collective breakthroughs. And the value created flows back to the people who build it.
+Together, these flywheels create a self-reinforcing ecosystem where honest contribution directly strengthens the shared intelligence layer.
 
-## Quick Start
+### Why SAGE Matters
 
-1. Read **[VISION.md](VISION.md)** for the full vision and how the flywheels connect.
-2. Read **[Enigma-Machine-Deep-Dive.md](Enigma-Machine-Deep-Dive.md)** for details on the core solver.
-3. Read **[Operating_System.md](Operating_System.md)** for how to run it.
-4. Read **[SAGE-Platform-Architecture.md](SAGE-Platform-Architecture.md)** for the complete system overview.
-5. Explore the subsystem deep dives in the `subsystems/` folder.
+SAGE is the first platform that turns decentralized, verifiable physics problem-solving into a community-owned, self-improving surrogate factory.
 
-**Repository:** [Sage-Enigma-Bittensor](https://github.com/jbequ5/SAGE-Enigma-Subnet)
+- **Miners** receive provenance credit for their fragments, gain access to ever-better strategies through Synapse, and earn rewards proportional to real contribution.
+- **Sponsors** receive faster, higher-quality solutions plus intelligent tooling that accelerates their own roadmaps.
+- **Alpha holders** benefit from rising subnet value driven by measurable solver success, marketplace revenue, and expanding participation.
+- **The community** gains democratized access to solving intelligence — built by the many, owned by the many, and continuously improving for everyone.
 
----
+Every honest run advances the collective capability. The system gets measurably smarter with every mission. Local innovation is amplified by collective breakthroughs. And the value created flows back to the people who build it.
 
-Welcome to the **People’s Intelligence Layer** — built by the many, owned by the many, and designed so that the people who build it are the ones who win.
-
----
-
-This version is now powerful, inspiring, and self-contained while staying concise enough for a landing page. It tells the evolutionary story, highlights the organic confluence with NVIDIA, emphasizes the three flywheels, and ends with a strong, memorable close.
-
-Would you like me to:
-- Integrate this into the main Vision README?
-- Create a shorter one-page pitch version?
-- Or move on to updating another document?
-
-Just let me know.
+**This is the People’s Intelligence Layer** — designed so that the people who contribute are the ones who win.
